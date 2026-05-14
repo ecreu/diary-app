@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>하루 일기</title>
+
+<style>
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:"Pretendard",sans-serif;
+}
+
+body{
+  background:#f3f4f6;
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
+  transition:0.3s;
+}
+
+body.dark{
+  background:#121212;
+}
+
+.wrapper{
+  width:100%;
+  position:relative;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.slider{
+  width:1854px;
+  overflow:hidden;
+}
+
+.track{
+  display:flex;
+  gap:18px;
+  transition:transform 0.28s cubic-bezier(0.22,1,0.36,1);
+}
+
+.card{
+  width:600px;
+  min-width:600px;
+  height:420px;
+  border-radius:30px;
+  padding:24px;
+  display:flex;
+  flex-direction:column;
+  box-shadow:0 8px 25px rgba(0,0,0,0.08);
+  flex-shrink:0;
+  transition:
+    transform 0.28s cubic-bezier(0.22,1,0.36,1),
+    opacity 0.28s cubic-bezier(0.22,1,0.36,1),
+    background 0.3s ease,
+    color 0.3s ease;
+}
+
+.main{
+  transform:scale(1);
+  opacity:1;
+}
+
+.side{
+  transform:scale(0.94);
+  opacity:0.58;
+}
+
+.title{
+  text-align:center;
+  font-size:22px;
+  font-weight:700;
+  margin-bottom:10px;
+}
+
+.date{
+  text-align:center;
+  font-size:13px;
+  color:#666;
+  margin-bottom:18px;
+  transition:0.3s;
+}
+
+textarea{
+  width:100%;
+  height:120px;
+  border:none;
+  border-radius:20px;
+  padding:16px;
+  resize:none;
+  outline:none;
+  font-size:14px;
+  line-height:1.6;
+  margin-bottom:16px;
+  background:rgba(255,255,255,0.5);
+  transition:0.3s;
+}
+
+.content{
+  flex:1;
+  overflow-y:auto;
+  white-space:pre-wrap;
+  line-height:1.6;
+  font-size:14px;
+  transition:0.3s;
+}
+
+.time{
+  text-align:right;
+  font-size:12px;
+  margin-top:12px;
+  color:#666;
+  transition:0.3s;
+}
+
+.save{
+  border:none;
+  background:#222;
+  color:white;
+  padding:12px;
+  border-radius:14px;
+  cursor:pointer;
+  font-size:14px;
+  margin-top:14px;
+  transition:0.3s;
+}
+
+.disabled{
+  background:#999 !important;
+  cursor:not-allowed !important;
+}
+
+.arrow{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  width:52px;
+  height:52px;
+  border:none;
+  border-radius:50%;
+  background:white;
+  box-shadow:0 4px 14px rgba(0,0,0,0.08);
+  font-size:24px;
+  cursor:pointer;
+  z-index:30;
+  transition:0.3s;
+}
+
+#prevBtn{
+  left:40px;
+}
+
+#nextBtn{
+  right:40px;
+}
+
+.topButtons{
+  position:fixed;
+  top:24px;
+  right:24px;
+  display:flex;
+  gap:12px;
+  z-index:999;
+}
+
+.topBtn{
+  border:none;
+  padding:12px 18px;
+  border-radius:14px;
+  background:#222;
+  color:white;
+  cursor:pointer;
+  transition:0.3s;
+}
+
+.colorPicker{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin-top:4px;
+}
+
+.colorBtn{
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  border:3px solid transparent;
+  cursor:pointer;
+}
+
+.selectedColor{
+  border-color:#111;
+}
+
+.whiteColor{ background:#ffffff; }
+.redColor{ background:#fecaca; }
+.orangeColor{ background:#fed7aa; }
+.yellowColor{ background:#fef08a; }
+.greenColor{ background:#bbf7d0; }
+.blueColor{ background:#bfdbfe; }
+.purpleColor{ background:#e9d5ff; }
+
+/* 다크모드 */
+
+body.dark .card{
+
+  color:white;
+
+  box-shadow:
+    0 8px 25px rgba(0,0,0,0.35);
+}
+
+body.dark .date{
+
+  color:#d1d5db;
+}
+
+body.dark .content{
+
+  color:#f3f4f6;
+}
+
+body.dark .time{
+
+  color:#d1d5db;
+}
+
+body.dark textarea{
+
+  background:rgba(255,255,255,0.08);
+
+  color:white;
+}
+
+body.dark textarea::placeholder{
+
+  color:#cfcfcf;
+}
+
+body.dark .save{
+
+  background:white;
+
+  color:#111;
+}
+
+body.dark .arrow{
+
+  background:#1f2937;
+
+  color:white;
+
+  box-shadow:
+    0 4px 14px rgba(0,0,0,0.35);
+}
+
+body.dark .topBtn{
+
+  background:white;
+
+  color:#111;
+}
+
+body.dark .selectedColor{
+
+  border-color:white;
+}
+
+/* 모바일 */
+
+@media (max-width:768px){
+
+  .slider{
+
+    width:100vw;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+  }
+
+  .track{
+
+    gap:0;
+  }
+
+  .card{
+
+    width:88vw;
+    min-width:88vw;
+
+    margin:0 6vw;
+
+    height:420px;
+  }
+
+  .main{
+
+    transform:scale(1);
+    opacity:1;
+  }
+
+  .side{
+
+    transform:scale(0.82);
+    opacity:0;
+    pointer-events:none;
+  }
+
+  .arrow{
+
+    width:44px;
+    height:44px;
+
+    font-size:20px;
+  }
+
+  #prevBtn{
+
+    left:10px;
+  }
+
+  #nextBtn{
+
+    right:10px;
+  }
+
+  .topButtons{
+
+    top:16px;
+    right:16px;
+
+    gap:8px;
+  }
+
+  .topBtn{
+
+    padding:10px 14px;
+
+    font-size:13px;
+  }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="topButtons">
+
+  <button
+    class="topBtn"
+    id="randomBtn">
+    🎲 추억 보기
+  </button>
+
+  <button
+    class="topBtn"
+    id="themeToggle">
+    🌙 다크모드
+  </button>
+
+</div>
+
+<div class="wrapper">
+
+  <button
+    class="arrow"
+    id="prevBtn">
+    〈
+  </button>
+
+  <div class="slider">
+
+    <div
+      class="track"
+      id="track">
+    </div>
+
+  </div>
+
+  <button
+    class="arrow"
+    id="nextBtn">
+    〉
+  </button>
+
+</div>
+
+<script>
+
+const track =
+  document.getElementById("track");
+
+const prevBtn =
+  document.getElementById("prevBtn");
+
+const nextBtn =
+  document.getElementById("nextBtn");
+
+const randomBtn =
+  document.getElementById("randomBtn");
+
+const themeToggle =
+  document.getElementById("themeToggle");
+
+let MOVE_DISTANCE =
+  window.innerWidth <= 768
+  ? window.innerWidth
+  : 618;
+
+let isAnimating = false;
+
+let selectedColor =
+  "#ffffff";
+
+const today =
+  new Date()
+    .toLocaleDateString(
+      "sv-SE",
+      {
+        timeZone:"Asia/Seoul"
+      }
+    );
+
+let diaries = JSON.parse(
+  localStorage.getItem(
+    "diaries"
+  )
+) || [];
+
+let currentIndex = 0;
+
+function getKoreanDateTime(){
+
+  return new Date()
+    .toLocaleString(
+      "ko-KR",
+      {
+        timeZone:"Asia/Seoul"
+      }
+    );
+}
+
+function getSlides(){
+
+  return [
+
+    {
+      type:"today"
+    },
+
+    ...diaries
+      .slice()
+      .reverse()
+      .map(diary=>({
+
+        type:"diary",
+
+        data:diary
+      }))
+  ];
+}
+
+function escapeHtml(text){
+
+  return text
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;");
+}
+
+function getColorPickerHTML(
+  currentColor = "#ffffff"
+){
+
+  return `
+
+    <div class="colorPicker">
+
+      <div
+        class="colorBtn whiteColor ${
+          currentColor === "#ffffff"
+          ? "selectedColor"
+          : ""
+        }"
+        data-color="#ffffff"></div>
+
+      <div
+        class="colorBtn redColor ${
+          currentColor === "#fecaca"
+          ? "selectedColor"
+          : ""
+        }"
+        data-color="#fecaca"></div>
+
+      <div
+        class="colorBtn orangeColor ${
+          currentColor === "#fed7aa"
+          ? "selectedColor"
+          : ""
+        }"
+        data-color="#fed7aa"></div>
+
+      <div
+        class="colorBtn yellowColor ${
+          currentColor === "#fef08a"
+          ? "selectedColor"
+          : ""
+        }"
+        data-color="#fef08a"></div>
+
+      <div
+        class="colorBtn greenColor ${
+          currentColor === "#bbf7d0"
+          ? "selectedColor"
+          : ""
+        }"
+        data-color="#bbf7d0"></div>
+
+      <div
+        class="colorBtn blueColor ${
+          currentColor === "#bfdbfe"
+          ? "selectedColor"
+          : ""
+        }"
+        data-color="#bfdbfe"></div>
+
+      <div
+        class="colorBtn purpleColor ${
+          currentColor === "#e9d5ff"
+          ? "selectedColor"
+          : ""
+        }"
+        data-color="#e9d5ff"></div>
+
+    </div>
+  `;
+}
+
+function getCardHTML(slide){
+
+  if(slide.type === "today"){
+
+    const alreadyWritten =
+      diaries.find(
+        d => d.date === today
+      );
+
+    return `
+      <div
+        class="card"
+        style="background:${selectedColor}">
+
+        <div class="title">
+          오늘의 일기
+        </div>
+
+        <div class="date">
+          ${today}
+        </div>
+
+        <textarea
+          class="diaryInput"
+          placeholder="오늘 하루를 기록해보세요..."
+          ${alreadyWritten ? "disabled" : ""}
+        >${
+          alreadyWritten
+          ? alreadyWritten.content
+          : ""
+        }</textarea>
+
+        ${
+          alreadyWritten
+          ? ""
+          : getColorPickerHTML(
+              selectedColor
+            )
+        }
+
+        <button
+          class="save ${
+            alreadyWritten
+            ? "disabled"
+            : ""
+          }">
+
+          ${
+            alreadyWritten
+            ? "오늘은 이미 작성 완료"
+            : "작성 완료"
+          }
+
+        </button>
+
+      </div>
+    `;
+  }
+
+  return `
+    <div
+      class="card side"
+      data-date="${slide.data.date}"
+      style="background:${
+        slide.data.color || "#ffffff"
+      }">
+
+      <div class="title">
+        작성된 일기
+      </div>
+
+      <div class="date">
+        ${slide.data.date}
+      </div>
+
+      <div class="content">
+        ${escapeHtml(
+          slide.data.content
+        )}
+      </div>
+
+      ${getColorPickerHTML(
+        slide.data.color || "#ffffff"
+      )}
+
+      <div class="time">
+        ${slide.data.time}
+      </div>
+
+    </div>
+  `;
+}
+
+function render(){
+
+  const slides =
+    getSlides();
+
+  const prevIndex =
+    (currentIndex - 1 + slides.length)
+    % slides.length;
+
+  const nextIndex =
+    (currentIndex + 1)
+    % slides.length;
+
+  track.innerHTML =
+
+    getCardHTML(
+      slides[prevIndex]
+    )
+
+    +
+
+    getCardHTML(
+      slides[currentIndex]
+    )
+
+    +
+
+    getCardHTML(
+      slides[nextIndex]
+    );
+
+  const cards =
+    document.querySelectorAll(
+      ".card"
+    );
+
+  cards.forEach(card=>{
+
+    card.classList.remove(
+      "main"
+    );
+
+    card.classList.remove(
+      "side"
+    );
+  });
+
+  cards[0].classList.add(
+    "side"
+  );
+
+  cards[1].classList.add(
+    "main"
+  );
+
+  cards[2].classList.add(
+    "side"
+  );
+}
+
+function slide(direction){
+
+  if(isAnimating) return;
+
+  isAnimating = true;
+
+  track.style.transform =
+
+    direction === "next"
+
+    ? `translateX(-${MOVE_DISTANCE}px)`
+
+    : `translateX(${MOVE_DISTANCE}px)`;
+
+  setTimeout(()=>{
+
+    const slides =
+      getSlides();
+
+    currentIndex =
+
+      direction === "next"
+
+      ? (currentIndex + 1)
+        % slides.length
+
+      : (
+          currentIndex - 1
+          + slides.length
+        )
+        % slides.length;
+
+    track.style.transition =
+      "none";
+
+    track.style.transform =
+      "translateX(0px)";
+
+    render();
+
+    requestAnimationFrame(()=>{
+
+      track.style.transition =
+        "transform 0.28s cubic-bezier(0.22,1,0.36,1)";
+
+      isAnimating = false;
+
+    });
+
+  },280);
+}
+
+function saveDiary(button){
+
+  const card =
+    button.closest(".card");
+
+  const input =
+    card.querySelector(
+      ".diaryInput"
+    );
+
+  const value =
+    input.value.trim();
+
+  if(!value){
+
+    alert(
+      "일기를 입력해주세요!"
+    );
+
+    return;
+  }
+
+  diaries.push({
+
+    date:today,
+
+    time:getKoreanDateTime(),
+
+    content:value,
+
+    color:selectedColor
+  });
+
+  localStorage.setItem(
+    "diaries",
+    JSON.stringify(diaries)
+  );
+
+  render();
+}
+
+function moveToRandomDiary(){
+
+  if(diaries.length === 0){
+
+    alert(
+      "작성된 일기가 없습니다!"
+    );
+
+    return;
+  }
+
+  const slides =
+    getSlides();
+
+  let randomIndex;
+
+  do{
+
+    randomIndex =
+      Math.floor(
+        Math.random()
+        * slides.length
+      );
+
+  }
+  while(randomIndex === 0);
+
+  currentIndex =
+    randomIndex;
+
+  render();
+}
+
+track.addEventListener(
+  "click",
+  (e)=>{
+
+    if(
+      e.target.classList.contains(
+        "save"
+      ) &&
+      !e.target.classList.contains(
+        "disabled"
+      )
+    ){
+
+      saveDiary(
+        e.target
+      );
+    }
+
+    if(
+      e.target.classList.contains(
+        "colorBtn"
+      )
+    ){
+
+      const clickedColor =
+        e.target.dataset.color;
+
+      const card =
+        e.target.closest(".card");
+
+      card
+        .querySelectorAll(
+          ".colorBtn"
+        )
+        .forEach(btn=>{
+
+          btn.classList.remove(
+            "selectedColor"
+          );
+        });
+
+      e.target.classList.add(
+        "selectedColor"
+      );
+
+      card.style.background =
+        clickedColor;
+
+      const textarea =
+        card.querySelector(
+          ".diaryInput"
+        );
+
+      if(textarea){
+
+        selectedColor =
+          clickedColor;
+
+        return;
+      }
+
+      const date =
+        card.dataset.date;
+
+      const diaryIndex =
+        diaries.findIndex(
+          d => d.date === date
+        );
+
+      if(diaryIndex !== -1){
+
+        diaries[
+          diaryIndex
+        ].color =
+          clickedColor;
+
+        localStorage.setItem(
+          "diaries",
+          JSON.stringify(diaries)
+        );
+      }
+    }
+  }
+);
+
+nextBtn.addEventListener(
+  "click",
+  ()=>slide("next")
+);
+
+prevBtn.addEventListener(
+  "click",
+  ()=>slide("prev")
+);
+
+randomBtn.addEventListener(
+  "click",
+  moveToRandomDiary
+);
+
+themeToggle.addEventListener(
+  "click",
+  ()=>{
+
+    document.body.classList.toggle(
+      "dark"
+    );
+
+    const isDark =
+      document.body.classList.contains(
+        "dark"
+      );
+
+    themeToggle.innerText =
+
+      isDark
+
+      ? "☀️ 라이트모드"
+
+      : "🌙 다크모드";
+  }
+);
+
+window.addEventListener(
+  "resize",
+  ()=>{
+
+    MOVE_DISTANCE =
+
+      window.innerWidth <= 768
+
+      ? window.innerWidth
+
+      : 618;
+
+    render();
+  }
+);
+
+render();
+
+</script>
+
+</body>
+</html>
