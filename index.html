@@ -1,38 +1,913 @@
-```html
-<!-- =========================
-감성 일기 웹앱 UPGRADE VERSION
-모바일 우선 / Glassmorphism / PWA Ready
-기존 코드 기반 전체 리디자인
-========================= -->
+<script>
 
-<!DOCTYPE html>
-<html lang="ko">
-<head>
+/* =========================================================
+EMOTIONAL DIARY CORE SYSTEM
+저장 / 렌더링 / 감정분석 / 통계 전체 리팩토링
+기존 JS 저장 관련 부분 전체 교체
+========================================================= */
 
-<meta charset="UTF-8" />
+/* =========================================================
+STORAGE KEY
+========================================================= */
 
-<meta
-  name="viewport"
-  content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-/>
+const STORAGE_KEY =
+  "emotionalDiaryEntries";
 
-<title>하루 일기</title>
+/* =========================================================
+STATE
+========================================================= */
 
-<link
-  rel="preconnect"
-  href="https://fonts.googleapis.com"
-/>
+let entries = [];
 
-<link
-  rel="preconnect"
-  href="https://fonts.gstatic.com"
-  crossorigin
-/>
+let currentMonth =
+  new Date().getMonth();
 
-<link
-  href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap"
-  rel="stylesheet"
-/>
+let currentYear =
+  new Date().getFullYear();
+
+/* =========================================================
+SAFE STORAGE LOAD
+========================================================= */
+
+function loadEntries(){
+
+  try{
+
+    const raw =
+      localStorage.getItem(
+        STORAGE_KEY
+      );
+
+    if(!raw){
+
+      entries = [];
+
+      return;
+    }
+
+    const parsed =
+      JSON.parse(raw);
+
+    if(!Array.isArray(parsed)){
+
+      entries = [];
+
+      return;
+    }
+
+    entries =
+      parsed.filter(
+        entry =>
+          entry &&
+          typeof entry === "object"
+      );
+
+  }
+
+  catch(error){
+
+    console.error(
+      "Storage Parse Error",
+      error
+    );
+
+    entries = [];
+
+    localStorage.removeItem(
+      STORAGE_KEY
+    );
+  }
+}
+
+/* =========================================================
+SAVE STORAGE
+========================================================= */
+
+function updateStorage(){
+
+  try{
+
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(entries)
+    );
+
+  }
+
+  catch(error){
+
+    console.error(
+      "Storage Save Error",
+      error
+    );
+
+    alert(
+      "저장 중 오류가 발생했어요."
+    );
+  }
+}
+
+/* =========================================================
+ESCAPE HTML
+========================================================= */
+
+function escapeHtml(text=""){
+
+  return text
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;");
+}
+
+/* =========================================================
+EMOTION ANALYSIS
+========================================================= */
+
+const emotionKeywords = {
+
+  happy:[
+    "행복",
+    "좋다",
+    "재밌",
+    "웃",
+    "최고",
+    "신난",
+    "즐거",
+    "편안",
+    "기쁘"
+  ],
+
+  sad:[
+    "슬프",
+    "우울",
+    "눈물",
+    "외롭",
+    "힘들",
+    "지쳤"
+  ],
+
+  angry:[
+    "짜증",
+    "화나",
+    "열받",
+    "스트레스",
+    "억울"
+  ],
+
+  tired:[
+    "피곤",
+    "졸리",
+    "지친",
+    "귀찮",
+    "무기력"
+  ]
+};
+
+function analyzeEmotion(text=""){
+
+  const score = {
+
+    happy:0,
+    sad:0,
+    angry:0,
+    tired:0
+  };
+
+  Object.entries(
+    emotionKeywords
+  ).forEach(([emotion,words])=>{
+
+    words.forEach(word=>{
+
+      if(text.includes(word)){
+
+        score[emotion]++;
+      }
+
+    });
+
+  });
+
+  let result =
+    "normal";
+
+  let max = 0;
+
+  Object.entries(score)
+    .forEach(([emotion,value])=>{
+
+      if(value > max){
+
+        max = value;
+
+        result = emotion;
+      }
+
+    });
+
+  return result;
+}
+
+/* =========================================================
+EMOTION DATA
+========================================================= */
+
+const emotionData = {
+
+  happy:{
+    emoji:"😊",
+    label:"행복",
+    color:"#facc15"
+  },
+
+  normal:{
+    emoji:"😐",
+    label:"평범",
+    color:"#9ca3af"
+  },
+
+  sad:{
+    emoji:"😢",
+    label:"슬픔",
+    color:"#60a5fa"
+  },
+
+  angry:{
+    emoji:"😡",
+    label:"화남",
+    color:"#f87171"
+  },
+
+  tired:{
+    emoji:"😴",
+    label:"피곤",
+    color:"#a78bfa"
+  }
+
+};
+
+/* =========================================================
+AI SUMMARY
+========================================================= */
+
+function generateSummary(
+  emotion,
+  content
+){
+
+  const summaries = {
+
+    happy:[
+      "오늘은 따뜻하고 기분 좋은 하루였어요.",
+      "소소하지만 행복한 순간들이 있었네요.",
+      "웃음이 많았던 하루였어요."
+    ],
+
+    sad:[
+      "조금 지치고 감정이 무거운 하루였네요.",
+      "마음이 복잡했던 하루였어요.",
+      "오늘 하루도 잘 버텨냈어요."
+    ],
+
+    angry:[
+      "스트레스가 있었지만 잘 견뎌냈어요.",
+      "감정 기복이 있었던 하루였어요.",
+      "쉽지 않은 하루였지만 의미 있었어요."
+    ],
+
+    tired:[
+      "많이 피곤했지만 잘 해낸 하루였어요.",
+      "몸과 마음이 조금 지친 하루였네요.",
+      "오늘도 충분히 애쓴 하루였어요."
+    ],
+
+    normal:[
+      "소소하고 평온한 하루였어요.",
+      "잔잔하게 흘러간 하루였네요.",
+      "평범하지만 의미 있는 하루였어요."
+    ]
+
+  };
+
+  const list =
+    summaries[emotion]
+    || summaries.normal;
+
+  return list[
+    Math.floor(
+      Math.random()
+      * list.length
+    )
+  ];
+}
+
+/* =========================================================
+SAVE ENTRY
+========================================================= */
+
+function saveEntry(){
+
+  const titleInput =
+    document.getElementById(
+      "mobileTitle"
+    );
+
+  const contentInput =
+    document.getElementById(
+      "mobileContent"
+    );
+
+  if(
+    !titleInput ||
+    !contentInput
+  ) return;
+
+  const title =
+    titleInput.value.trim();
+
+  const content =
+    contentInput.value.trim();
+
+  if(!content){
+
+    alert(
+      "일기를 입력해주세요."
+    );
+
+    return;
+  }
+
+  const emotion =
+    analyzeEmotion(content);
+
+  const summary =
+    generateSummary(
+      emotion,
+      content
+    );
+
+  const today =
+    new Date();
+
+  const todayKey =
+    today.toLocaleDateString(
+      "sv-SE"
+    );
+
+  /* 중복 저장 방지 */
+
+  const alreadyExists =
+    entries.find(
+      entry =>
+        entry.dateKey === todayKey
+    );
+
+  if(alreadyExists){
+
+    const confirmUpdate =
+      confirm(
+        "오늘 작성한 일기를 수정할까요?"
+      );
+
+    if(!confirmUpdate){
+
+      return;
+    }
+
+    alreadyExists.title =
+      title;
+
+    alreadyExists.content =
+      content;
+
+    alreadyExists.emotion =
+      emotion;
+
+    alreadyExists.summary =
+      summary;
+
+    alreadyExists.updatedAt =
+      today.toISOString();
+
+  }
+
+  else{
+
+    entries.unshift({
+
+      id:
+        Date.now().toString(),
+
+      title:
+        title || "제목 없는 하루",
+
+      content,
+
+      emotion,
+
+      summary,
+
+      images:[],
+
+      createdAt:
+        today.toISOString(),
+
+      dateKey:
+        todayKey
+
+    });
+
+  }
+
+  updateStorage();
+
+  renderAll();
+
+  /* success animation */
+
+  const saveBtn =
+    document.getElementById(
+      "mobileSave"
+    );
+
+  if(saveBtn){
+
+    saveBtn.innerHTML =
+      "✓";
+
+    saveBtn.classList.add(
+      "saved"
+    );
+
+    setTimeout(()=>{
+
+      saveBtn.innerHTML =
+        "✚";
+
+      saveBtn.classList.remove(
+        "saved"
+      );
+
+    },1200);
+
+  }
+
+  /* 입력 초기화 */
+
+  titleInput.value = "";
+  contentInput.value = "";
+}
+
+/* =========================================================
+TIMELINE
+========================================================= */
+
+function renderTimeline(){
+
+  const container =
+    document.getElementById(
+      "mobileFeed"
+    );
+
+  if(!container) return;
+
+  if(entries.length === 0){
+
+    container.innerHTML = `
+
+      <div class="empty-state glass">
+
+        아직 기록된 일기가 없어요.
+
+      </div>
+
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    entries
+      .sort((a,b)=>
+        new Date(b.createdAt)
+        - new Date(a.createdAt)
+      )
+      .map(entry=>{
+
+        const emotion =
+          emotionData[
+            entry.emotion
+          ]
+          || emotionData.normal;
+
+        return `
+
+          <article
+            class="
+              mobile-post
+              glass
+            "
+          >
+
+            <div class="timeline-top">
+
+              <div class="timeline-emotion">
+
+                ${emotion.emoji}
+
+              </div>
+
+              <div>
+
+                <h3>
+                  ${escapeHtml(entry.title)}
+                </h3>
+
+                <small>
+
+                  ${new Date(
+                    entry.createdAt
+                  ).toLocaleString("ko-KR")}
+
+                </small>
+
+              </div>
+
+            </div>
+
+            <p class="timeline-summary">
+
+              ${entry.summary}
+
+            </p>
+
+            <div
+              class="
+                timeline-content
+                collapsed
+              "
+            >
+
+              ${escapeHtml(entry.content)}
+
+            </div>
+
+            <button
+              class="expand-btn"
+              onclick="
+                toggleExpand(this)
+              "
+            >
+
+              펼쳐보기
+
+            </button>
+
+          </article>
+
+        `;
+
+      })
+      .join("");
+}
+
+/* =========================================================
+EXPAND
+========================================================= */
+
+function toggleExpand(button){
+
+  const content =
+    button.previousElementSibling;
+
+  content.classList.toggle(
+    "collapsed"
+  );
+
+  button.innerText =
+
+    content.classList.contains(
+      "collapsed"
+    )
+
+    ? "펼쳐보기"
+
+    : "접기";
+}
+
+/* =========================================================
+CALENDAR
+========================================================= */
+
+function renderCalendar(){
+
+  const calendar =
+    document.getElementById(
+      "mobileCalendar"
+    );
+
+  if(!calendar) return;
+
+  const firstDay =
+    new Date(
+      currentYear,
+      currentMonth,
+      1
+    ).getDay();
+
+  const lastDate =
+    new Date(
+      currentYear,
+      currentMonth + 1,
+      0
+    ).getDate();
+
+  const monthTitle =
+    document.getElementById(
+      "mobileMonthTitle"
+    );
+
+  if(monthTitle){
+
+    monthTitle.innerText =
+
+      `${currentYear}년 ${currentMonth+1}월`;
+  }
+
+  let html = "";
+
+  for(
+    let i=0;
+    i<firstDay;
+    i++
+  ){
+
+    html +=
+      `<div></div>`;
+  }
+
+  for(
+    let date=1;
+    date<=lastDate;
+    date++
+  ){
+
+    const dateKey =
+      `${currentYear}-${String(
+        currentMonth+1
+      ).padStart(2,"0")}-${String(
+        date
+      ).padStart(2,"0")}`;
+
+    const entry =
+      entries.find(
+        item =>
+          item.dateKey === dateKey
+      );
+
+    const emotion =
+      entry
+      ? emotionData[
+          entry.emotion
+        ]
+      : null;
+
+    html += `
+
+      <button
+        class="mobile-day glass"
+        onclick="
+          openDiaryByDate(
+            '${dateKey}'
+          )
+        "
+      >
+
+        ${date}
+
+        ${
+          emotion
+          ? `
+            <span
+              class="mobile-dot"
+              style="
+                background:
+                ${emotion.color}
+              "
+            ></span>
+          `
+          : ""
+        }
+
+      </button>
+
+    `;
+  }
+
+  calendar.innerHTML =
+    html;
+}
+
+/* =========================================================
+OPEN DIARY
+========================================================= */
+
+function openDiaryByDate(dateKey){
+
+  const entry =
+    entries.find(
+      item =>
+        item.dateKey === dateKey
+    );
+
+  if(!entry) return;
+
+  alert(
+
+`${emotionData[
+  entry.emotion
+].emoji} ${entry.title}
+
+${entry.content}`
+
+  );
+}
+
+/* =========================================================
+STATS
+========================================================= */
+
+function renderStats(){
+
+  const total =
+    document.getElementById(
+      "mobileCount"
+    );
+
+  const bestEmotion =
+    document.getElementById(
+      "mobileBestEmotion"
+    );
+
+  if(total){
+
+    total.innerText =
+      entries.length;
+  }
+
+  const emotionCount = {};
+
+  entries.forEach(entry=>{
+
+    emotionCount[
+      entry.emotion
+    ] =
+      (
+        emotionCount[
+          entry.emotion
+        ] || 0
+      ) + 1;
+
+  });
+
+  let topEmotion =
+    "normal";
+
+  let max = 0;
+
+  Object.entries(
+    emotionCount
+  ).forEach(([k,v])=>{
+
+    if(v > max){
+
+      max = v;
+
+      topEmotion = k;
+    }
+
+  });
+
+  if(bestEmotion){
+
+    bestEmotion.innerText =
+      emotionData[
+        topEmotion
+      ].emoji;
+  }
+}
+
+/* =========================================================
+RENDER ALL
+========================================================= */
+
+function renderAll(){
+
+  renderTimeline();
+
+  renderCalendar();
+
+  renderStats();
+}
+
+/* =========================================================
+AUTO RESIZE TEXTAREA
+========================================================= */
+
+const textarea =
+  document.getElementById(
+    "mobileContent"
+  );
+
+if(textarea){
+
+  textarea.addEventListener(
+    "input",
+    ()=>{
+
+      textarea.style.height =
+        "auto";
+
+      textarea.style.height =
+        textarea.scrollHeight
+        + "px";
+
+    }
+  );
+}
+
+/* =========================================================
+MONTH MOVE
+========================================================= */
+
+document
+  .getElementById(
+    "mobilePrevMonth"
+  )
+  ?.addEventListener(
+    "click",
+    ()=>{
+
+      currentMonth--;
+
+      if(currentMonth < 0){
+
+        currentMonth = 11;
+
+        currentYear--;
+      }
+
+      renderCalendar();
+
+    }
+  );
+
+document
+  .getElementById(
+    "mobileNextMonth"
+  )
+  ?.addEventListener(
+    "click",
+    ()=>{
+
+      currentMonth++;
+
+      if(currentMonth > 11){
+
+        currentMonth = 0;
+
+        currentYear++;
+      }
+
+      renderCalendar();
+
+    }
+  );
+
+/* =========================================================
+SAVE BUTTON
+========================================================= */
+
+document
+  .getElementById(
+    "mobileSave"
+  )
+  ?.addEventListener(
+    "click",
+    saveEntry
+  );
+
+/* =========================================================
+INIT
+========================================================= */
+
+loadEntries();
+
+renderAll();
+
+</script>
+
+
 
 <link rel="manifest" href="./manifest.json"/>
 
