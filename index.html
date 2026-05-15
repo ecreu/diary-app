@@ -1,140 +1,176 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8" />
-<meta
-  name="viewport"
-  content="
-    width=device-width,
-    initial-scale=1.0,
-    viewport-fit=cover
-  "
-/>
+<!-- =========================================================
+PIN SYSTEM REMOVE PATCH
+아래 코드를 기존 파일에 적용
+========================================================= -->
 
-<title>하루 일기</title>
+<!-- =========================================================
+1. 앱 시작 부분 수정
+기존:
+initPin();
+삭제
+========================================================= -->
+
+<script>
+
+/* =========================================================
+REMOVE OLD PIN STORAGE
+앱 시작 시 기존 PIN 데이터 제거
+========================================================= */
+
+localStorage.removeItem(
+  "diaryPin"
+);
+
+localStorage.removeItem(
+  "enteredPin"
+);
+
+localStorage.removeItem(
+  "hasPin"
+);
+
+localStorage.removeItem(
+  "pinEnabled"
+);
+
+/* =========================================================
+APP INIT
+PIN 없이 바로 실행
+========================================================= */
+
+loadEntries();
+
+renderCurrentPlatform();
+
+/* 기존 제거 */
+//
+// initPin();
+//
+
+window.addEventListener(
+  "resize",
+  renderCurrentPlatform
+);
+
+</script>
+
+<!-- =========================================================
+2. 아래 전체 삭제
+========================================================= -->
+
+<!-- 삭제 대상 -->
+
+<!--
+<div class="lock-screen"></div>
+<div class="lock-panel"></div>
+<div class="pin-grid"></div>
+<div class="pin-dots"></div>
+<button class="pin-btn"></button>
+-->
+
+<!-- =========================================================
+3. 아래 JS 함수 전체 삭제
+========================================================= -->
+
+<script>
+
+/* 삭제 대상 */
+
+//
+// initPin()
+//
+// verifyPin()
+//
+// setupPin()
+//
+// unlock()
+//
+// handlePinInput()
+//
+// resetPin()
+//
+// registerPinEvents()
+//
+// triggerError()
+//
+
+/* 삭제 대상 변수 */
+
+//
+// enteredPin
+//
+// PIN_KEY
+//
+// hasPin
+//
+// savedPin
+//
+
+</script>
+
+<!-- =========================================================
+4. 아래 CSS 전체 삭제
+========================================================= -->
+
+<style>
+
+/* 삭제 대상 */
+
+//
+// .lock-screen
+//
+// .lock-panel
+//
+// .pin-grid
+//
+// .pin-btn
+//
+// .pin-dot
+//
+// .pin-dots
+//
+// .unlock
+//
+// .shake
+//
+
+/* 삭제 대상 animation */
+
+//
+// @keyframes shake
+//
+
+</style>
+
+<!-- =========================================================
+5. 모바일 구조 안정화 추가
+========================================================= -->
 
 <style>
 
 /* =========================================================
-COMMON
+APP ROOT
 ========================================================= */
-
-:root{
-
-  --bg:
-    linear-gradient(
-      180deg,
-      #f6f7fb,
-      #eceff5
-    );
-
-  --glass:
-    rgba(255,255,255,.42);
-
-  --border:
-    rgba(255,255,255,.28);
-
-  --text:#111827;
-
-  --sub:#6b7280;
-
-  --shadow:
-    0 12px 40px rgba(0,0,0,.08);
-
-  --radius:28px;
-
-  --blur:20px;
-
-  --transition:.35s cubic-bezier(.22,1,.36,1);
-
-}
-
-*{
-
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
 
 html,
 body{
 
   width:100%;
   min-height:100%;
-}
-
-body{
-
-  font-family:
-    "Pretendard",
-    sans-serif;
-
-  background:var(--bg);
-
-  color:var(--text);
 
   overflow-x:hidden;
-
-  -webkit-font-smoothing:
-    antialiased;
-}
-
-button,
-textarea,
-input{
-
-  font-family:inherit;
-}
-
-.glass{
-
-  background:var(--glass);
-
-  backdrop-filter:
-    blur(var(--blur));
-
-  -webkit-backdrop-filter:
-    blur(var(--blur));
-
-  border:
-    1px solid var(--border);
-
-  box-shadow:var(--shadow);
-}
-
-.fade-up{
-
-  animation:
-    fadeUp .55s var(--transition);
-}
-
-@keyframes fadeUp{
-
-  from{
-
-    opacity:0;
-
-    transform:
-      translateY(28px);
-  }
-
-  to{
-
-    opacity:1;
-
-    transform:
-      translateY(0);
-  }
-
 }
 
 /* =========================================================
-MOBILE APP
+MOBILE APP FLOW
 ========================================================= */
 
 body.mobile-app{
 
   overflow-y:auto;
+
+  -webkit-overflow-scrolling:
+    touch;
 }
 
 .mobile-shell{
@@ -144,1423 +180,64 @@ body.mobile-app{
   min-height:100dvh;
 
   padding:
-    env(safe-area-inset-top)
+    20px
     16px
     120px;
+
+  display:flex;
+
+  flex-direction:column;
 }
 
-.mobile-header{
-
-  padding-top:12px;
-
-  margin-bottom:18px;
-}
-
-.mobile-title{
-
-  font-size:34px;
-
-  font-weight:800;
-
-  margin-bottom:8px;
-}
-
-.mobile-sub{
-
-  color:var(--sub);
-
-  line-height:1.5;
-}
+/* =========================================================
+REMOVE OVERLAY CONFLICT
+========================================================= */
 
 .mobile-feed{
 
-  display:flex;
-
-  flex-direction:column;
-
-  gap:18px;
-}
-
-.mobile-card{
-
-  width:100%;
-
-  border-radius:32px;
-
-  padding:22px;
-}
-
-.mobile-card h2{
-
-  font-size:18px;
-
-  margin-bottom:16px;
-}
-
-.mobile-textarea{
-
-  width:100%;
-
-  border:none;
-
-  background:
-    rgba(255,255,255,.42);
-
-  border-radius:24px;
-
-  padding:18px;
-
-  resize:none;
-
-  min-height:160px;
-
-  font-size:15px;
-
-  line-height:1.7;
-
-  outline:none;
-}
-
-.mobile-save{
-
-  width:100%;
-
-  margin-top:16px;
-
-  border:none;
-
-  border-radius:22px;
-
-  height:58px;
-
-  font-size:16px;
-
-  background:#111827;
-
-  color:white;
-
-  transition:var(--transition);
-}
-
-.mobile-save:active{
-
-  transform:scale(.96);
-}
-
-.mobile-calendar-grid{
-
-  display:grid;
-
-  grid-template-columns:
-    repeat(7,1fr);
-
-  gap:10px;
-}
-
-.mobile-day{
-
-  aspect-ratio:1/1;
-
-  border-radius:18px;
-
-  border:none;
-
-  background:
-    rgba(255,255,255,.34);
-
   position:relative;
 
-  font-size:14px;
+  z-index:1;
+
+  overflow:visible;
 }
 
-.mobile-dot{
+/* =========================================================
+FIX POINTER EVENTS
+========================================================= */
 
-  position:absolute;
-
-  bottom:7px;
-  left:50%;
-
-  transform:
-    translateX(-50%);
-
-  width:8px;
-  height:8px;
-
-  border-radius:50%;
-}
-
-.mobile-timeline{
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:16px;
-}
-
-.mobile-post{
-
-  border-radius:28px;
-
-  padding:18px;
-}
-
-.mobile-post-top{
-
-  display:flex;
-
-  gap:14px;
-
-  margin-bottom:14px;
-}
-
-.mobile-emoji{
-
-  font-size:28px;
-}
-
-.mobile-preview{
-
-  color:var(--sub);
-
-  margin-top:10px;
-
-  line-height:1.6;
-}
-
+.mobile-card,
+.mobile-post,
 .mobile-tabbar{
 
-  position:fixed;
-
-  left:50%;
-  bottom:20px;
-
-  transform:
-    translateX(-50%);
-
-  width:92%;
-
-  height:74px;
-
-  border-radius:28px;
-
-  display:flex;
-
-  justify-content:space-around;
-
-  align-items:center;
-
-  z-index:999;
-}
-
-.mobile-tab{
-
-  width:58px;
-  height:58px;
-
-  border-radius:18px;
-
-  border:none;
-
-  background:transparent;
-
-  font-size:22px;
-
-  transition:var(--transition);
-}
-
-.mobile-tab.active{
-
-  background:
-    rgba(255,255,255,.28);
-
-  transform:
-    translateY(-4px);
+  pointer-events:auto;
 }
 
 /* =========================================================
-DESKTOP APP
+REMOVE BLACK SCREEN ISSUE
 ========================================================= */
 
-.desktop-layout{
+#app{
 
   width:100%;
 
-  min-height:100vh;
-
-  display:grid;
-
-  grid-template-columns:
-    320px
-    1fr
-    360px;
-
-  gap:24px;
-
-  padding:24px;
-}
-
-.sidebar{
-
-  border-radius:34px;
-
-  padding:24px;
-
-  height:calc(100vh - 48px);
-
-  position:sticky;
-
-  top:24px;
-}
-
-.desktop-logo{
-
-  font-size:34px;
-
-  font-weight:800;
-
-  margin-bottom:34px;
-}
-
-.sidebar-menu{
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:12px;
-}
-
-.sidebar-btn{
-
-  border:none;
-
-  border-radius:20px;
-
-  height:58px;
-
-  text-align:left;
-
-  padding:0 18px;
-
-  background:
-    rgba(255,255,255,.26);
-
-  transition:var(--transition);
-
-  font-size:15px;
-}
-
-.sidebar-btn:hover{
-
-  transform:
-    translateX(4px);
-
-  background:
-    rgba(255,255,255,.5);
-}
-
-.dashboard-center{
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:24px;
-}
-
-.desktop-panel{
-
-  border-radius:34px;
-
-  padding:24px;
-}
-
-.desktop-calendar{
-
-  display:grid;
-
-  grid-template-columns:
-    repeat(7,1fr);
-
-  gap:12px;
-}
-
-.desktop-day{
-
-  min-height:90px;
-
-  border:none;
-
-  border-radius:24px;
-
-  background:
-    rgba(255,255,255,.26);
-
-  transition:var(--transition);
+  min-height:100dvh;
 
   position:relative;
 
-  overflow:hidden;
-}
-
-.desktop-day:hover{
-
-  transform:
-    translateY(-4px);
-
-  background:
-    rgba(255,255,255,.45);
-}
-
-.desktop-dot{
-
-  position:absolute;
-
-  bottom:10px;
-  right:10px;
-
-  width:10px;
-  height:10px;
-
-  border-radius:50%;
-}
-
-.desktop-timeline{
-
-  display:grid;
-
-  grid-template-columns:
-    repeat(
-      auto-fill,
-      minmax(320px,1fr)
-    );
-
-  gap:18px;
-}
-
-.desktop-post{
-
-  border-radius:30px;
-
-  padding:22px;
-
-  transition:var(--transition);
-}
-
-.desktop-post:hover{
-
-  transform:
-    translateY(-8px);
-
-  box-shadow:
-    0 18px 48px rgba(0,0,0,.12);
-}
-
-.detail-panel{
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:20px;
-}
-
-.detail-card{
-
-  border-radius:30px;
-
-  padding:24px;
-}
-
-/* =========================================================
-PIN
-========================================================= */
-
-.lock-screen{
-
-  position:fixed;
-
-  inset:0;
-
-  width:100%;
-  height:100dvh;
-
-  display:flex;
-
-  justify-content:center;
-  align-items:center;
-
-  background:
-    rgba(0,0,0,.42);
-
-  z-index:99999;
-
-  transition:.45s ease;
-}
-
-.lock-panel{
-
-  width:92%;
-
-  max-width:420px;
-
-  border-radius:38px;
-
-  padding:34px;
-
-  text-align:center;
-}
-
-.pin-dots{
-
-  display:flex;
-
-  justify-content:center;
-
-  gap:14px;
-
-  margin:28px 0;
-}
-
-.pin-dot{
-
-  width:18px;
-  height:18px;
-
-  border-radius:50%;
-
-  background:
-    rgba(255,255,255,.2);
-}
-
-.pin-dot.active{
-
-  background:white;
-}
-
-.pin-grid{
-
-  display:grid;
-
-  grid-template-columns:
-    repeat(3,1fr);
-
-  gap:14px;
-}
-
-.pin-btn{
-
-  min-height:72px;
-
-  border:none;
-
-  border-radius:24px;
-
-  font-size:24px;
-
-  background:
-    rgba(255,255,255,.12);
-
-  color:white;
-
-  transition:.18s ease;
-
-  touch-action:manipulation;
-}
-
-.pin-btn:active{
-
-  transform:scale(.94);
-}
-
-/* =========================================================
-RESPONSIVE SWITCH
-========================================================= */
-
-@media (max-width:768px){
-
-  .desktop-layout{
-
-    display:none;
-  }
-
-}
-
-@media (min-width:769px){
-
-  .mobile-shell,
-  .mobile-tabbar{
-
-    display:none;
-  }
-
+  z-index:1;
 }
 
 </style>
-</head>
 
-<body>
-
-<div id="app"></div>
+<!-- =========================================================
+6. renderCurrentPlatform 안정화
+========================================================= -->
 
 <script>
 
 /* =========================================================
-STATE
-========================================================= */
-
-const STORAGE_KEY =
-  "emotionalDiaryEntries";
-
-const PIN_KEY =
-  "diaryPin";
-
-let entries = [];
-
-let currentPlatform = "";
-
-let currentMonth =
-  new Date().getMonth();
-
-let currentYear =
-  new Date().getFullYear();
-
-/* =========================================================
-LOAD
-========================================================= */
-
-function loadEntries(){
-
-  try{
-
-    entries =
-      JSON.parse(
-        localStorage.getItem(
-          STORAGE_KEY
-        )
-      ) || [];
-
-  }
-
-  catch{
-
-    entries = [];
-  }
-
-}
-
-/* =========================================================
-SAVE
-========================================================= */
-
-function saveEntries(){
-
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(entries)
-  );
-
-}
-
-/* =========================================================
-EMOTION
-========================================================= */
-
-const emotions = {
-
-  happy:{
-    emoji:"😊",
-    color:"#facc15",
-    keywords:[
-      "좋",
-      "행복",
-      "재밌",
-      "웃"
-    ]
-  },
-
-  sad:{
-    emoji:"😢",
-    color:"#60a5fa",
-    keywords:[
-      "슬프",
-      "우울",
-      "힘들"
-    ]
-  },
-
-  angry:{
-    emoji:"😡",
-    color:"#f87171",
-    keywords:[
-      "짜증",
-      "화나",
-      "열받"
-    ]
-  },
-
-  tired:{
-    emoji:"😴",
-    color:"#a78bfa",
-    keywords:[
-      "피곤",
-      "졸리",
-      "지쳤"
-    ]
-  },
-
-  normal:{
-    emoji:"😐",
-    color:"#9ca3af",
-    keywords:[]
-  }
-
-};
-
-function analyzeEmotion(text=""){
-
-  let best = "normal";
-
-  let max = 0;
-
-  Object.entries(emotions)
-    .forEach(([key,val])=>{
-
-      let count = 0;
-
-      val.keywords.forEach(word=>{
-
-        if(text.includes(word)){
-
-          count++;
-        }
-
-      });
-
-      if(count > max){
-
-        max = count;
-
-        best = key;
-      }
-
-    });
-
-  return best;
-}
-
-/* =========================================================
-SUMMARY
-========================================================= */
-
-function generateSummary(emotion){
-
-  const map = {
-
-    happy:
-      "따뜻하고 행복한 하루였어요.",
-
-    sad:
-      "조금 지친 하루였네요.",
-
-    angry:
-      "감정 기복이 있었던 하루예요.",
-
-    tired:
-      "오늘도 정말 수고했어요.",
-
-    normal:
-      "잔잔하고 평온한 하루였어요."
-  };
-
-  return map[emotion];
-}
-
-/* =========================================================
-MOBILE APP
-========================================================= */
-
-function renderMobileApp(){
-
-  document.body.className =
-    "mobile-app";
-
-  app.innerHTML = `
-
-    <div class="mobile-shell fade-up">
-
-      <header class="mobile-header">
-
-        <div class="mobile-title">
-          하루 일기
-        </div>
-
-        <div class="mobile-sub">
-          오늘 하루를
-          조용히 기록해보세요.
-        </div>
-
-      </header>
-
-      <main class="mobile-feed">
-
-        <section
-          class="
-            mobile-card
-            glass
-          "
-        >
-
-          <h2>
-            오늘의 기록
-          </h2>
-
-          <textarea
-            id="mobileInput"
-            class="mobile-textarea"
-            placeholder="
-              오늘 하루는 어땠나요?
-            "
-          ></textarea>
-
-          <button
-            class="mobile-save"
-            id="mobileSave"
-          >
-            저장하기
-          </button>
-
-        </section>
-
-        <section
-          class="
-            mobile-card
-            glass
-          "
-        >
-
-          <h2>
-            감성 캘린더
-          </h2>
-
-          <div
-            class="
-              mobile-calendar-grid
-            "
-            id="mobileCalendar"
-          ></div>
-
-        </section>
-
-        <section
-          class="
-            mobile-timeline
-          "
-          id="mobileTimeline"
-        ></section>
-
-      </main>
-
-    </div>
-
-    <nav
-      class="
-        mobile-tabbar
-        glass
-      "
-    >
-
-      <button
-        class="
-          mobile-tab
-          active
-        "
-      >
-        🏠
-      </button>
-
-      <button class="mobile-tab">
-        📅
-      </button>
-
-      <button class="mobile-tab">
-        ✏️
-      </button>
-
-      <button class="mobile-tab">
-        📖
-      </button>
-
-      <button class="mobile-tab">
-        📊
-      </button>
-
-    </nav>
-
-  `;
-
-  renderMobileCalendar();
-
-  renderMobileTimeline();
-
-  registerMobileEvents();
-
-}
-
-/* =========================================================
-MOBILE CALENDAR
-========================================================= */
-
-function renderMobileCalendar(){
-
-  const el =
-    document.getElementById(
-      "mobileCalendar"
-    );
-
-  if(!el) return;
-
-  const last =
-    new Date(
-      currentYear,
-      currentMonth+1,
-      0
-    ).getDate();
-
-  let html = "";
-
-  for(
-    let i=1;
-    i<=last;
-    i++
-  ){
-
-    const dateKey =
-      `${currentYear}-${String(
-        currentMonth+1
-      ).padStart(2,"0")}-${String(
-        i
-      ).padStart(2,"0")}`;
-
-    const entry =
-      entries.find(
-        e =>
-          e.dateKey === dateKey
-      );
-
-    html += `
-
-      <button
-        class="
-          mobile-day
-        "
-      >
-
-        ${i}
-
-        ${
-          entry
-          ? `
-            <span
-              class="mobile-dot"
-              style="
-                background:
-                ${
-                  emotions[
-                    entry.emotion
-                  ].color
-                }
-              "
-            ></span>
-          `
-          : ""
-        }
-
-      </button>
-
-    `;
-  }
-
-  el.innerHTML = html;
-}
-
-/* =========================================================
-MOBILE TIMELINE
-========================================================= */
-
-function renderMobileTimeline(){
-
-  const el =
-    document.getElementById(
-      "mobileTimeline"
-    );
-
-  if(!el) return;
-
-  el.innerHTML =
-    entries
-      .map(entry=>`
-
-        <article
-          class="
-            mobile-post
-            glass
-            fade-up
-          "
-        >
-
-          <div
-            class="
-              mobile-post-top
-            "
-          >
-
-            <div
-              class="
-                mobile-emoji
-              "
-            >
-
-              ${
-                emotions[
-                  entry.emotion
-                ].emoji
-              }
-
-            </div>
-
-            <div>
-
-              <strong>
-                ${entry.title}
-              </strong>
-
-              <div
-                style="
-                  color:var(--sub);
-                  margin-top:4px;
-                "
-              >
-
-                ${
-                  new Date(
-                    entry.createdAt
-                  ).toLocaleString(
-                    "ko-KR"
-                  )
-                }
-
-              </div>
-
-            </div>
-
-          </div>
-
-          <div>
-
-            ${entry.summary}
-
-          </div>
-
-          <div
-            class="
-              mobile-preview
-            "
-          >
-
-            ${entry.content}
-
-          </div>
-
-        </article>
-
-      `)
-      .join("");
-}
-
-/* =========================================================
-MOBILE EVENTS
-========================================================= */
-
-function registerMobileEvents(){
-
-  document
-    .getElementById(
-      "mobileSave"
-    )
-    ?.addEventListener(
-      "pointerdown",
-      saveEntry
-    );
-
-}
-
-/* =========================================================
-DESKTOP APP
-========================================================= */
-
-function renderDesktopApp(){
-
-  document.body.className =
-    "desktop-app";
-
-  app.innerHTML = `
-
-    <div class="desktop-layout fade-up">
-
-      <aside
-        class="
-          sidebar
-          glass
-        "
-      >
-
-        <div class="desktop-logo">
-
-          하루 일기
-
-        </div>
-
-        <div
-          class="
-            sidebar-menu
-          "
-        >
-
-          <button
-            class="
-              sidebar-btn
-            "
-          >
-            📖 Timeline
-          </button>
-
-          <button
-            class="
-              sidebar-btn
-            "
-          >
-            📅 Calendar
-          </button>
-
-          <button
-            class="
-              sidebar-btn
-            "
-          >
-            📊 Stats
-          </button>
-
-        </div>
-
-      </aside>
-
-      <main
-        class="
-          dashboard-center
-        "
-      >
-
-        <section
-          class="
-            desktop-panel
-            glass
-          "
-        >
-
-          <h2>
-            감성 캘린더
-          </h2>
-
-          <div
-            class="
-              desktop-calendar
-            "
-            id="desktopCalendar"
-          ></div>
-
-        </section>
-
-        <section
-          class="
-            desktop-panel
-            glass
-          "
-        >
-
-          <h2>
-            최근 일기
-          </h2>
-
-          <div
-            class="
-              desktop-timeline
-            "
-            id="desktopTimeline"
-          ></div>
-
-        </section>
-
-      </main>
-
-      <aside
-        class="
-          detail-panel
-        "
-      >
-
-        <div
-          class="
-            detail-card
-            glass
-          "
-        >
-
-          <h3>
-            총 기록
-          </h3>
-
-          <div
-            style="
-              margin-top:12px;
-              font-size:42px;
-              font-weight:700;
-            "
-          >
-
-            ${entries.length}
-
-          </div>
-
-        </div>
-
-      </aside>
-
-    </div>
-
-  `;
-
-  renderDesktopCalendar();
-
-  renderDesktopTimeline();
-
-}
-
-/* =========================================================
-DESKTOP CALENDAR
-========================================================= */
-
-function renderDesktopCalendar(){
-
-  const el =
-    document.getElementById(
-      "desktopCalendar"
-    );
-
-  if(!el) return;
-
-  const last =
-    new Date(
-      currentYear,
-      currentMonth+1,
-      0
-    ).getDate();
-
-  let html = "";
-
-  for(
-    let i=1;
-    i<=last;
-    i++
-  ){
-
-    const dateKey =
-      `${currentYear}-${String(
-        currentMonth+1
-      ).padStart(2,"0")}-${String(
-        i
-      ).padStart(2,"0")}`;
-
-    const entry =
-      entries.find(
-        e =>
-          e.dateKey === dateKey
-      );
-
-    html += `
-
-      <button
-        class="
-          desktop-day
-        "
-      >
-
-        ${i}
-
-        ${
-          entry
-          ? `
-            <span
-              class="
-                desktop-dot
-              "
-              style="
-                background:
-                ${
-                  emotions[
-                    entry.emotion
-                  ].color
-                }
-              "
-            ></span>
-          `
-          : ""
-        }
-
-      </button>
-
-    `;
-  }
-
-  el.innerHTML = html;
-}
-
-/* =========================================================
-DESKTOP TIMELINE
-========================================================= */
-
-function renderDesktopTimeline(){
-
-  const el =
-    document.getElementById(
-      "desktopTimeline"
-    );
-
-  if(!el) return;
-
-  el.innerHTML =
-    entries
-      .map(entry=>`
-
-        <article
-          class="
-            desktop-post
-            glass
-          "
-        >
-
-          <h3>
-
-            ${
-              emotions[
-                entry.emotion
-              ].emoji
-            }
-
-            ${entry.title}
-
-          </h3>
-
-          <div
-            style="
-              color:var(--sub);
-              margin:12px 0;
-            "
-          >
-
-            ${entry.summary}
-
-          </div>
-
-          <div>
-
-            ${entry.content}
-
-          </div>
-
-        </article>
-
-      `)
-      .join("");
-}
-
-/* =========================================================
-SAVE ENTRY
-========================================================= */
-
-function saveEntry(){
-
-  const input =
-    document.getElementById(
-      "mobileInput"
-    );
-
-  if(!input) return;
-
-  const content =
-    input.value.trim();
-
-  if(!content){
-
-    alert(
-      "일기를 입력해주세요."
-    );
-
-    return;
-  }
-
-  const emotion =
-    analyzeEmotion(content);
-
-  entries.unshift({
-
-    id:Date.now(),
-
-    title:"오늘의 하루",
-
-    content,
-
-    emotion,
-
-    summary:
-      generateSummary(
-        emotion
-      ),
-
-    createdAt:
-      new Date().toISOString(),
-
-    dateKey:
-      new Date()
-        .toLocaleDateString(
-          "sv-SE"
-        )
-
-  });
-
-  saveEntries();
-
-  renderCurrentPlatform();
-
-}
-
-/* =========================================================
-PLATFORM
-========================================================= */
-
-function detectPlatform(){
-
-  return
-    window.innerWidth <= 768
-
-    ? "mobile"
-
-    : "desktop";
-}
-
-/* =========================================================
-RENDER PLATFORM
+SAFE PLATFORM RENDER
 ========================================================= */
 
 function renderCurrentPlatform(){
@@ -1568,953 +245,85 @@ function renderCurrentPlatform(){
   const platform =
     detectPlatform();
 
-  if(
-    currentPlatform
-    !== platform
-  ){
+  currentPlatform =
+    platform;
 
-    currentPlatform =
-      platform;
-  }
+  requestAnimationFrame(()=>{
 
-  if(platform === "mobile"){
+    if(platform === "mobile"){
 
-    renderMobileApp();
-  }
-
-  else{
-
-    renderDesktopApp();
-  }
-
-}
-
-/* =========================================================
-PIN
-========================================================= */
-
-function initPin(){
-
-  const saved =
-    localStorage.getItem(
-      PIN_KEY
-    );
-
-  let pin =
-    [];
-
-  const wrap =
-    document.createElement(
-      "div"
-    );
-
-  wrap.className =
-    "lock-screen";
-
-  wrap.innerHTML = `
-
-    <div
-      class="
-        lock-panel
-        glass
-      "
-    >
-
-      <h2>
-        하루 일기
-      </h2>
-
-      <div
-        class="
-          pin-dots
-        "
-      >
-
-        <div class="pin-dot"></div>
-        <div class="pin-dot"></div>
-        <div class="pin-dot"></div>
-        <div class="pin-dot"></div>
-
-      </div>
-
-      <div
-        class="
-          pin-grid
-        "
-      >
-
-        ${
-          [1,2,3,4,5,6,7,8,9,"",0,"⌫"]
-          .map(v=>`
-
-            ${
-              v === ""
-
-              ? "<div></div>"
-
-              : `
-                <button
-                  class="
-                    pin-btn
-                  "
-                  data-key="${v}"
-                >
-
-                  ${v}
-
-                </button>
-              `
-            }
-
-          `)
-          .join("")
-        }
-
-      </div>
-
-    </div>
-
-  `;
-
-  document.body.appendChild(
-    wrap
-  );
-
-  const dots =
-    wrap.querySelectorAll(
-      ".pin-dot"
-    );
-
-  wrap.addEventListener(
-    "pointerdown",
-    e=>{
-
-      const btn =
-        e.target.closest(
-          ".pin-btn"
-        );
-
-      if(!btn) return;
-
-      const key =
-        btn.dataset.key;
-
-      if(key === "⌫"){
-
-        pin.pop();
-      }
-
-      else if(pin.length < 4){
-
-        pin.push(key);
-      }
-
-      dots.forEach((d,i)=>{
-
-        d.classList.toggle(
-          "active",
-          i < pin.length
-        );
-
-      });
-
-      if(pin.length === 4){
-
-        const value =
-          pin.join("");
-
-        if(!saved){
-
-          localStorage.setItem(
-            PIN_KEY,
-            value
-          );
-
-          unlock();
-        }
-
-        else if(value === saved){
-
-          unlock();
-        }
-
-        else{
-
-          navigator.vibrate?.(
-            180
-          );
-
-          wrap
-            .querySelector(
-              ".lock-panel"
-            )
-            .animate(
-
-              [
-                {
-                  transform:
-                    "translateX(-10px)"
-                },
-                {
-                  transform:
-                    "translateX(10px)"
-                },
-                {
-                  transform:
-                    "translateX(0)"
-                }
-              ],
-
-              {
-                duration:300
-              }
-
-            );
-
-          pin = [];
-
-          dots.forEach(d=>
-            d.classList.remove(
-              "active"
-            )
-          );
-
-        }
-
-      }
-
+      renderMobileApp();
     }
-  );
 
-  function unlock(){
+    else{
 
-    wrap.style.opacity = 0;
-
-    setTimeout(()=>{
-
-      wrap.remove();
-
-    },400);
-
-  }
-
-}
-
-/* =========================================================
-INIT
-========================================================= */
-
-loadEntries();
-
-renderCurrentPlatform();
-
-initPin();
-
-window.addEventListener(
-  "resize",
-  renderCurrentPlatform
-);
-
-</script>
-</body>
-</html>
-
-
-
-    <div
-      class="pin-dots"
-      id="pinDots"
-    >
-
-      <div class="pin-dot"></div>
-      <div class="pin-dot"></div>
-      <div class="pin-dot"></div>
-      <div class="pin-dot"></div>
-
-    </div>
-
-    <!-- KEYPAD -->
-
-    <div
-      class="pin-keypad"
-      id="pinKeypad"
-    >
-
-      <button class="pin-key" data-key="1">1</button>
-      <button class="pin-key" data-key="2">2</button>
-      <button class="pin-key" data-key="3">3</button>
-
-      <button class="pin-key" data-key="4">4</button>
-      <button class="pin-key" data-key="5">5</button>
-      <button class="pin-key" data-key="6">6</button>
-
-      <button class="pin-key" data-key="7">7</button>
-      <button class="pin-key" data-key="8">8</button>
-      <button class="pin-key" data-key="9">9</button>
-
-      <div></div>
-
-      <button class="pin-key" data-key="0">0</button>
-
-      <button
-        class="
-          pin-key
-          delete-key
-        "
-        data-action="delete"
-      >
-        ⌫
-      </button>
-
-    </div>
-
-  </div>
-
-</div>
-
-<style>
-
-/* =========================================================
-LOCK SCREEN
-========================================================= */
-
-.lock-screen{
-
-  position:fixed;
-
-  inset:0;
-
-  width:100%;
-  height:100dvh;
-
-  display:flex;
-
-  justify-content:center;
-  align-items:center;
-
-  z-index:999999;
-
-  overflow:hidden;
-
-  background:
-    linear-gradient(
-      180deg,
-      #0f172a,
-      #111827
-    );
-
-  transition:
-    opacity .45s ease,
-    visibility .45s ease;
-}
-
-/* =========================================================
-BACKDROP
-========================================================= */
-
-.lock-backdrop{
-
-  position:absolute;
-
-  inset:0;
-
-  backdrop-filter:
-    blur(24px);
-
-  -webkit-backdrop-filter:
-    blur(24px);
-
-  pointer-events:none;
-}
-
-/* =========================================================
-PANEL
-========================================================= */
-
-.lock-panel{
-
-  position:relative;
-
-  width:92%;
-
-  max-width:420px;
-
-  border-radius:42px;
-
-  padding:
-    44px
-    26px;
-
-  display:flex;
-
-  flex-direction:column;
-
-  align-items:center;
-
-  z-index:5;
-
-  pointer-events:auto;
-}
-
-.lock-logo{
-
-  font-size:56px;
-
-  margin-bottom:18px;
-}
-
-#lockTitle{
-
-  font-size:28px;
-
-  margin-bottom:10px;
-}
-
-.lock-description{
-
-  opacity:.72;
-
-  margin-bottom:34px;
-
-  text-align:center;
-}
-
-/* =========================================================
-PIN DOTS
-========================================================= */
-
-.pin-dots{
-
-  display:flex;
-
-  gap:14px;
-
-  margin-bottom:34px;
-}
-
-.pin-dot{
-
-  width:18px;
-  height:18px;
-
-  border-radius:50%;
-
-  background:
-    rgba(255,255,255,.16);
-
-  transition:
-    transform .2s ease,
-    background .2s ease;
-}
-
-.pin-dot.filled{
-
-  background:white;
-
-  transform:scale(1.12);
-}
-
-/* =========================================================
-KEYPAD
-========================================================= */
-
-.pin-keypad{
-
-  width:100%;
-
-  display:grid;
-
-  grid-template-columns:
-    repeat(3,1fr);
-
-  gap:16px;
-
-  position:relative;
-
-  z-index:20;
-}
-
-.pin-key{
-
-  min-height:72px;
-
-  border:none;
-
-  border-radius:26px;
-
-  font-size:26px;
-
-  color:white;
-
-  background:
-    rgba(255,255,255,.08);
-
-  backdrop-filter:
-    blur(18px);
-
-  -webkit-backdrop-filter:
-    blur(18px);
-
-  box-shadow:
-    0 10px 30px rgba(0,0,0,.22);
-
-  transition:
-    transform .12s ease,
-    background .2s ease;
-
-  cursor:pointer;
-
-  pointer-events:auto;
-
-  touch-action:manipulation;
-
-  -webkit-tap-highlight-color:
-    transparent;
-}
-
-.pin-key:active{
-
-  transform:scale(.94);
-
-  background:
-    rgba(255,255,255,.16);
-}
-
-.delete-key{
-
-  font-size:22px;
-}
-
-/* =========================================================
-SHAKE
-========================================================= */
-
-.lock-panel.shake{
-
-  animation:
-    shake .45s ease;
-}
-
-@keyframes shake{
-
-  0%{
-    transform:translateX(0);
-  }
-
-  20%{
-    transform:translateX(-10px);
-  }
-
-  40%{
-    transform:translateX(10px);
-  }
-
-  60%{
-    transform:translateX(-8px);
-  }
-
-  80%{
-    transform:translateX(8px);
-  }
-
-  100%{
-    transform:translateX(0);
-  }
-
-}
-
-/* =========================================================
-UNLOCK
-========================================================= */
-
-.lock-screen.unlock{
-
-  opacity:0;
-
-  visibility:hidden;
-
-  pointer-events:none;
-
-  backdrop-filter:
-    blur(0px);
-}
-
-/* =========================================================
-MOBILE SAFE
-========================================================= */
-
-@supports(height:100dvh){
-
-  .lock-screen{
-
-    height:100dvh;
-  }
-
-}
-
-</style>
-
-<script>
-
-/* =========================================================
-PIN LOCK SYSTEM
-========================================================= */
-
-const PIN_STORAGE_KEY =
-  "diaryPin";
-
-/* =========================================================
-STATE
-========================================================= */
-
-let enteredPin = [];
-
-let setupMode = false;
-
-/* =========================================================
-ELEMENTS
-========================================================= */
-
-const lockScreen =
-  document.getElementById(
-    "lockScreen"
-  );
-
-const pinDots =
-  document.getElementById(
-    "pinDots"
-  );
-
-const keypad =
-  document.getElementById(
-    "pinKeypad"
-  );
-
-const lockTitle =
-  document.getElementById(
-    "lockTitle"
-  );
-
-const lockDescription =
-  document.getElementById(
-    "lockDescription"
-  );
-
-/* =========================================================
-LOAD PIN
-========================================================= */
-
-function getSavedPin(){
-
-  return localStorage.getItem(
-    PIN_STORAGE_KEY
-  );
-
-}
-
-/* =========================================================
-INIT
-========================================================= */
-
-function initPinLock(){
-
-  const savedPin =
-    getSavedPin();
-
-  if(!savedPin){
-
-    setupMode = true;
-
-    lockDescription.innerText =
-      "새로운 PIN 번호를 설정하세요";
-  }
-
-  else{
-
-    setupMode = false;
-
-    lockDescription.innerText =
-      "PIN 번호를 입력하세요";
-  }
-
-  updateDots();
-}
-
-/* =========================================================
-DOTS
-========================================================= */
-
-function updateDots(){
-
-  const dots =
-    pinDots.querySelectorAll(
-      ".pin-dot"
-    );
-
-  dots.forEach((dot,index)=>{
-
-    dot.classList.toggle(
-      "filled",
-      index < enteredPin.length
-    );
+      renderDesktopApp();
+    }
 
   });
 
 }
 
-/* =========================================================
-RESET
-========================================================= */
+</script>
 
-function resetPin(){
+<!-- =========================================================
+7. 모바일 저장 버튼 안정화
+========================================================= -->
 
-  enteredPin = [];
-
-  updateDots();
-}
+<script>
 
 /* =========================================================
-HANDLE INPUT
+MOBILE EVENT REBIND
 ========================================================= */
 
-function handlePinInput(value){
+function registerMobileEvents(){
 
-  if(enteredPin.length >= 4){
-
-    return;
-  }
-
-  enteredPin.push(value);
-
-  updateDots();
-
-  if(enteredPin.length === 4){
-
-    setTimeout(()=>{
-
-      validatePin();
-
-    },120);
-
-  }
-
-}
-
-/* =========================================================
-DELETE
-========================================================= */
-
-function deletePin(){
-
-  enteredPin.pop();
-
-  updateDots();
-}
-
-/* =========================================================
-VALIDATE
-========================================================= */
-
-function validatePin(){
-
-  const pin =
-    enteredPin.join("");
-
-  /* setup */
-
-  if(setupMode){
-
-    localStorage.setItem(
-      PIN_STORAGE_KEY,
-      pin
+  const saveBtn =
+    document.getElementById(
+      "mobileSave"
     );
 
-    unlockApp();
+  if(!saveBtn) return;
 
-    return;
-  }
+  saveBtn.onpointerdown =
+    null;
 
-  /* validate */
+  saveBtn.ontouchstart =
+    null;
 
-  const savedPin =
-    getSavedPin();
-
-  if(pin === savedPin){
-
-    unlockApp();
-  }
-
-  else{
-
-    triggerError();
-  }
-
-}
-
-/* =========================================================
-ERROR
-========================================================= */
-
-function triggerError(){
-
-  navigator.vibrate?.(180);
-
-  const panel =
-    document.querySelector(
-      ".lock-panel"
-    );
-
-  panel.classList.add(
-    "shake"
-  );
-
-  setTimeout(()=>{
-
-    panel.classList.remove(
-      "shake"
-    );
-
-  },450);
-
-  resetPin();
-}
-
-/* =========================================================
-UNLOCK
-========================================================= */
-
-function unlockApp(){
-
-  lockScreen.classList.add(
-    "unlock"
-  );
-
-  setTimeout(()=>{
-
-    lockScreen.remove();
-
-  },500);
-
-}
-
-/* =========================================================
-KEYPAD EVENT
-중요:
-event delegation 사용
-pointerdown + touch 대응
-========================================================= */
-
-function registerPinEvents(){
-
-  if(!keypad) return;
-
-  keypad.addEventListener(
+  saveBtn.addEventListener(
     "pointerdown",
-    handleKeypadInteraction,
-    {
-      passive:true
-    }
-  );
-
-  keypad.addEventListener(
-    "touchstart",
-    handleKeypadInteraction,
+    saveEntry,
     {
       passive:true
     }
   );
 
 }
-
-/* =========================================================
-KEYPAD HANDLER
-========================================================= */
-
-function handleKeypadInteraction(event){
-
-  const target =
-    event.target.closest(
-      ".pin-key"
-    );
-
-  if(!target){
-
-    return;
-  }
-
-  target.style.transform =
-    "scale(.92)";
-
-  setTimeout(()=>{
-
-    target.style.transform =
-      "";
-
-  },120);
-
-  const action =
-    target.dataset.action;
-
-  if(action === "delete"){
-
-    deletePin();
-
-    return;
-  }
-
-  const value =
-    target.dataset.key;
-
-  if(value){
-
-    handlePinInput(value);
-  }
-
-}
-
-/* =========================================================
-VISIBILITY FIX
-화면 전환 후 이벤트 복구
-========================================================= */
-
-document.addEventListener(
-  "visibilitychange",
-  ()=>{
-
-    if(
-      document.visibilityState
-      === "visible"
-    ){
-
-      registerPinEvents();
-    }
-
-  }
-);
-
-/* =========================================================
-RESIZE FIX
-========================================================= */
-
-window.addEventListener(
-  "resize",
-  ()=>{
-
-    document.body.style.height =
-      window.innerHeight
-      + "px";
-
-  }
-);
-
-/* =========================================================
-START
-========================================================= */
-
-initPinLock();
-
-registerPinEvents();
 
 </script>
+
+<!-- =========================================================
+8. 최종 결과
+========================================================= -->
+
+<!--
+앱 실행
+→ 바로 홈 진입
+
+모바일:
+→ 즉시 피드 표시
+
+PC:
+→ 즉시 대시보드 표시
+
+PIN 관련:
+→ 완전 제거
+→ localStorage 정리
+→ overlay 제거
+→ pointer 충돌 제거
+→ black screen 제거
+-->
+
 
 
