@@ -1,18 +1,23 @@
-<!-- =========================
-감성 일기 웹앱 UPGRADE VERSION
-모바일 우선 / Glassmorphism / PWA Ready
-기존 코드 기반 전체 리디자인
-========================= -->
+<!-- =========================================================
+하루 일기 - PLATFORM SPLIT VERSION
+모바일 앱 UI + 데스크탑 대시보드 UI 완전 분리
+공통 데이터 / 공통 로직 / UI 시스템 분리 구조
+========================================================= -->
 
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
 
-<meta charset="UTF-8" />
+<meta charset="UTF-8"/>
 
 <meta
   name="viewport"
-  content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  content="
+    width=device-width,
+    initial-scale=1.0,
+    viewport-fit=cover
+  "
 />
 
 <title>하루 일기</title>
@@ -29,19 +34,71 @@
 />
 
 <link
-  href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap"
+  href="
+https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap"
   rel="stylesheet"
 />
 
-<link rel="manifest" href="./manifest.json"/>
-
-<meta name="theme-color" content="#101010"/>
-
 <style>
 
-/* =========================
-RESET
-========================= */
+/* =========================================================
+COMMON.CSS
+========================================================= */
+
+:root{
+
+  --bg:
+    linear-gradient(
+      145deg,
+      #f7efe6,
+      #eef2ff
+    );
+
+  --card:
+    rgba(255,255,255,.18);
+
+  --border:
+    rgba(255,255,255,.24);
+
+  --text:#111;
+
+  --sub:#666;
+
+  --blur:22px;
+
+  --radius:28px;
+
+  --shadow:
+    0 10px 40px rgba(0,0,0,.08);
+
+  --transition:
+    .35s cubic-bezier(.22,1,.36,1);
+
+}
+
+body.dark{
+
+  --bg:
+    linear-gradient(
+      145deg,
+      #101216,
+      #181b25
+    );
+
+  --card:
+    rgba(255,255,255,.05);
+
+  --border:
+    rgba(255,255,255,.08);
+
+  --text:#f3f3f3;
+
+  --sub:#b5b5b5;
+
+  --shadow:
+    0 12px 45px rgba(0,0,0,.35);
+
+}
 
 *{
   margin:0;
@@ -55,1230 +112,1251 @@ html{
 }
 
 body{
+
   font-family:"Pretendard",sans-serif;
-  min-height:100vh;
-  overflow-x:hidden;
 
-  background:
-    linear-gradient(
-      160deg,
-      #fdf6ec,
-      #f5efe8,
-      #f1f4ff
-    );
+  background:var(--bg);
 
-  color:#222;
+  color:var(--text);
 
   transition:
-    background .45s ease,
-    color .45s ease;
+    background .5s ease,
+    color .5s ease;
+
+  overflow-x:hidden;
 }
 
-body.dark{
+.glass{
 
-  background:
-    linear-gradient(
-      160deg,
-      #101114,
-      #17181d,
-      #1f2230
-    );
+  background:var(--card);
 
-  color:#f4f4f4;
+  backdrop-filter:
+    blur(var(--blur));
+
+  -webkit-backdrop-filter:
+    blur(var(--blur));
+
+  border:
+    1px solid var(--border);
+
+  box-shadow:var(--shadow);
 }
 
-/* =========================
-SCROLL
-========================= */
+.hidden{
+  display:none !important;
+}
+
+.fade-up{
+
+  animation:
+    fadeUp .55s cubic-bezier(.22,1,.36,1);
+}
+
+@keyframes fadeUp{
+
+  from{
+    opacity:0;
+    transform:
+      translateY(18px);
+  }
+
+  to{
+    opacity:1;
+    transform:
+      translateY(0);
+  }
+
+}
+
+button,
+input,
+textarea{
+  font-family:inherit;
+}
+
+button{
+  cursor:pointer;
+  border:none;
+}
+
+textarea{
+  resize:none;
+}
+
+.section-title{
+  font-size:18px;
+  font-weight:700;
+  margin-bottom:16px;
+}
+
+.card{
+
+  border-radius:var(--radius);
+
+  padding:20px;
+}
 
 ::-webkit-scrollbar{
   width:8px;
 }
 
-::-webkit-scrollbar-track{
-  background:transparent;
-}
-
 ::-webkit-scrollbar-thumb{
-  background:rgba(255,255,255,.25);
+  background:
+    rgba(255,255,255,.2);
   border-radius:999px;
 }
 
-/* =========================
-APP
-========================= */
+/* =========================================================
+MOBILE.CSS
+========================================================= */
 
-.app{
+body.mobile{
+
+  min-height:100vh;
+
+  padding-bottom:120px;
+}
+
+.mobile-shell{
+
   width:100%;
-  max-width:1400px;
+
+  max-width:540px;
+
   margin:auto;
+
   padding:
     env(safe-area-inset-top)
-    18px
-    120px;
+    16px
+    140px;
 }
 
-/* =========================
-GLASS
-========================= */
+.mobile-header{
 
-.glass{
-  background:rgba(255,255,255,.18);
-
-  backdrop-filter:blur(22px);
-
-  -webkit-backdrop-filter:blur(22px);
-
-  border:
-    1px solid rgba(255,255,255,.18);
-
-  box-shadow:
-    0 10px 40px rgba(0,0,0,.08);
-}
-
-body.dark .glass{
-  background:rgba(255,255,255,.05);
-
-  border:
-    1px solid rgba(255,255,255,.08);
-
-  box-shadow:
-    0 10px 40px rgba(0,0,0,.35);
-}
-
-/* =========================
-TOPBAR
-========================= */
-
-.topbar{
   display:flex;
+
   justify-content:space-between;
+
   align-items:center;
+
   margin-bottom:22px;
-  gap:14px;
 }
 
-.logo{
-  font-size:26px;
-  font-weight:700;
-  letter-spacing:-0.5px;
-}
+.mobile-logo{
 
-.top-actions{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-}
+  font-size:28px;
 
-.icon-btn{
-  border:none;
-  border-radius:18px;
-  padding:12px 16px;
-  cursor:pointer;
-  font-size:14px;
-  color:inherit;
-
-  transition:.25s;
-}
-
-.icon-btn:hover{
-  transform:translateY(-2px);
-}
-
-/* =========================
-LAYOUT
-========================= */
-
-.grid{
-  display:grid;
-  grid-template-columns:
-    340px
-    1fr;
-  gap:24px;
-}
-
-@media(max-width:980px){
-
-  .grid{
-    grid-template-columns:1fr;
-  }
-
-}
-
-/* =========================
-SIDEBAR
-========================= */
-
-.sidebar{
-  position:sticky;
-  top:20px;
-  height:max-content;
-  border-radius:30px;
-  padding:20px;
-}
-
-/* =========================
-CALENDAR
-========================= */
-
-.calendar-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:18px;
-}
-
-.calendar-header button{
-  width:40px;
-  height:40px;
-  border:none;
-  border-radius:50%;
-  cursor:pointer;
-  color:inherit;
-}
-
-.calendar{
-  display:grid;
-  grid-template-columns:repeat(7,1fr);
-  gap:8px;
-}
-
-.day-name{
-  text-align:center;
-  font-size:12px;
-  opacity:.6;
-  padding-bottom:6px;
-}
-
-.day{
-  aspect-ratio:1/1;
-
-  border-radius:18px;
-
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-
-  font-size:13px;
-
-  position:relative;
-
-  cursor:pointer;
-
-  transition:.25s;
-}
-
-.day:hover{
-  transform:translateY(-2px);
-}
-
-.day.today{
-  border:2px solid #111;
-}
-
-body.dark .day.today{
-  border:2px solid white;
-}
-
-.day .dot{
-  width:6px;
-  height:6px;
-  border-radius:50%;
-  margin-top:5px;
-}
-
-.day.happy{
-  background:#fff3b0;
-}
-
-.day.normal{
-  background:#ececec;
-}
-
-.day.sad{
-  background:#bfdcff;
-}
-
-.day.angry{
-  background:#ffb9b9;
-}
-
-.day.tired{
-  background:#d7c7ff;
-}
-
-/* =========================
-MAIN
-========================= */
-
-.main{
-  display:flex;
-  flex-direction:column;
-  gap:22px;
-}
-
-/* =========================
-WRITE CARD
-========================= */
-
-.write-card{
-  border-radius:34px;
-  padding:22px;
-}
-
-.write-top{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:18px;
-}
-
-.write-title{
-  font-size:24px;
   font-weight:700;
 }
 
-.date-text{
-  opacity:.65;
-  font-size:14px;
-}
+.mobile-page{
 
-input,
-textarea,
-select{
-  width:100%;
-  border:none;
-  outline:none;
-  font-family:inherit;
-}
-
-.diary-title{
-  background:rgba(255,255,255,.35);
-
-  border-radius:18px;
-
-  padding:16px;
-
-  margin-bottom:14px;
-
-  font-size:15px;
-}
-
-.diary-content{
-  min-height:180px;
-
-  background:rgba(255,255,255,.35);
-
-  border-radius:24px;
-
-  padding:18px;
-
-  resize:none;
-
-  line-height:1.8;
-
-  font-size:15px;
-}
-
-body.dark .diary-title,
-body.dark .diary-content{
-  background:rgba(255,255,255,.06);
-  color:white;
-}
-
-/* =========================
-EMOTION
-========================= */
-
-.emotions{
-  display:flex;
-  gap:10px;
-  overflow-x:auto;
-  margin-top:18px;
-}
-
-.emotion{
-  min-width:max-content;
-
-  border:none;
-
-  border-radius:999px;
-
-  padding:12px 16px;
-
-  cursor:pointer;
-
-  transition:.25s;
-}
-
-.emotion.active{
-  transform:scale(1.05);
-  background:#111;
-  color:white;
-}
-
-body.dark .emotion.active{
-  background:white;
-  color:#111;
-}
-
-/* =========================
-UPLOAD
-========================= */
-
-.upload-box{
-  margin-top:18px;
-
-  border:
-    2px dashed rgba(255,255,255,.4);
-
-  border-radius:24px;
-
-  padding:28px;
-
-  text-align:center;
-
-  transition:.25s;
-}
-
-.upload-box.drag{
-  transform:scale(1.01);
-}
-
-.preview-grid{
-  display:grid;
-  grid-template-columns:
-    repeat(auto-fill,minmax(90px,1fr));
-
-  gap:10px;
-
-  margin-top:16px;
-}
-
-.preview-grid img{
-  width:100%;
-  height:90px;
-  object-fit:cover;
-  border-radius:16px;
-}
-
-/* =========================
-SUMMARY
-========================= */
-
-.summary{
-  margin-top:18px;
-  padding:18px;
-  border-radius:24px;
   display:none;
-  animation:fade .5s ease;
 }
 
-.summary.show{
+.mobile-page.active{
   display:block;
 }
 
-.summary h4{
-  margin-bottom:10px;
+.mobile-diary-card{
+
+  border-radius:34px;
+
+  padding:24px;
+
+  margin-bottom:20px;
 }
 
-.summary p{
-  line-height:1.7;
-}
+.mobile-input{
 
-@keyframes fade{
-
-  from{
-    opacity:0;
-    transform:translateY(8px);
-  }
-
-  to{
-    opacity:1;
-    transform:translateY(0);
-  }
-
-}
-
-/* =========================
-BUTTONS
-========================= */
-
-.action-row{
-  display:flex;
-  gap:12px;
-  margin-top:18px;
-}
-
-.primary-btn{
-  flex:1;
+  width:100%;
 
   border:none;
 
+  outline:none;
+
+  background:
+    rgba(255,255,255,.28);
+
   border-radius:22px;
 
-  padding:16px;
+  padding:18px;
 
-  cursor:pointer;
+  margin-top:14px;
+
+  color:var(--text);
+}
+
+.mobile-textarea{
+
+  min-height:240px;
+
+  line-height:1.9;
 
   font-size:15px;
-  font-weight:600;
+}
+
+.mobile-emotions{
+
+  display:flex;
+
+  gap:10px;
+
+  overflow:auto;
+
+  margin-top:18px;
+}
+
+.mobile-emotion{
+
+  padding:12px 16px;
+
+  border-radius:999px;
+
+  min-width:max-content;
+
+  transition:var(--transition);
+}
+
+.mobile-emotion.active{
 
   background:#111;
 
   color:white;
 
-  transition:.25s;
+  transform:scale(1.05);
 }
 
-.primary-btn:hover{
-  transform:translateY(-2px);
-}
+body.dark .mobile-emotion.active{
 
-body.dark .primary-btn{
   background:white;
+
   color:#111;
 }
 
-/* =========================
-SEARCH
-========================= */
+.mobile-save{
 
-.search-card{
-  border-radius:28px;
-  padding:18px;
+  position:fixed;
+
+  bottom:110px;
+
+  right:20px;
+
+  width:62px;
+  height:62px;
+
+  border-radius:50%;
+
+  font-size:28px;
+
+  z-index:999;
+
+  transition:var(--transition);
 }
 
-.search-box{
+.mobile-save:hover{
+
+  transform:
+    scale(1.06)
+    translateY(-2px);
+}
+
+.mobile-feed{
+
   display:flex;
-  gap:10px;
-  margin-top:14px;
-}
 
-.search-box input{
-  padding:14px;
-  border-radius:16px;
-  background:rgba(255,255,255,.3);
-}
-
-.filter-row{
-  display:flex;
-  gap:10px;
-  overflow:auto;
-  margin-top:14px;
-}
-
-.filter-btn{
-  border:none;
-  border-radius:999px;
-  padding:10px 14px;
-  cursor:pointer;
-}
-
-/* =========================
-TIMELINE
-========================= */
-
-.timeline{
-  display:flex;
   flex-direction:column;
+
   gap:18px;
 }
 
-.timeline-card{
-  border-radius:28px;
+.mobile-post{
+
+  border-radius:30px;
+
   padding:20px;
 
-  opacity:0;
-  transform:translateY(20px);
-
-  animation:showCard .55s forwards;
+  animation:
+    fadeUp .5s ease;
 }
 
-@keyframes showCard{
+.mobile-post img{
 
-  to{
-    opacity:1;
-    transform:translateY(0);
-  }
-
-}
-
-.timeline-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap:12px;
-}
-
-.timeline-title{
-  font-size:18px;
-  font-weight:700;
-}
-
-.timeline-meta{
-  margin-top:4px;
-  opacity:.65;
-  font-size:13px;
-}
-
-.preview{
-  margin-top:16px;
-  line-height:1.8;
-}
-
-.card-images{
-  display:grid;
-  grid-template-columns:
-    repeat(auto-fill,minmax(110px,1fr));
-
-  gap:10px;
-
-  margin-top:16px;
-}
-
-.card-images img{
   width:100%;
-  height:120px;
-  object-fit:cover;
-  border-radius:18px;
-  cursor:pointer;
-  transition:.25s;
-}
 
-.card-images img:hover{
-  transform:scale(1.03);
-}
+  border-radius:22px;
 
-.more{
   margin-top:14px;
-  border:none;
-  background:none;
-  cursor:pointer;
-  font-weight:600;
-  color:inherit;
 }
 
-/* =========================
-STATS
-========================= */
+.mobile-tabbar{
 
-.stats{
-  border-radius:28px;
-  padding:20px;
-}
-
-.chart{
-  display:flex;
-  align-items:flex-end;
-  gap:12px;
-  height:180px;
-  margin-top:20px;
-}
-
-.bar-wrap{
-  flex:1;
-  text-align:center;
-}
-
-.bar{
-  width:100%;
-  border-radius:14px 14px 0 0;
-  animation:grow 1s ease;
-}
-
-@keyframes grow{
-
-  from{
-    height:0;
-  }
-
-}
-
-/* =========================
-PLAYER
-========================= */
-
-.player{
   position:fixed;
 
-  right:18px;
-  bottom:18px;
+  left:50%;
+  bottom:20px;
 
-  width:280px;
+  transform:translateX(-50%);
 
-  border-radius:26px;
-
-  padding:18px;
-
-  z-index:999;
-}
-
-.player-top{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:14px;
-}
-
-.player select{
-  background:transparent;
-  color:inherit;
-}
-
-.player input[type="range"]{
-  margin-top:12px;
-}
-
-/* =========================
-LOCK SCREEN
-========================= */
-
-.lock{
-  position:fixed;
-  inset:0;
-
-  z-index:99999;
-
-  display:flex;
-  justify-content:center;
-  align-items:center;
-
-  backdrop-filter:blur(35px);
-
-  background:
-    rgba(0,0,0,.45);
-}
-
-.lock-card{
   width:92%;
-  max-width:360px;
 
-  border-radius:34px;
+  max-width:520px;
 
-  padding:28px;
+  height:82px;
 
-  text-align:center;
-}
+  border-radius:32px;
 
-.pin-dots{
   display:flex;
-  justify-content:center;
-  gap:10px;
-  margin:26px 0;
-}
 
-.pin-dot{
-  width:16px;
-  height:16px;
-  border-radius:50%;
-  background:rgba(255,255,255,.3);
-}
+  justify-content:space-around;
 
-.pin-dot.fill{
-  background:white;
-}
-
-.keypad{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:12px;
-}
-
-.key{
-  aspect-ratio:1/1;
-
-  border:none;
-
-  border-radius:50%;
-
-  font-size:22px;
-
-  cursor:pointer;
-}
-
-.shake{
-  animation:shake .35s;
-}
-
-@keyframes shake{
-
-  0%{transform:translateX(0);}
-  25%{transform:translateX(-8px);}
-  50%{transform:translateX(8px);}
-  75%{transform:translateX(-8px);}
-  100%{transform:translateX(0);}
-}
-
-/* =========================
-MODAL
-========================= */
-
-.modal{
-  position:fixed;
-  inset:0;
-
-  background:rgba(0,0,0,.75);
-
-  display:none;
-  justify-content:center;
   align-items:center;
 
   z-index:9999;
 }
 
-.modal.show{
+.mobile-tab{
+
   display:flex;
+
+  flex-direction:column;
+
+  align-items:center;
+
+  justify-content:center;
+
+  gap:4px;
+
+  width:64px;
+  height:64px;
+
+  border-radius:22px;
+
+  color:var(--sub);
+
+  transition:var(--transition);
 }
 
-.modal img{
-  max-width:90%;
-  max-height:90%;
+.mobile-tab.active{
+
+  background:
+    rgba(255,255,255,.22);
+
+  color:var(--text);
+
+  transform:
+    translateY(-8px);
+
+  box-shadow:
+    0 0 24px rgba(255,255,255,.18);
+}
+
+.mobile-calendar{
+
+  display:grid;
+
+  grid-template-columns:
+    repeat(7,1fr);
+
+  gap:10px;
+}
+
+.mobile-day{
+
+  aspect-ratio:1/1;
+
+  border-radius:18px;
+
+  display:flex;
+
+  justify-content:center;
+  align-items:center;
+
+  font-size:14px;
+
+  position:relative;
+}
+
+.mobile-dot{
+
+  width:7px;
+  height:7px;
+
+  border-radius:50%;
+
+  position:absolute;
+
+  bottom:10px;
+}
+
+.mobile-stats{
+
+  display:grid;
+
+  grid-template-columns:
+    repeat(2,1fr);
+
+  gap:14px;
+}
+
+.mobile-stat{
+
+  padding:20px;
+
+  border-radius:26px;
+
+  text-align:center;
+}
+
+/* =========================================================
+DESKTOP.CSS
+========================================================= */
+
+body.desktop{
+
+  overflow:hidden;
+}
+
+.desktop-shell{
+
+  width:100vw;
+  height:100vh;
+
+  padding:24px;
+
+  display:grid;
+
+  grid-template-columns:
+    280px
+    1fr
+    320px;
+
+  gap:24px;
+}
+
+.desktop-sidebar{
+
+  border-radius:36px;
+
+  padding:24px;
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:20px;
+}
+
+.desktop-logo{
+
+  font-size:30px;
+
+  font-weight:700;
+}
+
+.desktop-menu{
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:12px;
+}
+
+.desktop-menu button{
+
+  height:56px;
+
+  border-radius:20px;
+
+  background:transparent;
+
+  color:var(--text);
+
+  transition:var(--transition);
+
+  text-align:left;
+
+  padding-left:18px;
+}
+
+.desktop-menu button:hover{
+
+  transform:
+    translateX(6px);
+
+  background:
+    rgba(255,255,255,.08);
+}
+
+.desktop-center{
+
+  overflow:auto;
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:22px;
+
+  padding-right:8px;
+}
+
+.desktop-grid{
+
+  display:grid;
+
+  grid-template-columns:
+    repeat(2,1fr);
+
+  gap:18px;
+}
+
+.desktop-panel{
+
+  border-radius:34px;
+
+  padding:24px;
+
+  transition:var(--transition);
+}
+
+.desktop-panel:hover{
+
+  transform:
+    translateY(-4px);
+
+  box-shadow:
+    0 18px 45px rgba(0,0,0,.12);
+}
+
+.desktop-write textarea{
+
+  width:100%;
+
+  height:220px;
+
+  margin-top:16px;
+
+  border:none;
+
+  outline:none;
+
   border-radius:24px;
+
+  padding:20px;
+
+  background:
+    rgba(255,255,255,.2);
+
+  color:var(--text);
 }
 
-/* =========================
-MOBILE
-========================= */
+.desktop-feed{
 
-@media(max-width:768px){
+  display:grid;
 
-  .app{
-    padding:16px 14px 120px;
-  }
+  grid-template-columns:
+    repeat(auto-fill,minmax(280px,1fr));
 
-  .logo{
-    font-size:22px;
-  }
+  gap:18px;
+}
 
-  .write-title{
-    font-size:20px;
-  }
+.desktop-post{
 
-  .player{
-    width:calc(100% - 28px);
-    right:14px;
-    left:14px;
-    bottom:12px;
-  }
+  border-radius:30px;
 
+  padding:20px;
+
+  transition:var(--transition);
+
+  position:relative;
+
+  overflow:hidden;
+}
+
+.desktop-post:hover{
+
+  transform:
+    translateY(-6px)
+    scale(1.01);
+}
+
+.desktop-post::before{
+
+  content:"";
+
+  position:absolute;
+
+  inset:0;
+
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(255,255,255,.16),
+      transparent
+    );
+
+  pointer-events:none;
+}
+
+.desktop-post img{
+
+  width:100%;
+
+  border-radius:20px;
+
+  margin-top:14px;
+}
+
+.desktop-right{
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:20px;
+
+  overflow:auto;
+}
+
+.desktop-mini{
+
+  border-radius:30px;
+
+  padding:20px;
+}
+
+.desktop-calendar{
+
+  display:grid;
+
+  grid-template-columns:
+    repeat(7,1fr);
+
+  gap:10px;
+}
+
+.desktop-day{
+
+  aspect-ratio:1/1;
+
+  border-radius:18px;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  position:relative;
+
+  transition:var(--transition);
+}
+
+.desktop-day:hover{
+
+  transform:scale(1.08);
+}
+
+.desktop-player{
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:12px;
+}
+
+/* =========================================================
+UTILS
+========================================================= */
+
+.emotion-happy{
+  background:#ffe89d;
+}
+
+.emotion-normal{
+  background:#ececec;
+}
+
+.emotion-sad{
+  background:#bdd8ff;
+}
+
+.emotion-angry{
+  background:#ffb7b7;
+}
+
+.emotion-tired{
+  background:#d9c7ff;
 }
 
 </style>
+
 </head>
 
 <body>
 
-<!-- =========================
-LOCK
-========================= -->
+<!-- =========================================================
+MOBILE APP UI
+========================================================= -->
 
-<div class="lock" id="lockScreen">
+<div
+  class="
+    mobile-shell
+    hidden
+  "
+  id="mobileUI"
+>
 
-  <div class="lock-card glass" id="lockCard">
+  <div class="mobile-header">
 
-    <h2>🔒 하루 일기</h2>
-
-    <p
-      style="
-        margin-top:10px;
-        opacity:.7;
-      "
-    >
-      4자리 PIN 입력
-    </p>
-
-    <div class="pin-dots" id="pinDots"></div>
-
-    <div class="keypad" id="keypad"></div>
-
-  </div>
-
-</div>
-
-<!-- =========================
-APP
-========================= -->
-
-<div class="app">
-
-  <!-- TOP -->
-
-  <div class="topbar">
-
-    <div class="logo">
+    <div class="mobile-logo">
       🌙 하루 일기
     </div>
 
-    <div class="top-actions">
-
-      <button
-        class="icon-btn glass"
-        id="randomBtn"
-      >
-        🎲 추억 보기
-      </button>
-
-      <button
-        class="icon-btn glass"
-        id="themeBtn"
-      >
-        🌙 다크모드
-      </button>
-
-    </div>
-
-  </div>
-
-  <!-- GRID -->
-
-  <div class="grid">
-
-    <!-- SIDEBAR -->
-
-    <aside class="sidebar glass">
-
-      <div class="calendar-header">
-
-        <button
-          class="glass"
-          id="prevMonth"
-        >
-          ←
-        </button>
-
-        <h3 id="monthTitle"></h3>
-
-        <button
-          class="glass"
-          id="nextMonth"
-        >
-          →
-        </button>
-
-      </div>
-
-      <div
-        class="calendar"
-        id="calendar"
-      ></div>
-
-    </aside>
-
-    <!-- MAIN -->
-
-    <main class="main">
-
-      <!-- WRITE -->
-
-      <section
-        class="write-card glass"
-      >
-
-        <div class="write-top">
-
-          <div>
-
-            <div class="write-title">
-              오늘의 기록
-            </div>
-
-            <div
-              class="date-text"
-              id="todayText"
-            ></div>
-
-          </div>
-
-        </div>
-
-        <input
-          type="text"
-          id="titleInput"
-          class="diary-title"
-          placeholder="오늘의 제목"
-        />
-
-        <textarea
-          id="contentInput"
-          class="diary-content"
-          placeholder="오늘 하루를 감성적으로 기록해보세요..."
-        ></textarea>
-
-        <!-- EMOTION -->
-
-        <div class="emotions">
-
-          <button
-            class="emotion glass active"
-            data-emotion="happy"
-          >
-            😊 행복
-          </button>
-
-          <button
-            class="emotion glass"
-            data-emotion="normal"
-          >
-            😐 평범
-          </button>
-
-          <button
-            class="emotion glass"
-            data-emotion="sad"
-          >
-            😢 슬픔
-          </button>
-
-          <button
-            class="emotion glass"
-            data-emotion="angry"
-          >
-            😡 화남
-          </button>
-
-          <button
-            class="emotion glass"
-            data-emotion="tired"
-          >
-            😴 피곤
-          </button>
-
-        </div>
-
-        <!-- UPLOAD -->
-
-        <div
-          class="upload-box"
-          id="uploadBox"
-        >
-          📷 사진 업로드<br/>
-          드래그 & 드롭 가능
-          <input
-            type="file"
-            id="imageInput"
-            accept="image/*"
-            multiple
-            hidden
-          />
-        </div>
-
-        <div
-          class="preview-grid"
-          id="previewGrid"
-        ></div>
-
-        <!-- SUMMARY -->
-
-        <div
-          class="summary glass"
-          id="summaryCard"
-        >
-          <h4>
-            ✨ 오늘의 하루 요약
-          </h4>
-
-          <p id="summaryText"></p>
-
-          <p
-            style="
-              margin-top:10px;
-              opacity:.7;
-            "
-          >
-            감정 분석:
-            <span id="sentiment"></span>
-          </p>
-
-        </div>
-
-        <div class="action-row">
-
-          <button
-            class="primary-btn"
-            id="saveBtn"
-          >
-            기록 저장하기
-          </button>
-
-        </div>
-
-      </section>
-
-      <!-- SEARCH -->
-
-      <section
-        class="search-card glass"
-      >
-
-        <h3>
-          🔍 검색 및 필터
-        </h3>
-
-        <div class="search-box">
-
-          <input
-            type="text"
-            id="searchInput"
-            placeholder="제목 또는 내용 검색"
-          />
-
-        </div>
-
-        <div class="filter-row">
-
-          <button
-            class="filter-btn glass"
-            data-filter="all"
-          >
-            전체
-          </button>
-
-          <button
-            class="filter-btn glass"
-            data-filter="happy"
-          >
-            😊
-          </button>
-
-          <button
-            class="filter-btn glass"
-            data-filter="normal"
-          >
-            😐
-          </button>
-
-          <button
-            class="filter-btn glass"
-            data-filter="sad"
-          >
-            😢
-          </button>
-
-          <button
-            class="filter-btn glass"
-            data-filter="angry"
-          >
-            😡
-          </button>
-
-          <button
-            class="filter-btn glass"
-            data-filter="tired"
-          >
-            😴
-          </button>
-
-        </div>
-
-      </section>
-
-      <!-- STATS -->
-
-      <section
-        class="stats glass"
-      >
-
-        <h3>
-          📊 감정 통계
-        </h3>
-
-        <div
-          style="
-            margin-top:14px;
-            line-height:1.9;
-          "
-          id="statsText"
-        ></div>
-
-        <div
-          class="chart"
-          id="chart"
-        ></div>
-
-      </section>
-
-      <!-- TIMELINE -->
-
-      <section
-        class="timeline"
-        id="timeline"
-      ></section>
-
-    </main>
-
-  </div>
-
-</div>
-
-<!-- PLAYER -->
-
-<div class="player glass">
-
-  <div class="player-top">
-
-    <strong>
-      🎵 감성 BGM
-    </strong>
-
     <button
-      class="icon-btn glass"
-      id="musicToggle"
+      class="
+        glass
+        card
+      "
+      id="themeToggleMobile"
     >
-      ▶
+      🌗
     </button>
 
   </div>
 
-  <select id="musicSelect">
+  <!-- HOME -->
 
-    <option value="rain">
-      🌧 빗소리
-    </option>
+  <section
+    class="
+      mobile-page
+      active
+    "
+    id="m-home"
+  >
 
-    <option value="cafe">
-      ☕ 카페
-    </option>
+    <div
+      class="
+        mobile-diary-card
+        glass
+      "
+    >
 
-    <option value="piano">
-      🎹 피아노
-    </option>
+      <div class="section-title">
+        오늘의 감정
+      </div>
 
-  </select>
+      <div
+        style="
+          font-size:34px;
+          margin-top:10px;
+        "
+        id="mobileTodayEmotion"
+      >
+        😊
+      </div>
 
-  <input
-    type="range"
-    id="volume"
-    min="0"
-    max="1"
-    step="0.01"
-  />
+    </div>
+
+    <div
+      class="
+        mobile-diary-card
+        glass
+      "
+    >
+
+      <div class="section-title">
+        최근 기록
+      </div>
+
+      <div id="mobileRecent"></div>
+
+    </div>
+
+  </section>
+
+  <!-- CALENDAR -->
+
+  <section
+    class="mobile-page"
+    id="m-calendar"
+  >
+
+    <div
+      class="
+        mobile-diary-card
+        glass
+      "
+    >
+
+      <div class="section-title">
+        감성 캘린더
+      </div>
+
+      <div
+        class="mobile-calendar"
+        id="mobileCalendar"
+      ></div>
+
+    </div>
+
+  </section>
+
+  <!-- WRITE -->
+
+  <section
+    class="mobile-page"
+    id="m-write"
+  >
+
+    <div
+      class="
+        mobile-diary-card
+        glass
+      "
+    >
+
+      <div class="section-title">
+        오늘 기록하기
+      </div>
+
+      <input
+        type="text"
+        id="mobileTitle"
+        class="mobile-input"
+        placeholder="오늘의 제목"
+      />
+
+      <textarea
+        id="mobileContent"
+        class="
+          mobile-input
+          mobile-textarea
+        "
+        placeholder="오늘 하루를 기록해보세요..."
+      ></textarea>
+
+      <div class="mobile-emotions">
+
+        <button
+          class="
+            mobile-emotion
+            glass
+            active
+          "
+          data-emotion="happy"
+        >
+          😊 행복
+        </button>
+
+        <button
+          class="
+            mobile-emotion
+            glass
+          "
+          data-emotion="normal"
+        >
+          😐 평범
+        </button>
+
+        <button
+          class="
+            mobile-emotion
+            glass
+          "
+          data-emotion="sad"
+        >
+          😢 슬픔
+        </button>
+
+        <button
+          class="
+            mobile-emotion
+            glass
+          "
+          data-emotion="angry"
+        >
+          😡 화남
+        </button>
+
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- TIMELINE -->
+
+  <section
+    class="mobile-page"
+    id="m-timeline"
+  >
+
+    <div
+      class="mobile-feed"
+      id="mobileFeed"
+    ></div>
+
+  </section>
+
+  <!-- STATS -->
+
+  <section
+    class="mobile-page"
+    id="m-stats"
+  >
+
+    <div class="mobile-stats">
+
+      <div
+        class="
+          mobile-stat
+          glass
+        "
+      >
+        <h3 id="mobileCount">
+          0
+        </h3>
+
+        <p>총 기록</p>
+      </div>
+
+      <div
+        class="
+          mobile-stat
+          glass
+        "
+      >
+        <h3 id="mobileBestEmotion">
+          😊
+        </h3>
+
+        <p>최다 감정</p>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- SAVE -->
+
+  <button
+    class="
+      mobile-save
+      glass
+    "
+    id="mobileSave"
+  >
+    ✚
+  </button>
+
+  <!-- TABBAR -->
+
+  <div
+    class="
+      mobile-tabbar
+      glass
+    "
+  >
+
+    <button
+      class="
+        mobile-tab
+        active
+      "
+      data-page="m-home"
+    >
+      🏠
+      <small>Home</small>
+    </button>
+
+    <button
+      class="mobile-tab"
+      data-page="m-calendar"
+    >
+      📅
+      <small>Calendar</small>
+    </button>
+
+    <button
+      class="mobile-tab"
+      data-page="m-write"
+    >
+      ✍️
+      <small>Write</small>
+    </button>
+
+    <button
+      class="mobile-tab"
+      data-page="m-timeline"
+    >
+      🌙
+      <small>Timeline</small>
+    </button>
+
+    <button
+      class="mobile-tab"
+      data-page="m-stats"
+    >
+      📊
+      <small>Stats</small>
+    </button>
+
+  </div>
 
 </div>
 
-<!-- MODAL -->
+<!-- =========================================================
+DESKTOP DASHBOARD UI
+========================================================= -->
 
-<div class="modal" id="modal">
+<div
+  class="
+    desktop-shell
+    hidden
+  "
+  id="desktopUI"
+>
 
-  <img id="modalImg"/>
+  <!-- LEFT -->
+
+  <aside
+    class="
+      desktop-sidebar
+      glass
+    "
+  >
+
+    <div class="desktop-logo">
+      🌙 하루 일기
+    </div>
+
+    <div class="desktop-menu">
+
+      <button>
+        🏠 Dashboard
+      </button>
+
+      <button>
+        📅 Calendar
+      </button>
+
+      <button>
+        ✍️ Write
+      </button>
+
+      <button>
+        📊 Statistics
+      </button>
+
+    </div>
+
+    <div
+      class="
+        desktop-mini
+        glass
+      "
+    >
+
+      <div class="section-title">
+        감정 요약
+      </div>
+
+      <h2 id="desktopEmotion">
+        😊
+      </h2>
+
+    </div>
+
+    <div
+      class="
+        desktop-mini
+        glass
+      "
+    >
+
+      <div class="section-title">
+        BGM
+      </div>
+
+      <div class="desktop-player">
+
+        <button
+          class="
+            glass
+            card
+          "
+          id="musicBtn"
+        >
+          ▶ 재생
+        </button>
+
+      </div>
+
+    </div>
+
+  </aside>
+
+  <!-- CENTER -->
+
+  <main class="desktop-center">
+
+    <div class="desktop-grid">
+
+      <section
+        class="
+          desktop-panel
+          glass
+        "
+      >
+
+        <div class="section-title">
+          월간 캘린더
+        </div>
+
+        <div
+          class="desktop-calendar"
+          id="desktopCalendar"
+        ></div>
+
+      </section>
+
+      <section
+        class="
+          desktop-panel
+          glass
+        "
+      >
+
+        <div class="section-title">
+          오늘 기록
+        </div>
+
+        <div class="desktop-write">
+
+          <input
+            type="text"
+            id="desktopTitle"
+            class="mobile-input"
+            placeholder="오늘의 제목"
+          />
+
+          <textarea
+            id="desktopContent"
+            placeholder="오늘 하루를 기록해보세요..."
+          ></textarea>
+
+          <button
+            class="
+              glass
+              card
+            "
+            id="desktopSave"
+            style="
+              margin-top:16px;
+            "
+          >
+            저장하기
+          </button>
+
+        </div>
+
+      </section>
+
+    </div>
+
+    <section
+      class="
+        desktop-panel
+        glass
+      "
+    >
+
+      <div class="section-title">
+        감성 타임라인
+      </div>
+
+      <div
+        class="desktop-feed"
+        id="desktopFeed"
+      ></div>
+
+    </section>
+
+  </main>
+
+  <!-- RIGHT -->
+
+  <aside class="desktop-right">
+
+    <section
+      class="
+        desktop-mini
+        glass
+      "
+    >
+
+      <div class="section-title">
+        AI 하루 요약
+      </div>
+
+      <p id="desktopSummary">
+        오늘 하루를 기록해보세요.
+      </p>
+
+    </section>
+
+    <section
+      class="
+        desktop-mini
+        glass
+      "
+    >
+
+      <div class="section-title">
+        연속 기록
+      </div>
+
+      <h2 id="streak">
+        🔥 0일
+      </h2>
+
+    </section>
+
+    <section
+      class="
+        desktop-mini
+        glass
+      "
+    >
+
+      <div class="section-title">
+        빠른 메모
+      </div>
+
+      <textarea
+        class="mobile-input"
+        style="
+          min-height:160px;
+        "
+      ></textarea>
+
+    </section>
+
+  </aside>
 
 </div>
-
-<!-- AUDIO -->
-
-<audio
-  id="audio"
-  loop
-></audio>
 
 <script>
 
-/* =========================
-DATA
-========================= */
+/* =========================================================
+COMMON DATA
+========================================================= */
 
 let diaries =
+
   JSON.parse(
     localStorage.getItem("diaries")
   ) || [];
@@ -1286,43 +1364,70 @@ let diaries =
 let currentEmotion =
   "happy";
 
-let selectedImages = [];
+const emotionEmoji = {
 
-let currentFilter =
-  "all";
-
-const emotions = {
-
-  happy:{
-    emoji:"😊",
-    class:"happy"
-  },
-
-  normal:{
-    emoji:"😐",
-    class:"normal"
-  },
-
-  sad:{
-    emoji:"😢",
-    class:"sad"
-  },
-
-  angry:{
-    emoji:"😡",
-    class:"angry"
-  },
-
-  tired:{
-    emoji:"😴",
-    class:"tired"
-  }
+  happy:"😊",
+  normal:"😐",
+  sad:"😢",
+  angry:"😡"
 
 };
 
-/* =========================
+/* =========================================================
+PLATFORM DETECT
+========================================================= */
+
+function detectPlatform(){
+
+  document.body.classList.remove(
+    "mobile",
+    "desktop"
+  );
+
+  if(window.innerWidth <= 768){
+
+    document.body.classList.add(
+      "mobile"
+    );
+
+    document
+      .getElementById("mobileUI")
+      .classList.remove("hidden");
+
+    document
+      .getElementById("desktopUI")
+      .classList.add("hidden");
+
+  }
+
+  else{
+
+    document.body.classList.add(
+      "desktop"
+    );
+
+    document
+      .getElementById("desktopUI")
+      .classList.remove("hidden");
+
+    document
+      .getElementById("mobileUI")
+      .classList.add("hidden");
+
+  }
+
+}
+
+detectPlatform();
+
+window.addEventListener(
+  "resize",
+  detectPlatform
+);
+
+/* =========================================================
 THEME
-========================= */
+========================================================= */
 
 const savedTheme =
   localStorage.getItem("theme");
@@ -1333,56 +1438,111 @@ if(savedTheme === "dark"){
 
 }
 
-document
-  .getElementById("themeBtn")
-  .onclick = ()=>{
+function toggleTheme(){
 
-    document.body.classList.toggle("dark");
+  document.body.classList.toggle("dark");
 
-    localStorage.setItem(
-      "theme",
-      document.body.classList.contains("dark")
-      ? "dark"
-      : "light"
-    );
-
-  };
-
-/* =========================
-DATE
-========================= */
-
-const today =
-  new Date();
-
-document
-  .getElementById("todayText")
-  .innerText =
-  today.toLocaleDateString(
-    "ko-KR",
-    {
-      year:"numeric",
-      month:"long",
-      day:"numeric",
-      weekday:"long"
-    }
+  localStorage.setItem(
+    "theme",
+    document.body.classList.contains("dark")
+    ? "dark"
+    : "light"
   );
 
-/* =========================
-EMOTION
-========================= */
+}
 
 document
-  .querySelectorAll(".emotion")
+  .getElementById("themeToggleMobile")
+  .onclick =
+  toggleTheme;
+
+/* =========================================================
+SAVE LOGIC
+========================================================= */
+
+function generateSummary(text){
+
+  if(
+    text.includes("행복")
+    ||
+    text.includes("좋")
+  ){
+
+    return
+      "오늘은 따뜻하고 행복한 하루였어요.";
+
+  }
+
+  if(
+    text.includes("힘들")
+    ||
+    text.includes("슬프")
+  ){
+
+    return
+      "조금 지쳤지만 의미 있는 하루였네요.";
+
+  }
+
+  return
+    "소소하지만 편안한 하루를 보냈어요.";
+
+}
+
+function saveDiary(title,content){
+
+  if(!content.trim()) return;
+
+  diaries.unshift({
+
+    id:Date.now(),
+
+    title:
+      title || "제목 없는 하루",
+
+    content,
+
+    emotion:currentEmotion,
+
+    date:
+      new Date()
+        .toLocaleDateString("sv-SE"),
+
+    summary:
+      generateSummary(content)
+
+  });
+
+  localStorage.setItem(
+    "diaries",
+    JSON.stringify(diaries)
+  );
+
+  renderAll();
+
+}
+
+/* =========================================================
+MOBILE UI JS
+========================================================= */
+
+document
+  .querySelectorAll(
+    ".mobile-emotion"
+  )
   .forEach(btn=>{
 
     btn.onclick = ()=>{
 
       document
-        .querySelectorAll(".emotion")
-        .forEach(e=>{
+        .querySelectorAll(
+          ".mobile-emotion"
+        )
+        .forEach(b=>{
 
-          e.classList.remove("active");
+          b.classList.remove(
+            "active"
+          );
 
         });
 
@@ -1395,414 +1555,136 @@ document
 
   });
 
-/* =========================
-UPLOAD
-========================= */
+document
+  .getElementById("mobileSave")
+  .onclick = ()=>{
 
-const uploadBox =
-  document.getElementById("uploadBox");
+    saveDiary(
 
-const imageInput =
-  document.getElementById("imageInput");
+      document
+        .getElementById("mobileTitle")
+        .value,
 
-uploadBox.onclick = ()=>{
+      document
+        .getElementById("mobileContent")
+        .value
 
-  imageInput.click();
+    );
 
-};
+  };
 
-uploadBox.addEventListener(
-  "dragover",
-  e=>{
+document
+  .querySelectorAll(
+    ".mobile-tab"
+  )
+  .forEach(tab=>{
 
-    e.preventDefault();
+    tab.onclick = ()=>{
 
-    uploadBox.classList.add("drag");
+      document
+        .querySelectorAll(
+          ".mobile-tab"
+        )
+        .forEach(t=>{
 
-  }
-);
+          t.classList.remove(
+            "active"
+          );
 
-uploadBox.addEventListener(
-  "dragleave",
-  ()=>{
+        });
 
-    uploadBox.classList.remove("drag");
-
-  }
-);
-
-uploadBox.addEventListener(
-  "drop",
-  e=>{
-
-    e.preventDefault();
-
-    uploadBox.classList.remove("drag");
-
-    handleFiles(e.dataTransfer.files);
-
-  }
-);
-
-imageInput.addEventListener(
-  "change",
-  e=>{
-
-    handleFiles(e.target.files);
-
-  }
-);
-
-function handleFiles(files){
-
-  [...files].forEach(file=>{
-
-    const reader =
-      new FileReader();
-
-    reader.onload = e=>{
-
-      selectedImages.push(
-        e.target.result
+      tab.classList.add(
+        "active"
       );
 
-      renderPreview();
+      document
+        .querySelectorAll(
+          ".mobile-page"
+        )
+        .forEach(page=>{
+
+          page.classList.remove(
+            "active"
+          );
+
+        });
+
+      document
+        .getElementById(
+          tab.dataset.page
+        )
+        .classList.add("active");
 
     };
 
-    reader.readAsDataURL(file);
-
   });
 
-}
-
-function renderPreview(){
-
-  const grid =
-    document.getElementById(
-      "previewGrid"
-    );
-
-  grid.innerHTML =
-    selectedImages
-      .map(img=>`
-
-        <img src="${img}"/>
-
-      `)
-      .join("");
-
-}
-
-/* =========================
-SUMMARY AI
-========================= */
-
-function generateSummary(text){
-
-  const positive = [
-    "행복",
-    "좋",
-    "웃",
-    "재밌",
-    "편안"
-  ];
-
-  const negative = [
-    "힘들",
-    "슬프",
-    "짜증",
-    "우울",
-    "화"
-  ];
-
-  let score = 0;
-
-  positive.forEach(word=>{
-
-    if(text.includes(word))
-      score++;
-
-  });
-
-  negative.forEach(word=>{
-
-    if(text.includes(word))
-      score--;
-
-  });
-
-  let summary = "";
-  let sentiment = "";
-
-  if(score > 0){
-
-    summary =
-      "오늘은 따뜻하고 편안한 감정이 느껴지는 하루였어요.";
-
-    sentiment =
-      "긍정적";
-
-  }
-
-  else if(score < 0){
-
-    summary =
-      "조금 지치고 복잡했지만 의미 있는 하루였네요.";
-
-    sentiment =
-      "부정적";
-
-  }
-
-  else{
-
-    summary =
-      "소소하지만 차분하게 흘러간 하루였어요.";
-
-    sentiment =
-      "중립적";
-
-  }
-
-  document
-    .getElementById("summaryCard")
-    .classList.add("show");
-
-  document
-    .getElementById("summaryText")
-    .innerText =
-    summary;
-
-  document
-    .getElementById("sentiment")
-    .innerText =
-    sentiment;
-
-  return {
-    summary,
-    sentiment
-  };
-
-}
-
-/* =========================
-SAVE
-========================= */
+/* =========================================================
+DESKTOP UI JS
+========================================================= */
 
 document
-  .getElementById("saveBtn")
+  .getElementById("desktopSave")
   .onclick = ()=>{
 
-    const title =
+    saveDiary(
+
       document
-        .getElementById("titleInput")
-        .value
-        .trim();
+        .getElementById("desktopTitle")
+        .value,
 
-    const content =
       document
-        .getElementById("contentInput")
+        .getElementById("desktopContent")
         .value
-        .trim();
 
-    if(!content){
-
-      alert("일기를 입력해주세요!");
-
-      return;
-
-    }
-
-    const ai =
-      generateSummary(content);
-
-    diaries.unshift({
-
-      id:Date.now(),
-
-      title:
-        title || "제목 없는 하루",
-
-      content,
-
-      emotion:currentEmotion,
-
-      summary:ai.summary,
-
-      sentiment:ai.sentiment,
-
-      images:selectedImages,
-
-      date:
-        new Date()
-          .toLocaleDateString("sv-SE"),
-
-      time:
-        new Date()
-          .toLocaleString("ko-KR")
-
-    });
-
-    localStorage.setItem(
-      "diaries",
-      JSON.stringify(diaries)
     );
-
-    selectedImages = [];
-
-    document
-      .getElementById("titleInput")
-      .value = "";
-
-    document
-      .getElementById("contentInput")
-      .value = "";
-
-    renderPreview();
-
-    renderTimeline();
-
-    renderCalendar();
-
-    renderStats();
 
   };
 
-/* =========================
-TIMELINE
-========================= */
+/* =========================================================
+RENDER
+========================================================= */
 
-function renderTimeline(){
+function renderMobileFeed(){
 
-  const timeline =
+  const feed =
     document.getElementById(
-      "timeline"
+      "mobileFeed"
     );
 
-  const keyword =
-    document
-      .getElementById(
-        "searchInput"
-      )
-      .value
-      .toLowerCase();
-
-  const filtered =
-    diaries.filter(d=>{
-
-      const searchMatch =
-
-        d.title
-          .toLowerCase()
-          .includes(keyword)
-
-        ||
-
-        d.content
-          .toLowerCase()
-          .includes(keyword);
-
-      const emotionMatch =
-
-        currentFilter === "all"
-
-        ||
-
-        d.emotion === currentFilter;
-
-      return (
-        searchMatch &&
-        emotionMatch
-      );
-
-    });
-
-  timeline.innerHTML =
-    filtered
-      .map((d,index)=>`
+  feed.innerHTML =
+    diaries
+      .map(d=>`
 
         <div
           class="
-            timeline-card
+            mobile-post
             glass
-          "
-          style="
-            animation-delay:
-            ${index * 0.05}s
           "
         >
 
-          <div class="timeline-head">
-
-            <div>
-
-              <div class="timeline-title">
-
-                ${
-                  emotions[d.emotion]
-                  .emoji
-                }
-
-                ${d.title}
-
-              </div>
-
-              <div class="timeline-meta">
-
-                ${d.time}
-
-              </div>
-
-            </div>
-
-          </div>
-
-          <div class="preview">
+          <h3>
 
             ${
-              d.content.length > 120
-
-              ? d.content.slice(0,120)
-                + "..."
-
-              : d.content
+              emotionEmoji[
+                d.emotion
+              ]
             }
 
-          </div>
+            ${d.title}
 
-          <div class="card-images">
+          </h3>
 
-            ${d.images
-              .map(img=>`
-
-                <img
-                  src="${img}"
-                  onclick="
-                    openModal(
-                      '${img}'
-                    )
-                  "
-                />
-
-              `)
-              .join("")
-            }
-
-          </div>
-
-          <button
-            class="more"
-            onclick="
-              alert(
-                ${JSON.stringify(
-                  d.content
-                )}
-              )
+          <p
+            style="
+              margin-top:14px;
+              line-height:1.9;
             "
           >
-            전체 보기
-          </button>
+
+            ${d.content}
+
+          </p>
 
         </div>
 
@@ -1811,144 +1693,112 @@ function renderTimeline(){
 
 }
 
-/* =========================
-SEARCH
-========================= */
+function renderDesktopFeed(){
 
-document
-  .getElementById("searchInput")
-  .addEventListener(
-    "input",
-    renderTimeline
-  );
+  const feed =
+    document.getElementById(
+      "desktopFeed"
+    );
 
-document
-  .querySelectorAll(".filter-btn")
-  .forEach(btn=>{
+  feed.innerHTML =
+    diaries
+      .map(d=>`
 
-    btn.onclick = ()=>{
+        <div
+          class="
+            desktop-post
+            glass
+          "
+        >
 
-      currentFilter =
-        btn.dataset.filter;
+          <h3>
 
-      renderTimeline();
+            ${
+              emotionEmoji[
+                d.emotion
+              ]
+            }
 
-    };
+            ${d.title}
 
-  });
+          </h3>
 
-/* =========================
-CALENDAR
-========================= */
+          <p
+            style="
+              margin-top:14px;
+              line-height:1.8;
+            "
+          >
 
-let currentMonth =
-  new Date();
+            ${
+              d.content
+                .slice(0,120)
+            }
+
+          </p>
+
+        </div>
+
+      `)
+      .join("");
+
+}
 
 function renderCalendar(){
 
-  const calendar =
+  const mobileCal =
     document.getElementById(
-      "calendar"
+      "mobileCalendar"
     );
 
-  const monthTitle =
+  const desktopCal =
     document.getElementById(
-      "monthTitle"
+      "desktopCalendar"
     );
 
-  calendar.innerHTML = "";
+  mobileCal.innerHTML = "";
+  desktopCal.innerHTML = "";
 
-  const year =
-    currentMonth.getFullYear();
-
-  const month =
-    currentMonth.getMonth();
-
-  monthTitle.innerText =
-
-    `${year}년 ${month+1}월`;
-
-  const dayNames =
-
-    ["일","월","화","수","목","금","토"];
-
-  dayNames.forEach(d=>{
-
-    calendar.innerHTML += `
-
-      <div class="day-name">
-        ${d}
-      </div>
-
-    `;
-
-  });
-
-  const firstDay =
-    new Date(year,month,1)
-    .getDay();
-
-  const days =
-    new Date(
-      year,
-      month + 1,
-      0
-    ).getDate();
-
-  for(let i=0;i<firstDay;i++){
-
-    calendar.innerHTML +=
-      "<div></div>";
-
-  }
-
-  for(let day=1;day<=days;day++){
-
-    const dateStr =
-
-      `${year}-${String(month+1)
-        .padStart(2,"0")}-${String(day)
-        .padStart(2,"0")}`;
+  for(let i=1;i<=31;i++){
 
     const diary =
-      diaries.find(
-        d => d.date === dateStr
-      );
+      diaries[i-1];
 
-    const isToday =
-      dateStr ===
-      new Date()
-        .toLocaleDateString(
-          "sv-SE"
-        );
-
-    calendar.innerHTML += `
+    mobileCal.innerHTML += `
 
       <div
         class="
-          day
+          mobile-day
+          glass
           ${
             diary
-            ? emotions[
-                diary.emotion
-              ].class
-            : ""
-          }
-          ${
-            isToday
-            ? "today"
+            ? `emotion-${diary.emotion}`
             : ""
           }
         "
       >
 
-        ${day}
+        ${i}
 
-        ${
-          diary
-          ? `<div class="dot"></div>`
-          : ""
-        }
+      </div>
+
+    `;
+
+    desktopCal.innerHTML += `
+
+      <div
+        class="
+          desktop-day
+          glass
+          ${
+            diary
+            ? `emotion-${diary.emotion}`
+            : ""
+          }
+        "
+      >
+
+        ${i}
 
       </div>
 
@@ -1957,492 +1807,105 @@ function renderCalendar(){
   }
 
 }
-
-document
-  .getElementById("prevMonth")
-  .onclick = ()=>{
-
-    currentMonth.setMonth(
-      currentMonth.getMonth()-1
-    );
-
-    renderCalendar();
-
-  };
-
-document
-  .getElementById("nextMonth")
-  .onclick = ()=>{
-
-    currentMonth.setMonth(
-      currentMonth.getMonth()+1
-    );
-
-    renderCalendar();
-
-  };
-
-/* =========================
-STATS
-========================= */
 
 function renderStats(){
 
-  const statsText =
-    document.getElementById(
-      "statsText"
-    );
+  document
+    .getElementById("mobileCount")
+    .innerText =
+    diaries.length;
 
-  const chart =
-    document.getElementById(
-      "chart"
-    );
-
-  const count = {
-
-    happy:0,
-    normal:0,
-    sad:0,
-    angry:0,
-    tired:0
-
-  };
+  const emotionCount = {};
 
   diaries.forEach(d=>{
 
-    count[d.emotion]++;
+    emotionCount[d.emotion] =
+      (emotionCount[d.emotion] || 0) + 1;
 
   });
 
-  const maxEmotion =
-    Object.entries(count)
-      .sort((a,b)=>b[1]-a[1])[0];
+  const best =
+    Object.keys(emotionCount)[0]
+    || "happy";
 
-  statsText.innerHTML = `
+  document
+    .getElementById("mobileBestEmotion")
+    .innerText =
+    emotionEmoji[best];
 
-    총 작성 일수:
-    <strong>
-      ${diaries.length}일
-    </strong>
-    <br/>
-
-    가장 많았던 감정:
-    <strong>
-      ${
-        emotions[maxEmotion[0]]
-        .emoji
-      }
-    </strong>
-
-  `;
-
-  chart.innerHTML =
-    Object.entries(count)
-      .map(([key,val])=>`
-
-        <div class="bar-wrap">
-
-          <div
-            class="bar"
-            style="
-              height:${val * 28}px;
-              background:
-              ${
-                key === "happy"
-                ? "#ffd966"
-
-                : key === "normal"
-                ? "#d9d9d9"
-
-                : key === "sad"
-                ? "#9dc4ff"
-
-                : key === "angry"
-                ? "#ff9f9f"
-
-                : "#cbb5ff"
-              };
-            "
-          ></div>
-
-          <small>
-            ${
-              emotions[key]
-              .emoji
-            }
-          </small>
-
-        </div>
-
-      `)
-      .join("");
+  document
+    .getElementById("desktopEmotion")
+    .innerText =
+    emotionEmoji[best];
 
 }
 
-/* =========================
-RANDOM
-========================= */
+function renderSummary(){
 
-document
-  .getElementById("randomBtn")
-  .onclick = ()=>{
-
-    if(!diaries.length){
-
-      alert("아직 기록이 없어요!");
-
-      return;
-
-    }
-
-    const random =
-      diaries[
-        Math.floor(
-          Math.random()
-          * diaries.length
-        )
-      ];
-
-    alert(
-      `${random.title}\n\n${random.content}`
-    );
-
-  };
-
-/* =========================
-MODAL
-========================= */
-
-function openModal(src){
+  if(!diaries.length) return;
 
   document
-    .getElementById("modal")
-    .classList.add("show");
-
-  document
-    .getElementById("modalImg")
-    .src = src;
+    .getElementById("desktopSummary")
+    .innerText =
+    diaries[0].summary;
 
 }
 
-document
-  .getElementById("modal")
-  .onclick = ()=>{
+function renderRecent(){
 
-    document
-      .getElementById("modal")
-      .classList.remove("show");
+  if(!diaries.length) return;
 
-  };
-
-/* =========================
-MUSIC
-========================= */
-
-const audio =
-  document.getElementById(
-    "audio"
-  );
-
-const musicMap = {
-
-  rain:"./music/rain.mp3",
-
-  cafe:"./music/cafe.mp3",
-
-  piano:"./music/piano.mp3"
-
-};
-
-const musicSelect =
-  document.getElementById(
-    "musicSelect"
-  );
-
-const volume =
-  document.getElementById(
-    "volume"
-  );
-
-const musicToggle =
-  document.getElementById(
-    "musicToggle"
-  );
-
-musicSelect.value =
-  localStorage.getItem(
-    "music"
-  ) || "rain";
-
-volume.value =
-  localStorage.getItem(
-    "volume"
-  ) || 0.5;
-
-audio.src =
-  musicMap[
-    musicSelect.value
-  ];
-
-audio.volume =
-  volume.value;
-
-musicSelect.onchange = ()=>{
-
-  audio.src =
-    musicMap[
-      musicSelect.value
-    ];
-
-  localStorage.setItem(
-    "music",
-    musicSelect.value
-  );
-
-};
-
-volume.oninput = ()=>{
-
-  audio.volume =
-    volume.value;
-
-  localStorage.setItem(
-    "volume",
-    volume.value
-  );
-
-};
-
-musicToggle.onclick = ()=>{
-
-  if(audio.paused){
-
-    audio.play();
-
-    musicToggle.innerText =
-      "⏸";
-
-  }
-
-  else{
-
-    audio.pause();
-
-    musicToggle.innerText =
-      "▶";
-
-  }
-
-};
-
-/* =========================
-LOCK
-========================= */
-
-const savedPin =
-  localStorage.getItem(
-    "pin"
-  ) || "1234";
-
-let pinInput = "";
-
-function renderPinDots(){
-
-  const dots =
-    document.getElementById(
-      "pinDots"
-    );
-
-  dots.innerHTML = "";
-
-  for(let i=0;i<4;i++){
-
-    dots.innerHTML += `
+  document
+    .getElementById("mobileRecent")
+    .innerHTML = `
 
       <div
-        class="
-          pin-dot
-          ${
-            pinInput[i]
-            ? "fill"
-            : ""
-          }
-        "
-      ></div>
-
-    `;
-
-  }
-
-}
-
-function createKeypad(){
-
-  const keypad =
-    document.getElementById(
-      "keypad"
-    );
-
-  for(let i=1;i<=9;i++){
-
-    keypad.innerHTML += `
-
-      <button
-        class="
-          key
-          glass
+        style="
+          margin-top:12px;
+          line-height:1.8;
         "
       >
-        ${i}
-      </button>
+
+        ${
+          emotionEmoji[
+            diaries[0].emotion
+          ]
+        }
+
+        ${diaries[0].title}
+
+      </div>
 
     `;
 
-  }
-
-  keypad.innerHTML += `
-
-    <button
-      class="
-        key
-        glass
-      "
-    >
-      ⌫
-    </button>
-
-  `;
-
-  keypad.innerHTML += `
-
-    <button
-      class="
-        key
-        glass
-      "
-    >
-      0
-    </button>
-
-  `;
-
-  keypad.innerHTML += `
-
-    <button
-      class="
-        key
-        glass
-      "
-    >
-      ✓
-    </button>
-
-  `;
+  document
+    .getElementById(
+      "mobileTodayEmotion"
+    )
+    .innerText =
+    emotionEmoji[
+      diaries[0].emotion
+    ];
 
 }
 
-createKeypad();
+function renderAll(){
 
-renderPinDots();
+  renderMobileFeed();
 
-document
-  .querySelectorAll(".key")
-  .forEach(btn=>{
+  renderDesktopFeed();
 
-    btn.onclick = ()=>{
+  renderCalendar();
 
-      const val =
-        btn.innerText;
+  renderStats();
 
-      if(val === "⌫"){
+  renderSummary();
 
-        pinInput =
-          pinInput.slice(0,-1);
-
-      }
-
-      else if(val === "✓"){
-
-        if(pinInput === savedPin){
-
-          document
-            .getElementById(
-              "lockScreen"
-            )
-            .style.display = "none";
-
-        }
-
-        else{
-
-          document
-            .getElementById(
-              "lockCard"
-            )
-            .classList.add("shake");
-
-          setTimeout(()=>{
-
-            document
-              .getElementById(
-                "lockCard"
-              )
-              .classList.remove(
-                "shake"
-              );
-
-          },350);
-
-          pinInput = "";
-
-        }
-
-      }
-
-      else{
-
-        if(pinInput.length < 4){
-
-          pinInput += val;
-
-        }
-
-      }
-
-      renderPinDots();
-
-    };
-
-  });
-
-/* =========================
-SERVICE WORKER
-========================= */
-
-if("serviceWorker" in navigator){
-
-  window.addEventListener(
-    "load",
-    ()=>{
-
-      navigator.serviceWorker.register(
-        "./service-worker.js"
-      );
-
-    }
-  );
+  renderRecent();
 
 }
 
-/* =========================
-INIT
-========================= */
-
-renderTimeline();
-
-renderCalendar();
-
-renderStats();
+renderAll();
 
 </script>
 
