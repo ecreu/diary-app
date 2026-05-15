@@ -1,3327 +1,733 @@
-<script>
+<!-- =========================================================
+MOBILE PIN LOCK SYSTEM FIX
+모바일 PIN 잠금 전체 교체용 코드
+기존 PIN 관련 HTML/CSS/JS 제거 후 적용
+========================================================= -->
 
-/* =========================================================
-EMOTIONAL DIARY CORE SYSTEM
-저장 / 렌더링 / 감정분석 / 통계 전체 리팩토링
-기존 JS 저장 관련 부분 전체 교체
-========================================================= */
+<!-- =========================================================
+LOCK SCREEN
+========================================================= -->
 
-/* =========================================================
-STORAGE KEY
-========================================================= */
+<div
+  class="lock-screen"
+  id="lockScreen"
+>
 
-const STORAGE_KEY =
-  "emotionalDiaryEntries";
+  <div class="lock-backdrop"></div>
 
-/* =========================================================
-STATE
-========================================================= */
+  <div class="lock-panel glass">
 
-let entries = [];
+    <div class="lock-logo">
+      🌙
+    </div>
 
-let currentMonth =
-  new Date().getMonth();
+    <h2 id="lockTitle">
+      하루 일기
+    </h2>
 
-let currentYear =
-  new Date().getFullYear();
+    <p
+      class="lock-description"
+      id="lockDescription"
+    >
+      PIN 번호를 입력하세요
+    </p>
 
-/* =========================================================
-SAFE STORAGE LOAD
-========================================================= */
+    <!-- PIN DOT -->
 
-function loadEntries(){
+    <div
+      class="pin-dots"
+      id="pinDots"
+    >
 
-  try{
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
 
-    const raw =
-      localStorage.getItem(
-        STORAGE_KEY
-      );
+    </div>
 
-    if(!raw){
+    <!-- KEYPAD -->
 
-      entries = [];
+    <div
+      class="pin-keypad"
+      id="pinKeypad"
+    >
 
-      return;
-    }
+      <button class="pin-key" data-key="1">1</button>
+      <button class="pin-key" data-key="2">2</button>
+      <button class="pin-key" data-key="3">3</button>
 
-    const parsed =
-      JSON.parse(raw);
+      <button class="pin-key" data-key="4">4</button>
+      <button class="pin-key" data-key="5">5</button>
+      <button class="pin-key" data-key="6">6</button>
 
-    if(!Array.isArray(parsed)){
+      <button class="pin-key" data-key="7">7</button>
+      <button class="pin-key" data-key="8">8</button>
+      <button class="pin-key" data-key="9">9</button>
 
-      entries = [];
+      <div></div>
 
-      return;
-    }
-
-    entries =
-      parsed.filter(
-        entry =>
-          entry &&
-          typeof entry === "object"
-      );
-
-  }
-
-  catch(error){
-
-    console.error(
-      "Storage Parse Error",
-      error
-    );
-
-    entries = [];
-
-    localStorage.removeItem(
-      STORAGE_KEY
-    );
-  }
-}
-
-/* =========================================================
-SAVE STORAGE
-========================================================= */
-
-function updateStorage(){
-
-  try{
-
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(entries)
-    );
-
-  }
-
-  catch(error){
-
-    console.error(
-      "Storage Save Error",
-      error
-    );
-
-    alert(
-      "저장 중 오류가 발생했어요."
-    );
-  }
-}
-
-/* =========================================================
-ESCAPE HTML
-========================================================= */
-
-function escapeHtml(text=""){
-
-  return text
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;");
-}
-
-/* =========================================================
-EMOTION ANALYSIS
-========================================================= */
-
-const emotionKeywords = {
-
-  happy:[
-    "행복",
-    "좋다",
-    "재밌",
-    "웃",
-    "최고",
-    "신난",
-    "즐거",
-    "편안",
-    "기쁘"
-  ],
-
-  sad:[
-    "슬프",
-    "우울",
-    "눈물",
-    "외롭",
-    "힘들",
-    "지쳤"
-  ],
-
-  angry:[
-    "짜증",
-    "화나",
-    "열받",
-    "스트레스",
-    "억울"
-  ],
-
-  tired:[
-    "피곤",
-    "졸리",
-    "지친",
-    "귀찮",
-    "무기력"
-  ]
-};
-
-function analyzeEmotion(text=""){
-
-  const score = {
-
-    happy:0,
-    sad:0,
-    angry:0,
-    tired:0
-  };
-
-  Object.entries(
-    emotionKeywords
-  ).forEach(([emotion,words])=>{
-
-    words.forEach(word=>{
-
-      if(text.includes(word)){
-
-        score[emotion]++;
-      }
-
-    });
-
-  });
-
-  let result =
-    "normal";
-
-  let max = 0;
-
-  Object.entries(score)
-    .forEach(([emotion,value])=>{
-
-      if(value > max){
-
-        max = value;
-
-        result = emotion;
-      }
-
-    });
-
-  return result;
-}
-
-/* =========================================================
-EMOTION DATA
-========================================================= */
-
-const emotionData = {
-
-  happy:{
-    emoji:"😊",
-    label:"행복",
-    color:"#facc15"
-  },
-
-  normal:{
-    emoji:"😐",
-    label:"평범",
-    color:"#9ca3af"
-  },
-
-  sad:{
-    emoji:"😢",
-    label:"슬픔",
-    color:"#60a5fa"
-  },
-
-  angry:{
-    emoji:"😡",
-    label:"화남",
-    color:"#f87171"
-  },
-
-  tired:{
-    emoji:"😴",
-    label:"피곤",
-    color:"#a78bfa"
-  }
-
-};
-
-/* =========================================================
-AI SUMMARY
-========================================================= */
-
-function generateSummary(
-  emotion,
-  content
-){
-
-  const summaries = {
-
-    happy:[
-      "오늘은 따뜻하고 기분 좋은 하루였어요.",
-      "소소하지만 행복한 순간들이 있었네요.",
-      "웃음이 많았던 하루였어요."
-    ],
-
-    sad:[
-      "조금 지치고 감정이 무거운 하루였네요.",
-      "마음이 복잡했던 하루였어요.",
-      "오늘 하루도 잘 버텨냈어요."
-    ],
-
-    angry:[
-      "스트레스가 있었지만 잘 견뎌냈어요.",
-      "감정 기복이 있었던 하루였어요.",
-      "쉽지 않은 하루였지만 의미 있었어요."
-    ],
-
-    tired:[
-      "많이 피곤했지만 잘 해낸 하루였어요.",
-      "몸과 마음이 조금 지친 하루였네요.",
-      "오늘도 충분히 애쓴 하루였어요."
-    ],
-
-    normal:[
-      "소소하고 평온한 하루였어요.",
-      "잔잔하게 흘러간 하루였네요.",
-      "평범하지만 의미 있는 하루였어요."
-    ]
-
-  };
-
-  const list =
-    summaries[emotion]
-    || summaries.normal;
-
-  return list[
-    Math.floor(
-      Math.random()
-      * list.length
-    )
-  ];
-}
-
-/* =========================================================
-SAVE ENTRY
-========================================================= */
-
-function saveEntry(){
-
-  const titleInput =
-    document.getElementById(
-      "mobileTitle"
-    );
-
-  const contentInput =
-    document.getElementById(
-      "mobileContent"
-    );
-
-  if(
-    !titleInput ||
-    !contentInput
-  ) return;
-
-  const title =
-    titleInput.value.trim();
-
-  const content =
-    contentInput.value.trim();
-
-  if(!content){
-
-    alert(
-      "일기를 입력해주세요."
-    );
-
-    return;
-  }
-
-  const emotion =
-    analyzeEmotion(content);
-
-  const summary =
-    generateSummary(
-      emotion,
-      content
-    );
-
-  const today =
-    new Date();
-
-  const todayKey =
-    today.toLocaleDateString(
-      "sv-SE"
-    );
-
-  /* 중복 저장 방지 */
-
-  const alreadyExists =
-    entries.find(
-      entry =>
-        entry.dateKey === todayKey
-    );
-
-  if(alreadyExists){
-
-    const confirmUpdate =
-      confirm(
-        "오늘 작성한 일기를 수정할까요?"
-      );
-
-    if(!confirmUpdate){
-
-      return;
-    }
-
-    alreadyExists.title =
-      title;
-
-    alreadyExists.content =
-      content;
-
-    alreadyExists.emotion =
-      emotion;
-
-    alreadyExists.summary =
-      summary;
-
-    alreadyExists.updatedAt =
-      today.toISOString();
-
-  }
-
-  else{
-
-    entries.unshift({
-
-      id:
-        Date.now().toString(),
-
-      title:
-        title || "제목 없는 하루",
-
-      content,
-
-      emotion,
-
-      summary,
-
-      images:[],
-
-      createdAt:
-        today.toISOString(),
-
-      dateKey:
-        todayKey
-
-    });
-
-  }
-
-  updateStorage();
-
-  renderAll();
-
-  /* success animation */
-
-  const saveBtn =
-    document.getElementById(
-      "mobileSave"
-    );
-
-  if(saveBtn){
-
-    saveBtn.innerHTML =
-      "✓";
-
-    saveBtn.classList.add(
-      "saved"
-    );
-
-    setTimeout(()=>{
-
-      saveBtn.innerHTML =
-        "✚";
-
-      saveBtn.classList.remove(
-        "saved"
-      );
-
-    },1200);
-
-  }
-
-  /* 입력 초기화 */
-
-  titleInput.value = "";
-  contentInput.value = "";
-}
-
-/* =========================================================
-TIMELINE
-========================================================= */
-
-function renderTimeline(){
-
-  const container =
-    document.getElementById(
-      "mobileFeed"
-    );
-
-  if(!container) return;
-
-  if(entries.length === 0){
-
-    container.innerHTML = `
-
-      <div class="empty-state glass">
-
-        아직 기록된 일기가 없어요.
-
-      </div>
-
-    `;
-
-    return;
-  }
-
-  container.innerHTML =
-    entries
-      .sort((a,b)=>
-        new Date(b.createdAt)
-        - new Date(a.createdAt)
-      )
-      .map(entry=>{
-
-        const emotion =
-          emotionData[
-            entry.emotion
-          ]
-          || emotionData.normal;
-
-        return `
-
-          <article
-            class="
-              mobile-post
-              glass
-            "
-          >
-
-            <div class="timeline-top">
-
-              <div class="timeline-emotion">
-
-                ${emotion.emoji}
-
-              </div>
-
-              <div>
-
-                <h3>
-                  ${escapeHtml(entry.title)}
-                </h3>
-
-                <small>
-
-                  ${new Date(
-                    entry.createdAt
-                  ).toLocaleString("ko-KR")}
-
-                </small>
-
-              </div>
-
-            </div>
-
-            <p class="timeline-summary">
-
-              ${entry.summary}
-
-            </p>
-
-            <div
-              class="
-                timeline-content
-                collapsed
-              "
-            >
-
-              ${escapeHtml(entry.content)}
-
-            </div>
-
-            <button
-              class="expand-btn"
-              onclick="
-                toggleExpand(this)
-              "
-            >
-
-              펼쳐보기
-
-            </button>
-
-          </article>
-
-        `;
-
-      })
-      .join("");
-}
-
-/* =========================================================
-EXPAND
-========================================================= */
-
-function toggleExpand(button){
-
-  const content =
-    button.previousElementSibling;
-
-  content.classList.toggle(
-    "collapsed"
-  );
-
-  button.innerText =
-
-    content.classList.contains(
-      "collapsed"
-    )
-
-    ? "펼쳐보기"
-
-    : "접기";
-}
-
-/* =========================================================
-CALENDAR
-========================================================= */
-
-function renderCalendar(){
-
-  const calendar =
-    document.getElementById(
-      "mobileCalendar"
-    );
-
-  if(!calendar) return;
-
-  const firstDay =
-    new Date(
-      currentYear,
-      currentMonth,
-      1
-    ).getDay();
-
-  const lastDate =
-    new Date(
-      currentYear,
-      currentMonth + 1,
-      0
-    ).getDate();
-
-  const monthTitle =
-    document.getElementById(
-      "mobileMonthTitle"
-    );
-
-  if(monthTitle){
-
-    monthTitle.innerText =
-
-      `${currentYear}년 ${currentMonth+1}월`;
-  }
-
-  let html = "";
-
-  for(
-    let i=0;
-    i<firstDay;
-    i++
-  ){
-
-    html +=
-      `<div></div>`;
-  }
-
-  for(
-    let date=1;
-    date<=lastDate;
-    date++
-  ){
-
-    const dateKey =
-      `${currentYear}-${String(
-        currentMonth+1
-      ).padStart(2,"0")}-${String(
-        date
-      ).padStart(2,"0")}`;
-
-    const entry =
-      entries.find(
-        item =>
-          item.dateKey === dateKey
-      );
-
-    const emotion =
-      entry
-      ? emotionData[
-          entry.emotion
-        ]
-      : null;
-
-    html += `
+      <button class="pin-key" data-key="0">0</button>
 
       <button
-        class="mobile-day glass"
-        onclick="
-          openDiaryByDate(
-            '${dateKey}'
-          )
+        class="
+          pin-key
+          delete-key
         "
+        data-action="delete"
       >
-
-        ${date}
-
-        ${
-          emotion
-          ? `
-            <span
-              class="mobile-dot"
-              style="
-                background:
-                ${emotion.color}
-              "
-            ></span>
-          `
-          : ""
-        }
-
+        ⌫
       </button>
 
-    `;
-  }
+    </div>
 
-  calendar.innerHTML =
-    html;
-}
+  </div>
 
-/* =========================================================
-OPEN DIARY
-========================================================= */
-
-function openDiaryByDate(dateKey){
-
-  const entry =
-    entries.find(
-      item =>
-        item.dateKey === dateKey
-    );
-
-  if(!entry) return;
-
-  alert(
-
-`${emotionData[
-  entry.emotion
-].emoji} ${entry.title}
-
-${entry.content}`
-
-  );
-}
-
-/* =========================================================
-STATS
-========================================================= */
-
-function renderStats(){
-
-  const total =
-    document.getElementById(
-      "mobileCount"
-    );
-
-  const bestEmotion =
-    document.getElementById(
-      "mobileBestEmotion"
-    );
-
-  if(total){
-
-    total.innerText =
-      entries.length;
-  }
-
-  const emotionCount = {};
-
-  entries.forEach(entry=>{
-
-    emotionCount[
-      entry.emotion
-    ] =
-      (
-        emotionCount[
-          entry.emotion
-        ] || 0
-      ) + 1;
-
-  });
-
-  let topEmotion =
-    "normal";
-
-  let max = 0;
-
-  Object.entries(
-    emotionCount
-  ).forEach(([k,v])=>{
-
-    if(v > max){
-
-      max = v;
-
-      topEmotion = k;
-    }
-
-  });
-
-  if(bestEmotion){
-
-    bestEmotion.innerText =
-      emotionData[
-        topEmotion
-      ].emoji;
-  }
-}
-
-/* =========================================================
-RENDER ALL
-========================================================= */
-
-function renderAll(){
-
-  renderTimeline();
-
-  renderCalendar();
-
-  renderStats();
-}
-
-/* =========================================================
-AUTO RESIZE TEXTAREA
-========================================================= */
-
-const textarea =
-  document.getElementById(
-    "mobileContent"
-  );
-
-if(textarea){
-
-  textarea.addEventListener(
-    "input",
-    ()=>{
-
-      textarea.style.height =
-        "auto";
-
-      textarea.style.height =
-        textarea.scrollHeight
-        + "px";
-
-    }
-  );
-}
-
-/* =========================================================
-MONTH MOVE
-========================================================= */
-
-document
-  .getElementById(
-    "mobilePrevMonth"
-  )
-  ?.addEventListener(
-    "click",
-    ()=>{
-
-      currentMonth--;
-
-      if(currentMonth < 0){
-
-        currentMonth = 11;
-
-        currentYear--;
-      }
-
-      renderCalendar();
-
-    }
-  );
-
-document
-  .getElementById(
-    "mobileNextMonth"
-  )
-  ?.addEventListener(
-    "click",
-    ()=>{
-
-      currentMonth++;
-
-      if(currentMonth > 11){
-
-        currentMonth = 0;
-
-        currentYear++;
-      }
-
-      renderCalendar();
-
-    }
-  );
-
-/* =========================================================
-SAVE BUTTON
-========================================================= */
-
-document
-  .getElementById(
-    "mobileSave"
-  )
-  ?.addEventListener(
-    "click",
-    saveEntry
-  );
-
-/* =========================================================
-INIT
-========================================================= */
-
-loadEntries();
-
-renderAll();
-
-</script>
-
-
-
-<link rel="manifest" href="./manifest.json"/>
-
-<meta name="theme-color" content="#101010"/>
+</div>
 
 <style>
 
-/* =========================
-RESET
-========================= */
+/* =========================================================
+LOCK SCREEN
+========================================================= */
 
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-  -webkit-tap-highlight-color:transparent;
-}
+.lock-screen{
 
-html{
-  scroll-behavior:smooth;
-}
+  position:fixed;
 
-body{
-  font-family:"Pretendard",sans-serif;
-  min-height:100vh;
-  overflow-x:hidden;
+  inset:0;
 
-  background:
-    linear-gradient(
-      160deg,
-      #fdf6ec,
-      #f5efe8,
-      #f1f4ff
-    );
-
-  color:#222;
-
-  transition:
-    background .45s ease,
-    color .45s ease;
-}
-
-body.dark{
-
-  background:
-    linear-gradient(
-      160deg,
-      #101114,
-      #17181d,
-      #1f2230
-    );
-
-  color:#f4f4f4;
-}
-
-/* =========================
-SCROLL
-========================= */
-
-::-webkit-scrollbar{
-  width:8px;
-}
-
-::-webkit-scrollbar-track{
-  background:transparent;
-}
-
-::-webkit-scrollbar-thumb{
-  background:rgba(255,255,255,.25);
-  border-radius:999px;
-}
-
-/* =========================
-APP
-========================= */
-
-.app{
   width:100%;
-  max-width:1400px;
-  margin:auto;
-  padding:
-    env(safe-area-inset-top)
-    18px
-    120px;
-}
-
-/* =========================
-GLASS
-========================= */
-
-.glass{
-  background:rgba(255,255,255,.18);
-
-  backdrop-filter:blur(22px);
-
-  -webkit-backdrop-filter:blur(22px);
-
-  border:
-    1px solid rgba(255,255,255,.18);
-
-  box-shadow:
-    0 10px 40px rgba(0,0,0,.08);
-}
-
-body.dark .glass{
-  background:rgba(255,255,255,.05);
-
-  border:
-    1px solid rgba(255,255,255,.08);
-
-  box-shadow:
-    0 10px 40px rgba(0,0,0,.35);
-}
-
-/* =========================
-TOPBAR
-========================= */
-
-.topbar{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:22px;
-  gap:14px;
-}
-
-.logo{
-  font-size:26px;
-  font-weight:700;
-  letter-spacing:-0.5px;
-}
-
-.top-actions{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-}
-
-.icon-btn{
-  border:none;
-  border-radius:18px;
-  padding:12px 16px;
-  cursor:pointer;
-  font-size:14px;
-  color:inherit;
-
-  transition:.25s;
-}
-
-.icon-btn:hover{
-  transform:translateY(-2px);
-}
-
-/* =========================
-LAYOUT
-========================= */
-
-.grid{
-  display:grid;
-  grid-template-columns:
-    340px
-    1fr;
-  gap:24px;
-}
-
-@media(max-width:980px){
-
-  .grid{
-    grid-template-columns:1fr;
-  }
-
-}
-
-/* =========================
-SIDEBAR
-========================= */
-
-.sidebar{
-  position:sticky;
-  top:20px;
-  height:max-content;
-  border-radius:30px;
-  padding:20px;
-}
-
-/* =========================
-CALENDAR
-========================= */
-
-.calendar-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:18px;
-}
-
-.calendar-header button{
-  width:40px;
-  height:40px;
-  border:none;
-  border-radius:50%;
-  cursor:pointer;
-  color:inherit;
-}
-
-.calendar{
-  display:grid;
-  grid-template-columns:repeat(7,1fr);
-  gap:8px;
-}
-
-.day-name{
-  text-align:center;
-  font-size:12px;
-  opacity:.6;
-  padding-bottom:6px;
-}
-
-.day{
-  aspect-ratio:1/1;
-
-  border-radius:18px;
+  height:100dvh;
 
   display:flex;
-  flex-direction:column;
+
   justify-content:center;
   align-items:center;
 
-  font-size:13px;
+  z-index:999999;
+
+  overflow:hidden;
+
+  background:
+    linear-gradient(
+      180deg,
+      #0f172a,
+      #111827
+    );
+
+  transition:
+    opacity .45s ease,
+    visibility .45s ease;
+}
+
+/* =========================================================
+BACKDROP
+========================================================= */
+
+.lock-backdrop{
+
+  position:absolute;
+
+  inset:0;
+
+  backdrop-filter:
+    blur(24px);
+
+  -webkit-backdrop-filter:
+    blur(24px);
+
+  pointer-events:none;
+}
+
+/* =========================================================
+PANEL
+========================================================= */
+
+.lock-panel{
 
   position:relative;
 
-  cursor:pointer;
+  width:92%;
 
-  transition:.25s;
-}
+  max-width:420px;
 
-.day:hover{
-  transform:translateY(-2px);
-}
+  border-radius:42px;
 
-.day.today{
-  border:2px solid #111;
-}
+  padding:
+    44px
+    26px;
 
-body.dark .day.today{
-  border:2px solid white;
-}
-
-.day .dot{
-  width:6px;
-  height:6px;
-  border-radius:50%;
-  margin-top:5px;
-}
-
-.day.happy{
-  background:#fff3b0;
-}
-
-.day.normal{
-  background:#ececec;
-}
-
-.day.sad{
-  background:#bfdcff;
-}
-
-.day.angry{
-  background:#ffb9b9;
-}
-
-.day.tired{
-  background:#d7c7ff;
-}
-
-/* =========================
-MAIN
-========================= */
-
-.main{
   display:flex;
+
   flex-direction:column;
-  gap:22px;
-}
 
-/* =========================
-WRITE CARD
-========================= */
-
-.write-card{
-  border-radius:34px;
-  padding:22px;
-}
-
-.write-top{
-  display:flex;
-  justify-content:space-between;
   align-items:center;
+
+  z-index:5;
+
+  pointer-events:auto;
+}
+
+.lock-logo{
+
+  font-size:56px;
+
   margin-bottom:18px;
 }
 
-.write-title{
-  font-size:24px;
-  font-weight:700;
-}
+#lockTitle{
 
-.date-text{
-  opacity:.65;
-  font-size:14px;
-}
+  font-size:28px;
 
-input,
-textarea,
-select{
-  width:100%;
-  border:none;
-  outline:none;
-  font-family:inherit;
-}
-
-.diary-title{
-  background:rgba(255,255,255,.35);
-
-  border-radius:18px;
-
-  padding:16px;
-
-  margin-bottom:14px;
-
-  font-size:15px;
-}
-
-.diary-content{
-  min-height:180px;
-
-  background:rgba(255,255,255,.35);
-
-  border-radius:24px;
-
-  padding:18px;
-
-  resize:none;
-
-  line-height:1.8;
-
-  font-size:15px;
-}
-
-body.dark .diary-title,
-body.dark .diary-content{
-  background:rgba(255,255,255,.06);
-  color:white;
-}
-
-/* =========================
-EMOTION
-========================= */
-
-.emotions{
-  display:flex;
-  gap:10px;
-  overflow-x:auto;
-  margin-top:18px;
-}
-
-.emotion{
-  min-width:max-content;
-
-  border:none;
-
-  border-radius:999px;
-
-  padding:12px 16px;
-
-  cursor:pointer;
-
-  transition:.25s;
-}
-
-.emotion.active{
-  transform:scale(1.05);
-  background:#111;
-  color:white;
-}
-
-body.dark .emotion.active{
-  background:white;
-  color:#111;
-}
-
-/* =========================
-UPLOAD
-========================= */
-
-.upload-box{
-  margin-top:18px;
-
-  border:
-    2px dashed rgba(255,255,255,.4);
-
-  border-radius:24px;
-
-  padding:28px;
-
-  text-align:center;
-
-  transition:.25s;
-}
-
-.upload-box.drag{
-  transform:scale(1.01);
-}
-
-.preview-grid{
-  display:grid;
-  grid-template-columns:
-    repeat(auto-fill,minmax(90px,1fr));
-
-  gap:10px;
-
-  margin-top:16px;
-}
-
-.preview-grid img{
-  width:100%;
-  height:90px;
-  object-fit:cover;
-  border-radius:16px;
-}
-
-/* =========================
-SUMMARY
-========================= */
-
-.summary{
-  margin-top:18px;
-  padding:18px;
-  border-radius:24px;
-  display:none;
-  animation:fade .5s ease;
-}
-
-.summary.show{
-  display:block;
-}
-
-.summary h4{
   margin-bottom:10px;
 }
 
-.summary p{
-  line-height:1.7;
-}
+.lock-description{
 
-@keyframes fade{
+  opacity:.72;
 
-  from{
-    opacity:0;
-    transform:translateY(8px);
-  }
+  margin-bottom:34px;
 
-  to{
-    opacity:1;
-    transform:translateY(0);
-  }
-
-}
-
-/* =========================
-BUTTONS
-========================= */
-
-.action-row{
-  display:flex;
-  gap:12px;
-  margin-top:18px;
-}
-
-.primary-btn{
-  flex:1;
-
-  border:none;
-
-  border-radius:22px;
-
-  padding:16px;
-
-  cursor:pointer;
-
-  font-size:15px;
-  font-weight:600;
-
-  background:#111;
-
-  color:white;
-
-  transition:.25s;
-}
-
-.primary-btn:hover{
-  transform:translateY(-2px);
-}
-
-body.dark .primary-btn{
-  background:white;
-  color:#111;
-}
-
-/* =========================
-SEARCH
-========================= */
-
-.search-card{
-  border-radius:28px;
-  padding:18px;
-}
-
-.search-box{
-  display:flex;
-  gap:10px;
-  margin-top:14px;
-}
-
-.search-box input{
-  padding:14px;
-  border-radius:16px;
-  background:rgba(255,255,255,.3);
-}
-
-.filter-row{
-  display:flex;
-  gap:10px;
-  overflow:auto;
-  margin-top:14px;
-}
-
-.filter-btn{
-  border:none;
-  border-radius:999px;
-  padding:10px 14px;
-  cursor:pointer;
-}
-
-/* =========================
-TIMELINE
-========================= */
-
-.timeline{
-  display:flex;
-  flex-direction:column;
-  gap:18px;
-}
-
-.timeline-card{
-  border-radius:28px;
-  padding:20px;
-
-  opacity:0;
-  transform:translateY(20px);
-
-  animation:showCard .55s forwards;
-}
-
-@keyframes showCard{
-
-  to{
-    opacity:1;
-    transform:translateY(0);
-  }
-
-}
-
-.timeline-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap:12px;
-}
-
-.timeline-title{
-  font-size:18px;
-  font-weight:700;
-}
-
-.timeline-meta{
-  margin-top:4px;
-  opacity:.65;
-  font-size:13px;
-}
-
-.preview{
-  margin-top:16px;
-  line-height:1.8;
-}
-
-.card-images{
-  display:grid;
-  grid-template-columns:
-    repeat(auto-fill,minmax(110px,1fr));
-
-  gap:10px;
-
-  margin-top:16px;
-}
-
-.card-images img{
-  width:100%;
-  height:120px;
-  object-fit:cover;
-  border-radius:18px;
-  cursor:pointer;
-  transition:.25s;
-}
-
-.card-images img:hover{
-  transform:scale(1.03);
-}
-
-.more{
-  margin-top:14px;
-  border:none;
-  background:none;
-  cursor:pointer;
-  font-weight:600;
-  color:inherit;
-}
-
-/* =========================
-STATS
-========================= */
-
-.stats{
-  border-radius:28px;
-  padding:20px;
-}
-
-.chart{
-  display:flex;
-  align-items:flex-end;
-  gap:12px;
-  height:180px;
-  margin-top:20px;
-}
-
-.bar-wrap{
-  flex:1;
   text-align:center;
 }
 
-.bar{
-  width:100%;
-  border-radius:14px 14px 0 0;
-  animation:grow 1s ease;
-}
-
-@keyframes grow{
-
-  from{
-    height:0;
-  }
-
-}
-
-/* =========================
-PLAYER
-========================= */
-
-.player{
-  position:fixed;
-
-  right:18px;
-  bottom:18px;
-
-  width:280px;
-
-  border-radius:26px;
-
-  padding:18px;
-
-  z-index:999;
-}
-
-.player-top{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:14px;
-}
-
-.player select{
-  background:transparent;
-  color:inherit;
-}
-
-.player input[type="range"]{
-  margin-top:12px;
-}
-
-/* =========================
-LOCK SCREEN
-========================= */
-
-.lock{
-  position:fixed;
-  inset:0;
-
-  z-index:99999;
-
-  display:flex;
-  justify-content:center;
-  align-items:center;
-
-  backdrop-filter:blur(35px);
-
-  background:
-    rgba(0,0,0,.45);
-}
-
-.lock-card{
-  width:92%;
-  max-width:360px;
-
-  border-radius:34px;
-
-  padding:28px;
-
-  text-align:center;
-}
+/* =========================================================
+PIN DOTS
+========================================================= */
 
 .pin-dots{
+
   display:flex;
-  justify-content:center;
-  gap:10px;
-  margin:26px 0;
+
+  gap:14px;
+
+  margin-bottom:34px;
 }
 
 .pin-dot{
-  width:16px;
-  height:16px;
+
+  width:18px;
+  height:18px;
+
   border-radius:50%;
-  background:rgba(255,255,255,.3);
+
+  background:
+    rgba(255,255,255,.16);
+
+  transition:
+    transform .2s ease,
+    background .2s ease;
 }
 
-.pin-dot.fill{
+.pin-dot.filled{
+
   background:white;
+
+  transform:scale(1.12);
 }
 
-.keypad{
+/* =========================================================
+KEYPAD
+========================================================= */
+
+.pin-keypad{
+
+  width:100%;
+
   display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:12px;
+
+  grid-template-columns:
+    repeat(3,1fr);
+
+  gap:16px;
+
+  position:relative;
+
+  z-index:20;
 }
 
-.key{
-  aspect-ratio:1/1;
+.pin-key{
+
+  min-height:72px;
 
   border:none;
 
-  border-radius:50%;
+  border-radius:26px;
 
-  font-size:22px;
+  font-size:26px;
+
+  color:white;
+
+  background:
+    rgba(255,255,255,.08);
+
+  backdrop-filter:
+    blur(18px);
+
+  -webkit-backdrop-filter:
+    blur(18px);
+
+  box-shadow:
+    0 10px 30px rgba(0,0,0,.22);
+
+  transition:
+    transform .12s ease,
+    background .2s ease;
 
   cursor:pointer;
+
+  pointer-events:auto;
+
+  touch-action:manipulation;
+
+  -webkit-tap-highlight-color:
+    transparent;
 }
 
-.shake{
-  animation:shake .35s;
+.pin-key:active{
+
+  transform:scale(.94);
+
+  background:
+    rgba(255,255,255,.16);
+}
+
+.delete-key{
+
+  font-size:22px;
+}
+
+/* =========================================================
+SHAKE
+========================================================= */
+
+.lock-panel.shake{
+
+  animation:
+    shake .45s ease;
 }
 
 @keyframes shake{
 
-  0%{transform:translateX(0);}
-  25%{transform:translateX(-8px);}
-  50%{transform:translateX(8px);}
-  75%{transform:translateX(-8px);}
-  100%{transform:translateX(0);}
-}
-
-/* =========================
-MODAL
-========================= */
-
-.modal{
-  position:fixed;
-  inset:0;
-
-  background:rgba(0,0,0,.75);
-
-  display:none;
-  justify-content:center;
-  align-items:center;
-
-  z-index:9999;
-}
-
-.modal.show{
-  display:flex;
-}
-
-.modal img{
-  max-width:90%;
-  max-height:90%;
-  border-radius:24px;
-}
-
-/* =========================
-MOBILE
-========================= */
-
-@media(max-width:768px){
-
-  .app{
-    padding:16px 14px 120px;
+  0%{
+    transform:translateX(0);
   }
 
-  .logo{
-    font-size:22px;
+  20%{
+    transform:translateX(-10px);
   }
 
-  .write-title{
-    font-size:20px;
+  40%{
+    transform:translateX(10px);
   }
 
-  .player{
-    width:calc(100% - 28px);
-    right:14px;
-    left:14px;
-    bottom:12px;
+  60%{
+    transform:translateX(-8px);
+  }
+
+  80%{
+    transform:translateX(8px);
+  }
+
+  100%{
+    transform:translateX(0);
+  }
+
+}
+
+/* =========================================================
+UNLOCK
+========================================================= */
+
+.lock-screen.unlock{
+
+  opacity:0;
+
+  visibility:hidden;
+
+  pointer-events:none;
+
+  backdrop-filter:
+    blur(0px);
+}
+
+/* =========================================================
+MOBILE SAFE
+========================================================= */
+
+@supports(height:100dvh){
+
+  .lock-screen{
+
+    height:100dvh;
   }
 
 }
 
 </style>
-</head>
-
-<body>
-
-<!-- =========================
-LOCK
-========================= -->
-
-<div class="lock" id="lockScreen">
-
-  <div class="lock-card glass" id="lockCard">
-
-    <h2>🔒 하루 일기</h2>
-
-    <p
-      style="
-        margin-top:10px;
-        opacity:.7;
-      "
-    >
-      4자리 PIN 입력
-    </p>
-
-    <div class="pin-dots" id="pinDots"></div>
-
-    <div class="keypad" id="keypad"></div>
-
-  </div>
-
-</div>
-
-<!-- =========================
-APP
-========================= -->
-
-<div class="app">
-
-  <!-- TOP -->
-
-  <div class="topbar">
-
-    <div class="logo">
-      🌙 하루 일기
-    </div>
-
-    <div class="top-actions">
-
-      <button
-        class="icon-btn glass"
-        id="randomBtn"
-      >
-        🎲 추억 보기
-      </button>
-
-      <button
-        class="icon-btn glass"
-        id="themeBtn"
-      >
-        🌙 다크모드
-      </button>
-
-    </div>
-
-  </div>
-
-  <!-- GRID -->
-
-  <div class="grid">
-
-    <!-- SIDEBAR -->
-
-    <aside class="sidebar glass">
-
-      <div class="calendar-header">
-
-        <button
-          class="glass"
-          id="prevMonth"
-        >
-          ←
-        </button>
-
-        <h3 id="monthTitle"></h3>
-
-        <button
-          class="glass"
-          id="nextMonth"
-        >
-          →
-        </button>
-
-      </div>
-
-      <div
-        class="calendar"
-        id="calendar"
-      ></div>
-
-    </aside>
-
-    <!-- MAIN -->
-
-    <main class="main">
-
-      <!-- WRITE -->
-
-      <section
-        class="write-card glass"
-      >
-
-        <div class="write-top">
-
-          <div>
-
-            <div class="write-title">
-              오늘의 기록
-            </div>
-
-            <div
-              class="date-text"
-              id="todayText"
-            ></div>
-
-          </div>
-
-        </div>
-
-        <input
-          type="text"
-          id="titleInput"
-          class="diary-title"
-          placeholder="오늘의 제목"
-        />
-
-        <textarea
-          id="contentInput"
-          class="diary-content"
-          placeholder="오늘 하루를 감성적으로 기록해보세요..."
-        ></textarea>
-
-        <!-- EMOTION -->
-
-        <div class="emotions">
-
-          <button
-            class="emotion glass active"
-            data-emotion="happy"
-          >
-            😊 행복
-          </button>
-
-          <button
-            class="emotion glass"
-            data-emotion="normal"
-          >
-            😐 평범
-          </button>
-
-          <button
-            class="emotion glass"
-            data-emotion="sad"
-          >
-            😢 슬픔
-          </button>
-
-          <button
-            class="emotion glass"
-            data-emotion="angry"
-          >
-            😡 화남
-          </button>
-
-          <button
-            class="emotion glass"
-            data-emotion="tired"
-          >
-            😴 피곤
-          </button>
-
-        </div>
-
-        <!-- UPLOAD -->
-
-        <div
-          class="upload-box"
-          id="uploadBox"
-        >
-          📷 사진 업로드<br/>
-          드래그 & 드롭 가능
-          <input
-            type="file"
-            id="imageInput"
-            accept="image/*"
-            multiple
-            hidden
-          />
-        </div>
-
-        <div
-          class="preview-grid"
-          id="previewGrid"
-        ></div>
-
-        <!-- SUMMARY -->
-
-        <div
-          class="summary glass"
-          id="summaryCard"
-        >
-          <h4>
-            ✨ 오늘의 하루 요약
-          </h4>
-
-          <p id="summaryText"></p>
-
-          <p
-            style="
-              margin-top:10px;
-              opacity:.7;
-            "
-          >
-            감정 분석:
-            <span id="sentiment"></span>
-          </p>
-
-        </div>
-
-        <div class="action-row">
-
-          <button
-            class="primary-btn"
-            id="saveBtn"
-          >
-            기록 저장하기
-          </button>
-
-        </div>
-
-      </section>
-
-      <!-- SEARCH -->
-
-      <section
-        class="search-card glass"
-      >
-
-        <h3>
-          🔍 검색 및 필터
-        </h3>
-
-        <div class="search-box">
-
-          <input
-            type="text"
-            id="searchInput"
-            placeholder="제목 또는 내용 검색"
-          />
-
-        </div>
-
-        <div class="filter-row">
-
-          <button
-            class="filter-btn glass"
-            data-filter="all"
-          >
-            전체
-          </button>
-
-          <button
-            class="filter-btn glass"
-            data-filter="happy"
-          >
-            😊
-          </button>
-
-          <button
-            class="filter-btn glass"
-            data-filter="normal"
-          >
-            😐
-          </button>
-
-          <button
-            class="filter-btn glass"
-            data-filter="sad"
-          >
-            😢
-          </button>
-
-          <button
-            class="filter-btn glass"
-            data-filter="angry"
-          >
-            😡
-          </button>
-
-          <button
-            class="filter-btn glass"
-            data-filter="tired"
-          >
-            😴
-          </button>
-
-        </div>
-
-      </section>
-
-      <!-- STATS -->
-
-      <section
-        class="stats glass"
-      >
-
-        <h3>
-          📊 감정 통계
-        </h3>
-
-        <div
-          style="
-            margin-top:14px;
-            line-height:1.9;
-          "
-          id="statsText"
-        ></div>
-
-        <div
-          class="chart"
-          id="chart"
-        ></div>
-
-      </section>
-
-      <!-- TIMELINE -->
-
-      <section
-        class="timeline"
-        id="timeline"
-      ></section>
-
-    </main>
-
-  </div>
-
-</div>
-
-<!-- PLAYER -->
-
-<div class="player glass">
-
-  <div class="player-top">
-
-    <strong>
-      🎵 감성 BGM
-    </strong>
-
-    <button
-      class="icon-btn glass"
-      id="musicToggle"
-    >
-      ▶
-    </button>
-
-  </div>
-
-  <select id="musicSelect">
-
-    <option value="rain">
-      🌧 빗소리
-    </option>
-
-    <option value="cafe">
-      ☕ 카페
-    </option>
-
-    <option value="piano">
-      🎹 피아노
-    </option>
-
-  </select>
-
-  <input
-    type="range"
-    id="volume"
-    min="0"
-    max="1"
-    step="0.01"
-  />
-
-</div>
-
-<!-- MODAL -->
-
-<div class="modal" id="modal">
-
-  <img id="modalImg"/>
-
-</div>
-
-<!-- AUDIO -->
-
-<audio
-  id="audio"
-  loop
-></audio>
 
 <script>
 
-/* =========================
-DATA
-========================= */
+/* =========================================================
+PIN LOCK SYSTEM
+========================================================= */
 
-let diaries =
-  JSON.parse(
-    localStorage.getItem("diaries")
-  ) || [];
+const PIN_STORAGE_KEY =
+  "diaryPin";
 
-let currentEmotion =
-  "happy";
+/* =========================================================
+STATE
+========================================================= */
 
-let selectedImages = [];
+let enteredPin = [];
 
-let currentFilter =
-  "all";
+let setupMode = false;
 
-const emotions = {
+/* =========================================================
+ELEMENTS
+========================================================= */
 
-  happy:{
-    emoji:"😊",
-    class:"happy"
-  },
-
-  normal:{
-    emoji:"😐",
-    class:"normal"
-  },
-
-  sad:{
-    emoji:"😢",
-    class:"sad"
-  },
-
-  angry:{
-    emoji:"😡",
-    class:"angry"
-  },
-
-  tired:{
-    emoji:"😴",
-    class:"tired"
-  }
-
-};
-
-/* =========================
-THEME
-========================= */
-
-const savedTheme =
-  localStorage.getItem("theme");
-
-if(savedTheme === "dark"){
-
-  document.body.classList.add("dark");
-
-}
-
-document
-  .getElementById("themeBtn")
-  .onclick = ()=>{
-
-    document.body.classList.toggle("dark");
-
-    localStorage.setItem(
-      "theme",
-      document.body.classList.contains("dark")
-      ? "dark"
-      : "light"
-    );
-
-  };
-
-/* =========================
-DATE
-========================= */
-
-const today =
-  new Date();
-
-document
-  .getElementById("todayText")
-  .innerText =
-  today.toLocaleDateString(
-    "ko-KR",
-    {
-      year:"numeric",
-      month:"long",
-      day:"numeric",
-      weekday:"long"
-    }
+const lockScreen =
+  document.getElementById(
+    "lockScreen"
   );
 
-/* =========================
-EMOTION
-========================= */
+const pinDots =
+  document.getElementById(
+    "pinDots"
+  );
 
-document
-  .querySelectorAll(".emotion")
-  .forEach(btn=>{
+const keypad =
+  document.getElementById(
+    "pinKeypad"
+  );
 
-    btn.onclick = ()=>{
+const lockTitle =
+  document.getElementById(
+    "lockTitle"
+  );
 
-      document
-        .querySelectorAll(".emotion")
-        .forEach(e=>{
+const lockDescription =
+  document.getElementById(
+    "lockDescription"
+  );
 
-          e.classList.remove("active");
+/* =========================================================
+LOAD PIN
+========================================================= */
 
-        });
+function getSavedPin(){
 
-      btn.classList.add("active");
-
-      currentEmotion =
-        btn.dataset.emotion;
-
-    };
-
-  });
-
-/* =========================
-UPLOAD
-========================= */
-
-const uploadBox =
-  document.getElementById("uploadBox");
-
-const imageInput =
-  document.getElementById("imageInput");
-
-uploadBox.onclick = ()=>{
-
-  imageInput.click();
-
-};
-
-uploadBox.addEventListener(
-  "dragover",
-  e=>{
-
-    e.preventDefault();
-
-    uploadBox.classList.add("drag");
-
-  }
-);
-
-uploadBox.addEventListener(
-  "dragleave",
-  ()=>{
-
-    uploadBox.classList.remove("drag");
-
-  }
-);
-
-uploadBox.addEventListener(
-  "drop",
-  e=>{
-
-    e.preventDefault();
-
-    uploadBox.classList.remove("drag");
-
-    handleFiles(e.dataTransfer.files);
-
-  }
-);
-
-imageInput.addEventListener(
-  "change",
-  e=>{
-
-    handleFiles(e.target.files);
-
-  }
-);
-
-function handleFiles(files){
-
-  [...files].forEach(file=>{
-
-    const reader =
-      new FileReader();
-
-    reader.onload = e=>{
-
-      selectedImages.push(
-        e.target.result
-      );
-
-      renderPreview();
-
-    };
-
-    reader.readAsDataURL(file);
-
-  });
+  return localStorage.getItem(
+    PIN_STORAGE_KEY
+  );
 
 }
 
-function renderPreview(){
+/* =========================================================
+INIT
+========================================================= */
 
-  const grid =
-    document.getElementById(
-      "previewGrid"
-    );
+function initPinLock(){
 
-  grid.innerHTML =
-    selectedImages
-      .map(img=>`
+  const savedPin =
+    getSavedPin();
 
-        <img src="${img}"/>
+  if(!savedPin){
 
-      `)
-      .join("");
+    setupMode = true;
 
-}
-
-/* =========================
-SUMMARY AI
-========================= */
-
-function generateSummary(text){
-
-  const positive = [
-    "행복",
-    "좋",
-    "웃",
-    "재밌",
-    "편안"
-  ];
-
-  const negative = [
-    "힘들",
-    "슬프",
-    "짜증",
-    "우울",
-    "화"
-  ];
-
-  let score = 0;
-
-  positive.forEach(word=>{
-
-    if(text.includes(word))
-      score++;
-
-  });
-
-  negative.forEach(word=>{
-
-    if(text.includes(word))
-      score--;
-
-  });
-
-  let summary = "";
-  let sentiment = "";
-
-  if(score > 0){
-
-    summary =
-      "오늘은 따뜻하고 편안한 감정이 느껴지는 하루였어요.";
-
-    sentiment =
-      "긍정적";
-
-  }
-
-  else if(score < 0){
-
-    summary =
-      "조금 지치고 복잡했지만 의미 있는 하루였네요.";
-
-    sentiment =
-      "부정적";
-
+    lockDescription.innerText =
+      "새로운 PIN 번호를 설정하세요";
   }
 
   else{
 
-    summary =
-      "소소하지만 차분하게 흘러간 하루였어요.";
+    setupMode = false;
 
-    sentiment =
-      "중립적";
-
+    lockDescription.innerText =
+      "PIN 번호를 입력하세요";
   }
 
-  document
-    .getElementById("summaryCard")
-    .classList.add("show");
-
-  document
-    .getElementById("summaryText")
-    .innerText =
-    summary;
-
-  document
-    .getElementById("sentiment")
-    .innerText =
-    sentiment;
-
-  return {
-    summary,
-    sentiment
-  };
-
+  updateDots();
 }
 
-/* =========================
-SAVE
-========================= */
-
-document
-  .getElementById("saveBtn")
-  .onclick = ()=>{
-
-    const title =
-      document
-        .getElementById("titleInput")
-        .value
-        .trim();
-
-    const content =
-      document
-        .getElementById("contentInput")
-        .value
-        .trim();
-
-    if(!content){
-
-      alert("일기를 입력해주세요!");
-
-      return;
-
-    }
-
-    const ai =
-      generateSummary(content);
-
-    diaries.unshift({
-
-      id:Date.now(),
-
-      title:
-        title || "제목 없는 하루",
-
-      content,
-
-      emotion:currentEmotion,
-
-      summary:ai.summary,
-
-      sentiment:ai.sentiment,
-
-      images:selectedImages,
-
-      date:
-        new Date()
-          .toLocaleDateString("sv-SE"),
-
-      time:
-        new Date()
-          .toLocaleString("ko-KR")
-
-    });
-
-    localStorage.setItem(
-      "diaries",
-      JSON.stringify(diaries)
-    );
-
-    selectedImages = [];
-
-    document
-      .getElementById("titleInput")
-      .value = "";
-
-    document
-      .getElementById("contentInput")
-      .value = "";
-
-    renderPreview();
-
-    renderTimeline();
-
-    renderCalendar();
-
-    renderStats();
-
-  };
-
-/* =========================
-TIMELINE
-========================= */
-
-function renderTimeline(){
-
-  const timeline =
-    document.getElementById(
-      "timeline"
-    );
-
-  const keyword =
-    document
-      .getElementById(
-        "searchInput"
-      )
-      .value
-      .toLowerCase();
-
-  const filtered =
-    diaries.filter(d=>{
-
-      const searchMatch =
-
-        d.title
-          .toLowerCase()
-          .includes(keyword)
-
-        ||
-
-        d.content
-          .toLowerCase()
-          .includes(keyword);
-
-      const emotionMatch =
-
-        currentFilter === "all"
-
-        ||
-
-        d.emotion === currentFilter;
-
-      return (
-        searchMatch &&
-        emotionMatch
-      );
-
-    });
-
-  timeline.innerHTML =
-    filtered
-      .map((d,index)=>`
-
-        <div
-          class="
-            timeline-card
-            glass
-          "
-          style="
-            animation-delay:
-            ${index * 0.05}s
-          "
-        >
-
-          <div class="timeline-head">
-
-            <div>
-
-              <div class="timeline-title">
-
-                ${
-                  emotions[d.emotion]
-                  .emoji
-                }
-
-                ${d.title}
-
-              </div>
-
-              <div class="timeline-meta">
-
-                ${d.time}
-
-              </div>
-
-            </div>
-
-          </div>
-
-          <div class="preview">
-
-            ${
-              d.content.length > 120
-
-              ? d.content.slice(0,120)
-                + "..."
-
-              : d.content
-            }
-
-          </div>
-
-          <div class="card-images">
-
-            ${d.images
-              .map(img=>`
-
-                <img
-                  src="${img}"
-                  onclick="
-                    openModal(
-                      '${img}'
-                    )
-                  "
-                />
-
-              `)
-              .join("")
-            }
-
-          </div>
-
-          <button
-            class="more"
-            onclick="
-              alert(
-                ${JSON.stringify(
-                  d.content
-                )}
-              )
-            "
-          >
-            전체 보기
-          </button>
-
-        </div>
-
-      `)
-      .join("");
-
-}
-
-/* =========================
-SEARCH
-========================= */
-
-document
-  .getElementById("searchInput")
-  .addEventListener(
-    "input",
-    renderTimeline
-  );
-
-document
-  .querySelectorAll(".filter-btn")
-  .forEach(btn=>{
-
-    btn.onclick = ()=>{
-
-      currentFilter =
-        btn.dataset.filter;
-
-      renderTimeline();
-
-    };
-
-  });
-
-/* =========================
-CALENDAR
-========================= */
-
-let currentMonth =
-  new Date();
-
-function renderCalendar(){
-
-  const calendar =
-    document.getElementById(
-      "calendar"
-    );
-
-  const monthTitle =
-    document.getElementById(
-      "monthTitle"
-    );
-
-  calendar.innerHTML = "";
-
-  const year =
-    currentMonth.getFullYear();
-
-  const month =
-    currentMonth.getMonth();
-
-  monthTitle.innerText =
-
-    `${year}년 ${month+1}월`;
-
-  const dayNames =
-
-    ["일","월","화","수","목","금","토"];
-
-  dayNames.forEach(d=>{
-
-    calendar.innerHTML += `
-
-      <div class="day-name">
-        ${d}
-      </div>
-
-    `;
-
-  });
-
-  const firstDay =
-    new Date(year,month,1)
-    .getDay();
-
-  const days =
-    new Date(
-      year,
-      month + 1,
-      0
-    ).getDate();
-
-  for(let i=0;i<firstDay;i++){
-
-    calendar.innerHTML +=
-      "<div></div>";
-
-  }
-
-  for(let day=1;day<=days;day++){
-
-    const dateStr =
-
-      `${year}-${String(month+1)
-        .padStart(2,"0")}-${String(day)
-        .padStart(2,"0")}`;
-
-    const diary =
-      diaries.find(
-        d => d.date === dateStr
-      );
-
-    const isToday =
-      dateStr ===
-      new Date()
-        .toLocaleDateString(
-          "sv-SE"
-        );
-
-    calendar.innerHTML += `
-
-      <div
-        class="
-          day
-          ${
-            diary
-            ? emotions[
-                diary.emotion
-              ].class
-            : ""
-          }
-          ${
-            isToday
-            ? "today"
-            : ""
-          }
-        "
-      >
-
-        ${day}
-
-        ${
-          diary
-          ? `<div class="dot"></div>`
-          : ""
-        }
-
-      </div>
-
-    `;
-
-  }
-
-}
-
-document
-  .getElementById("prevMonth")
-  .onclick = ()=>{
-
-    currentMonth.setMonth(
-      currentMonth.getMonth()-1
-    );
-
-    renderCalendar();
-
-  };
-
-document
-  .getElementById("nextMonth")
-  .onclick = ()=>{
-
-    currentMonth.setMonth(
-      currentMonth.getMonth()+1
-    );
-
-    renderCalendar();
-
-  };
-
-/* =========================
-STATS
-========================= */
-
-function renderStats(){
-
-  const statsText =
-    document.getElementById(
-      "statsText"
-    );
-
-  const chart =
-    document.getElementById(
-      "chart"
-    );
-
-  const count = {
-
-    happy:0,
-    normal:0,
-    sad:0,
-    angry:0,
-    tired:0
-
-  };
-
-  diaries.forEach(d=>{
-
-    count[d.emotion]++;
-
-  });
-
-  const maxEmotion =
-    Object.entries(count)
-      .sort((a,b)=>b[1]-a[1])[0];
-
-  statsText.innerHTML = `
-
-    총 작성 일수:
-    <strong>
-      ${diaries.length}일
-    </strong>
-    <br/>
-
-    가장 많았던 감정:
-    <strong>
-      ${
-        emotions[maxEmotion[0]]
-        .emoji
-      }
-    </strong>
-
-  `;
-
-  chart.innerHTML =
-    Object.entries(count)
-      .map(([key,val])=>`
-
-        <div class="bar-wrap">
-
-          <div
-            class="bar"
-            style="
-              height:${val * 28}px;
-              background:
-              ${
-                key === "happy"
-                ? "#ffd966"
-
-                : key === "normal"
-                ? "#d9d9d9"
-
-                : key === "sad"
-                ? "#9dc4ff"
-
-                : key === "angry"
-                ? "#ff9f9f"
-
-                : "#cbb5ff"
-              };
-            "
-          ></div>
-
-          <small>
-            ${
-              emotions[key]
-              .emoji
-            }
-          </small>
-
-        </div>
-
-      `)
-      .join("");
-
-}
-
-/* =========================
-RANDOM
-========================= */
-
-document
-  .getElementById("randomBtn")
-  .onclick = ()=>{
-
-    if(!diaries.length){
-
-      alert("아직 기록이 없어요!");
-
-      return;
-
-    }
-
-    const random =
-      diaries[
-        Math.floor(
-          Math.random()
-          * diaries.length
-        )
-      ];
-
-    alert(
-      `${random.title}\n\n${random.content}`
-    );
-
-  };
-
-/* =========================
-MODAL
-========================= */
-
-function openModal(src){
-
-  document
-    .getElementById("modal")
-    .classList.add("show");
-
-  document
-    .getElementById("modalImg")
-    .src = src;
-
-}
-
-document
-  .getElementById("modal")
-  .onclick = ()=>{
-
-    document
-      .getElementById("modal")
-      .classList.remove("show");
-
-  };
-
-/* =========================
-MUSIC
-========================= */
-
-const audio =
-  document.getElementById(
-    "audio"
-  );
-
-const musicMap = {
-
-  rain:"./music/rain.mp3",
-
-  cafe:"./music/cafe.mp3",
-
-  piano:"./music/piano.mp3"
-
-};
-
-const musicSelect =
-  document.getElementById(
-    "musicSelect"
-  );
-
-const volume =
-  document.getElementById(
-    "volume"
-  );
-
-const musicToggle =
-  document.getElementById(
-    "musicToggle"
-  );
-
-musicSelect.value =
-  localStorage.getItem(
-    "music"
-  ) || "rain";
-
-volume.value =
-  localStorage.getItem(
-    "volume"
-  ) || 0.5;
-
-audio.src =
-  musicMap[
-    musicSelect.value
-  ];
-
-audio.volume =
-  volume.value;
-
-musicSelect.onchange = ()=>{
-
-  audio.src =
-    musicMap[
-      musicSelect.value
-    ];
-
-  localStorage.setItem(
-    "music",
-    musicSelect.value
-  );
-
-};
-
-volume.oninput = ()=>{
-
-  audio.volume =
-    volume.value;
-
-  localStorage.setItem(
-    "volume",
-    volume.value
-  );
-
-};
-
-musicToggle.onclick = ()=>{
-
-  if(audio.paused){
-
-    audio.play();
-
-    musicToggle.innerText =
-      "⏸";
-
-  }
-
-  else{
-
-    audio.pause();
-
-    musicToggle.innerText =
-      "▶";
-
-  }
-
-};
-
-/* =========================
-LOCK
-========================= */
-
-const savedPin =
-  localStorage.getItem(
-    "pin"
-  ) || "1234";
-
-let pinInput = "";
-
-function renderPinDots(){
+/* =========================================================
+DOTS
+========================================================= */
+
+function updateDots(){
 
   const dots =
-    document.getElementById(
-      "pinDots"
+    pinDots.querySelectorAll(
+      ".pin-dot"
     );
 
-  dots.innerHTML = "";
+  dots.forEach((dot,index)=>{
 
-  for(let i=0;i<4;i++){
-
-    dots.innerHTML += `
-
-      <div
-        class="
-          pin-dot
-          ${
-            pinInput[i]
-            ? "fill"
-            : ""
-          }
-        "
-      ></div>
-
-    `;
-
-  }
-
-}
-
-function createKeypad(){
-
-  const keypad =
-    document.getElementById(
-      "keypad"
+    dot.classList.toggle(
+      "filled",
+      index < enteredPin.length
     );
-
-  for(let i=1;i<=9;i++){
-
-    keypad.innerHTML += `
-
-      <button
-        class="
-          key
-          glass
-        "
-      >
-        ${i}
-      </button>
-
-    `;
-
-  }
-
-  keypad.innerHTML += `
-
-    <button
-      class="
-        key
-        glass
-      "
-    >
-      ⌫
-    </button>
-
-  `;
-
-  keypad.innerHTML += `
-
-    <button
-      class="
-        key
-        glass
-      "
-    >
-      0
-    </button>
-
-  `;
-
-  keypad.innerHTML += `
-
-    <button
-      class="
-        key
-        glass
-      "
-    >
-      ✓
-    </button>
-
-  `;
-
-}
-
-createKeypad();
-
-renderPinDots();
-
-document
-  .querySelectorAll(".key")
-  .forEach(btn=>{
-
-    btn.onclick = ()=>{
-
-      const val =
-        btn.innerText;
-
-      if(val === "⌫"){
-
-        pinInput =
-          pinInput.slice(0,-1);
-
-      }
-
-      else if(val === "✓"){
-
-        if(pinInput === savedPin){
-
-          document
-            .getElementById(
-              "lockScreen"
-            )
-            .style.display = "none";
-
-        }
-
-        else{
-
-          document
-            .getElementById(
-              "lockCard"
-            )
-            .classList.add("shake");
-
-          setTimeout(()=>{
-
-            document
-              .getElementById(
-                "lockCard"
-              )
-              .classList.remove(
-                "shake"
-              );
-
-          },350);
-
-          pinInput = "";
-
-        }
-
-      }
-
-      else{
-
-        if(pinInput.length < 4){
-
-          pinInput += val;
-
-        }
-
-      }
-
-      renderPinDots();
-
-    };
 
   });
 
-/* =========================
-SERVICE WORKER
-========================= */
+}
 
-if("serviceWorker" in navigator){
+/* =========================================================
+RESET
+========================================================= */
 
-  window.addEventListener(
-    "load",
-    ()=>{
+function resetPin(){
 
-      navigator.serviceWorker.register(
-        "./service-worker.js"
-      );
+  enteredPin = [];
 
+  updateDots();
+}
+
+/* =========================================================
+HANDLE INPUT
+========================================================= */
+
+function handlePinInput(value){
+
+  if(enteredPin.length >= 4){
+
+    return;
+  }
+
+  enteredPin.push(value);
+
+  updateDots();
+
+  if(enteredPin.length === 4){
+
+    setTimeout(()=>{
+
+      validatePin();
+
+    },120);
+
+  }
+
+}
+
+/* =========================================================
+DELETE
+========================================================= */
+
+function deletePin(){
+
+  enteredPin.pop();
+
+  updateDots();
+}
+
+/* =========================================================
+VALIDATE
+========================================================= */
+
+function validatePin(){
+
+  const pin =
+    enteredPin.join("");
+
+  /* setup */
+
+  if(setupMode){
+
+    localStorage.setItem(
+      PIN_STORAGE_KEY,
+      pin
+    );
+
+    unlockApp();
+
+    return;
+  }
+
+  /* validate */
+
+  const savedPin =
+    getSavedPin();
+
+  if(pin === savedPin){
+
+    unlockApp();
+  }
+
+  else{
+
+    triggerError();
+  }
+
+}
+
+/* =========================================================
+ERROR
+========================================================= */
+
+function triggerError(){
+
+  navigator.vibrate?.(180);
+
+  const panel =
+    document.querySelector(
+      ".lock-panel"
+    );
+
+  panel.classList.add(
+    "shake"
+  );
+
+  setTimeout(()=>{
+
+    panel.classList.remove(
+      "shake"
+    );
+
+  },450);
+
+  resetPin();
+}
+
+/* =========================================================
+UNLOCK
+========================================================= */
+
+function unlockApp(){
+
+  lockScreen.classList.add(
+    "unlock"
+  );
+
+  setTimeout(()=>{
+
+    lockScreen.remove();
+
+  },500);
+
+}
+
+/* =========================================================
+KEYPAD EVENT
+중요:
+event delegation 사용
+pointerdown + touch 대응
+========================================================= */
+
+function registerPinEvents(){
+
+  if(!keypad) return;
+
+  keypad.addEventListener(
+    "pointerdown",
+    handleKeypadInteraction,
+    {
+      passive:true
+    }
+  );
+
+  keypad.addEventListener(
+    "touchstart",
+    handleKeypadInteraction,
+    {
+      passive:true
     }
   );
 
 }
 
-/* =========================
-INIT
-========================= */
+/* =========================================================
+KEYPAD HANDLER
+========================================================= */
 
-renderTimeline();
+function handleKeypadInteraction(event){
 
-renderCalendar();
+  const target =
+    event.target.closest(
+      ".pin-key"
+    );
 
-renderStats();
+  if(!target){
+
+    return;
+  }
+
+  target.style.transform =
+    "scale(.92)";
+
+  setTimeout(()=>{
+
+    target.style.transform =
+      "";
+
+  },120);
+
+  const action =
+    target.dataset.action;
+
+  if(action === "delete"){
+
+    deletePin();
+
+    return;
+  }
+
+  const value =
+    target.dataset.key;
+
+  if(value){
+
+    handlePinInput(value);
+  }
+
+}
+
+/* =========================================================
+VISIBILITY FIX
+화면 전환 후 이벤트 복구
+========================================================= */
+
+document.addEventListener(
+  "visibilitychange",
+  ()=>{
+
+    if(
+      document.visibilityState
+      === "visible"
+    ){
+
+      registerPinEvents();
+    }
+
+  }
+);
+
+/* =========================================================
+RESIZE FIX
+========================================================= */
+
+window.addEventListener(
+  "resize",
+  ()=>{
+
+    document.body.style.height =
+      window.innerHeight
+      + "px";
+
+  }
+);
+
+/* =========================================================
+START
+========================================================= */
+
+initPinLock();
+
+registerPinEvents();
 
 </script>
 
-</body>
-</html>
-```
+
