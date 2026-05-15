@@ -1,351 +1,866 @@
+<!-- =========================
+감성 일기 웹앱 UPGRADE VERSION
+모바일 우선 / Glassmorphism / PWA Ready
+기존 코드 기반 전체 리디자인
+========================= -->
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+/>
+
 <title>하루 일기</title>
 
+<link
+  rel="preconnect"
+  href="https://fonts.googleapis.com"
+/>
+
+<link
+  rel="preconnect"
+  href="https://fonts.gstatic.com"
+  crossorigin
+/>
+
+<link
+  href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap"
+  rel="stylesheet"
+/>
+
+<link rel="manifest" href="./manifest.json"/>
+
+<meta name="theme-color" content="#101010"/>
+
 <style>
+
+/* =========================
+RESET
+========================= */
 
 *{
   margin:0;
   padding:0;
   box-sizing:border-box;
-  font-family:"Pretendard",sans-serif;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html{
+  scroll-behavior:smooth;
 }
 
 body{
-  background:#f3f4f6;
+  font-family:"Pretendard",sans-serif;
   min-height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  overflow:hidden;
-  transition:0.3s;
+  overflow-x:hidden;
+
+  background:
+    linear-gradient(
+      160deg,
+      #fdf6ec,
+      #f5efe8,
+      #f1f4ff
+    );
+
+  color:#222;
+
+  transition:
+    background .45s ease,
+    color .45s ease;
 }
 
 body.dark{
-  background:#121212;
+
+  background:
+    linear-gradient(
+      160deg,
+      #101114,
+      #17181d,
+      #1f2230
+    );
+
+  color:#f4f4f4;
 }
 
-.wrapper{
+/* =========================
+SCROLL
+========================= */
+
+::-webkit-scrollbar{
+  width:8px;
+}
+
+::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+::-webkit-scrollbar-thumb{
+  background:rgba(255,255,255,.25);
+  border-radius:999px;
+}
+
+/* =========================
+APP
+========================= */
+
+.app{
   width:100%;
-  position:relative;
+  max-width:1400px;
+  margin:auto;
+  padding:
+    env(safe-area-inset-top)
+    18px
+    120px;
+}
+
+/* =========================
+GLASS
+========================= */
+
+.glass{
+  background:rgba(255,255,255,.18);
+
+  backdrop-filter:blur(22px);
+
+  -webkit-backdrop-filter:blur(22px);
+
+  border:
+    1px solid rgba(255,255,255,.18);
+
+  box-shadow:
+    0 10px 40px rgba(0,0,0,.08);
+}
+
+body.dark .glass{
+  background:rgba(255,255,255,.05);
+
+  border:
+    1px solid rgba(255,255,255,.08);
+
+  box-shadow:
+    0 10px 40px rgba(0,0,0,.35);
+}
+
+/* =========================
+TOPBAR
+========================= */
+
+.topbar{
   display:flex;
-  justify-content:center;
+  justify-content:space-between;
   align-items:center;
+  margin-bottom:22px;
+  gap:14px;
 }
 
-.slider{
-  width:1854px;
-  overflow:hidden;
+.logo{
+  font-size:26px;
+  font-weight:700;
+  letter-spacing:-0.5px;
 }
 
-.track{
+.top-actions{
   display:flex;
-  gap:18px;
-  transition:transform 0.28s cubic-bezier(0.22,1,0.36,1);
+  gap:10px;
+  flex-wrap:wrap;
 }
 
-.card{
-  width:600px;
-  min-width:600px;
-  height:420px;
+.icon-btn{
+  border:none;
+  border-radius:18px;
+  padding:12px 16px;
+  cursor:pointer;
+  font-size:14px;
+  color:inherit;
+
+  transition:.25s;
+}
+
+.icon-btn:hover{
+  transform:translateY(-2px);
+}
+
+/* =========================
+LAYOUT
+========================= */
+
+.grid{
+  display:grid;
+  grid-template-columns:
+    340px
+    1fr;
+  gap:24px;
+}
+
+@media(max-width:980px){
+
+  .grid{
+    grid-template-columns:1fr;
+  }
+
+}
+
+/* =========================
+SIDEBAR
+========================= */
+
+.sidebar{
+  position:sticky;
+  top:20px;
+  height:max-content;
   border-radius:30px;
-  padding:24px;
+  padding:20px;
+}
+
+/* =========================
+CALENDAR
+========================= */
+
+.calendar-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
+}
+
+.calendar-header button{
+  width:40px;
+  height:40px;
+  border:none;
+  border-radius:50%;
+  cursor:pointer;
+  color:inherit;
+}
+
+.calendar{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:8px;
+}
+
+.day-name{
+  text-align:center;
+  font-size:12px;
+  opacity:.6;
+  padding-bottom:6px;
+}
+
+.day{
+  aspect-ratio:1/1;
+
+  border-radius:18px;
+
   display:flex;
   flex-direction:column;
-  box-shadow:0 8px 25px rgba(0,0,0,0.08);
-  flex-shrink:0;
-  transition:
-    transform 0.28s cubic-bezier(0.22,1,0.36,1),
-    opacity 0.28s cubic-bezier(0.22,1,0.36,1),
-    background 0.3s ease,
-    color 0.3s ease;
+  justify-content:center;
+  align-items:center;
+
+  font-size:13px;
+
+  position:relative;
+
+  cursor:pointer;
+
+  transition:.25s;
 }
+
+.day:hover{
+  transform:translateY(-2px);
+}
+
+.day.today{
+  border:2px solid #111;
+}
+
+body.dark .day.today{
+  border:2px solid white;
+}
+
+.day .dot{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  margin-top:5px;
+}
+
+.day.happy{
+  background:#fff3b0;
+}
+
+.day.normal{
+  background:#ececec;
+}
+
+.day.sad{
+  background:#bfdcff;
+}
+
+.day.angry{
+  background:#ffb9b9;
+}
+
+.day.tired{
+  background:#d7c7ff;
+}
+
+/* =========================
+MAIN
+========================= */
 
 .main{
-  transform:scale(1);
-  opacity:1;
+  display:flex;
+  flex-direction:column;
+  gap:22px;
 }
 
-.side{
-  transform:scale(0.94);
-  opacity:0.58;
+/* =========================
+WRITE CARD
+========================= */
+
+.write-card{
+  border-radius:34px;
+  padding:22px;
 }
 
-.title{
-  text-align:center;
-  font-size:22px;
+.write-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
+}
+
+.write-title{
+  font-size:24px;
   font-weight:700;
+}
+
+.date-text{
+  opacity:.65;
+  font-size:14px;
+}
+
+input,
+textarea,
+select{
+  width:100%;
+  border:none;
+  outline:none;
+  font-family:inherit;
+}
+
+.diary-title{
+  background:rgba(255,255,255,.35);
+
+  border-radius:18px;
+
+  padding:16px;
+
+  margin-bottom:14px;
+
+  font-size:15px;
+}
+
+.diary-content{
+  min-height:180px;
+
+  background:rgba(255,255,255,.35);
+
+  border-radius:24px;
+
+  padding:18px;
+
+  resize:none;
+
+  line-height:1.8;
+
+  font-size:15px;
+}
+
+body.dark .diary-title,
+body.dark .diary-content{
+  background:rgba(255,255,255,.06);
+  color:white;
+}
+
+/* =========================
+EMOTION
+========================= */
+
+.emotions{
+  display:flex;
+  gap:10px;
+  overflow-x:auto;
+  margin-top:18px;
+}
+
+.emotion{
+  min-width:max-content;
+
+  border:none;
+
+  border-radius:999px;
+
+  padding:12px 16px;
+
+  cursor:pointer;
+
+  transition:.25s;
+}
+
+.emotion.active{
+  transform:scale(1.05);
+  background:#111;
+  color:white;
+}
+
+body.dark .emotion.active{
+  background:white;
+  color:#111;
+}
+
+/* =========================
+UPLOAD
+========================= */
+
+.upload-box{
+  margin-top:18px;
+
+  border:
+    2px dashed rgba(255,255,255,.4);
+
+  border-radius:24px;
+
+  padding:28px;
+
+  text-align:center;
+
+  transition:.25s;
+}
+
+.upload-box.drag{
+  transform:scale(1.01);
+}
+
+.preview-grid{
+  display:grid;
+  grid-template-columns:
+    repeat(auto-fill,minmax(90px,1fr));
+
+  gap:10px;
+
+  margin-top:16px;
+}
+
+.preview-grid img{
+  width:100%;
+  height:90px;
+  object-fit:cover;
+  border-radius:16px;
+}
+
+/* =========================
+SUMMARY
+========================= */
+
+.summary{
+  margin-top:18px;
+  padding:18px;
+  border-radius:24px;
+  display:none;
+  animation:fade .5s ease;
+}
+
+.summary.show{
+  display:block;
+}
+
+.summary h4{
   margin-bottom:10px;
 }
 
-.date{
-  text-align:center;
-  font-size:13px;
-  color:#666;
-  margin-bottom:18px;
-  transition:0.3s;
+.summary p{
+  line-height:1.7;
 }
 
-textarea{
-  width:100%;
-  height:120px;
-  border:none;
-  border-radius:20px;
-  padding:16px;
-  resize:none;
-  outline:none;
-  font-size:14px;
-  line-height:1.6;
-  margin-bottom:16px;
-  background:rgba(255,255,255,0.5);
-  transition:0.3s;
+@keyframes fade{
+
+  from{
+    opacity:0;
+    transform:translateY(8px);
+  }
+
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+
 }
 
-.content{
-  flex:1;
-  overflow-y:auto;
-  white-space:pre-wrap;
-  line-height:1.6;
-  font-size:14px;
-  transition:0.3s;
-}
+/* =========================
+BUTTONS
+========================= */
 
-.time{
-  text-align:right;
-  font-size:12px;
-  margin-top:12px;
-  color:#666;
-  transition:0.3s;
-}
-
-.save{
-  border:none;
-  background:#222;
-  color:white;
-  padding:12px;
-  border-radius:14px;
-  cursor:pointer;
-  font-size:14px;
-  margin-top:14px;
-  transition:0.3s;
-}
-
-.disabled{
-  background:#999 !important;
-  cursor:not-allowed !important;
-}
-
-.arrow{
-  position:absolute;
-  top:50%;
-  transform:translateY(-50%);
-  width:52px;
-  height:52px;
-  border:none;
-  border-radius:50%;
-  background:white;
-  box-shadow:0 4px 14px rgba(0,0,0,0.08);
-  font-size:24px;
-  cursor:pointer;
-  z-index:30;
-  transition:0.3s;
-}
-
-#prevBtn{
-  left:40px;
-}
-
-#nextBtn{
-  right:40px;
-}
-
-.topButtons{
-  position:fixed;
-  top:24px;
-  right:24px;
+.action-row{
   display:flex;
   gap:12px;
+  margin-top:18px;
+}
+
+.primary-btn{
+  flex:1;
+
+  border:none;
+
+  border-radius:22px;
+
+  padding:16px;
+
+  cursor:pointer;
+
+  font-size:15px;
+  font-weight:600;
+
+  background:#111;
+
+  color:white;
+
+  transition:.25s;
+}
+
+.primary-btn:hover{
+  transform:translateY(-2px);
+}
+
+body.dark .primary-btn{
+  background:white;
+  color:#111;
+}
+
+/* =========================
+SEARCH
+========================= */
+
+.search-card{
+  border-radius:28px;
+  padding:18px;
+}
+
+.search-box{
+  display:flex;
+  gap:10px;
+  margin-top:14px;
+}
+
+.search-box input{
+  padding:14px;
+  border-radius:16px;
+  background:rgba(255,255,255,.3);
+}
+
+.filter-row{
+  display:flex;
+  gap:10px;
+  overflow:auto;
+  margin-top:14px;
+}
+
+.filter-btn{
+  border:none;
+  border-radius:999px;
+  padding:10px 14px;
+  cursor:pointer;
+}
+
+/* =========================
+TIMELINE
+========================= */
+
+.timeline{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+
+.timeline-card{
+  border-radius:28px;
+  padding:20px;
+
+  opacity:0;
+  transform:translateY(20px);
+
+  animation:showCard .55s forwards;
+}
+
+@keyframes showCard{
+
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+}
+
+.timeline-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+
+.timeline-title{
+  font-size:18px;
+  font-weight:700;
+}
+
+.timeline-meta{
+  margin-top:4px;
+  opacity:.65;
+  font-size:13px;
+}
+
+.preview{
+  margin-top:16px;
+  line-height:1.8;
+}
+
+.card-images{
+  display:grid;
+  grid-template-columns:
+    repeat(auto-fill,minmax(110px,1fr));
+
+  gap:10px;
+
+  margin-top:16px;
+}
+
+.card-images img{
+  width:100%;
+  height:120px;
+  object-fit:cover;
+  border-radius:18px;
+  cursor:pointer;
+  transition:.25s;
+}
+
+.card-images img:hover{
+  transform:scale(1.03);
+}
+
+.more{
+  margin-top:14px;
+  border:none;
+  background:none;
+  cursor:pointer;
+  font-weight:600;
+  color:inherit;
+}
+
+/* =========================
+STATS
+========================= */
+
+.stats{
+  border-radius:28px;
+  padding:20px;
+}
+
+.chart{
+  display:flex;
+  align-items:flex-end;
+  gap:12px;
+  height:180px;
+  margin-top:20px;
+}
+
+.bar-wrap{
+  flex:1;
+  text-align:center;
+}
+
+.bar{
+  width:100%;
+  border-radius:14px 14px 0 0;
+  animation:grow 1s ease;
+}
+
+@keyframes grow{
+
+  from{
+    height:0;
+  }
+
+}
+
+/* =========================
+PLAYER
+========================= */
+
+.player{
+  position:fixed;
+
+  right:18px;
+  bottom:18px;
+
+  width:280px;
+
+  border-radius:26px;
+
+  padding:18px;
+
   z-index:999;
 }
 
-.topBtn{
-  border:none;
-  padding:12px 18px;
-  border-radius:14px;
-  background:#222;
-  color:white;
-  cursor:pointer;
-  transition:0.3s;
+.player-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:14px;
 }
 
-.colorPicker{
+.player select{
+  background:transparent;
+  color:inherit;
+}
+
+.player input[type="range"]{
+  margin-top:12px;
+}
+
+/* =========================
+LOCK SCREEN
+========================= */
+
+.lock{
+  position:fixed;
+  inset:0;
+
+  z-index:99999;
+
+  display:flex;
+  justify-content:center;
+  align-items:center;
+
+  backdrop-filter:blur(35px);
+
+  background:
+    rgba(0,0,0,.45);
+}
+
+.lock-card{
+  width:92%;
+  max-width:360px;
+
+  border-radius:34px;
+
+  padding:28px;
+
+  text-align:center;
+}
+
+.pin-dots{
   display:flex;
   justify-content:center;
   gap:10px;
-  margin-top:4px;
+  margin:26px 0;
 }
 
-.colorBtn{
-  width:28px;
-  height:28px;
+.pin-dot{
+  width:16px;
+  height:16px;
   border-radius:50%;
-  border:3px solid transparent;
+  background:rgba(255,255,255,.3);
+}
+
+.pin-dot.fill{
+  background:white;
+}
+
+.keypad{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+}
+
+.key{
+  aspect-ratio:1/1;
+
+  border:none;
+
+  border-radius:50%;
+
+  font-size:22px;
+
   cursor:pointer;
 }
 
-.selectedColor{
-  border-color:#111;
+.shake{
+  animation:shake .35s;
 }
 
-.whiteColor{ background:#ffffff; }
-.redColor{ background:#fecaca; }
-.orangeColor{ background:#fed7aa; }
-.yellowColor{ background:#fef08a; }
-.greenColor{ background:#bbf7d0; }
-.blueColor{ background:#bfdbfe; }
-.purpleColor{ background:#e9d5ff; }
+@keyframes shake{
 
-/* 다크모드 */
-
-body.dark .card{
-
-  color:white;
-
-  box-shadow:
-    0 8px 25px rgba(0,0,0,0.35);
+  0%{transform:translateX(0);}
+  25%{transform:translateX(-8px);}
+  50%{transform:translateX(8px);}
+  75%{transform:translateX(-8px);}
+  100%{transform:translateX(0);}
 }
 
-body.dark .date{
+/* =========================
+MODAL
+========================= */
 
-  color:#d1d5db;
+.modal{
+  position:fixed;
+  inset:0;
+
+  background:rgba(0,0,0,.75);
+
+  display:none;
+  justify-content:center;
+  align-items:center;
+
+  z-index:9999;
 }
 
-body.dark .content{
-
-  color:#f3f4f6;
+.modal.show{
+  display:flex;
 }
 
-body.dark .time{
-
-  color:#d1d5db;
+.modal img{
+  max-width:90%;
+  max-height:90%;
+  border-radius:24px;
 }
 
-body.dark textarea{
+/* =========================
+MOBILE
+========================= */
 
-  background:rgba(255,255,255,0.08);
+@media(max-width:768px){
 
-  color:white;
-}
-
-body.dark textarea::placeholder{
-
-  color:#cfcfcf;
-}
-
-body.dark .save{
-
-  background:white;
-
-  color:#111;
-}
-
-body.dark .arrow{
-
-  background:#1f2937;
-
-  color:white;
-
-  box-shadow:
-    0 4px 14px rgba(0,0,0,0.35);
-}
-
-body.dark .topBtn{
-
-  background:white;
-
-  color:#111;
-}
-
-body.dark .selectedColor{
-
-  border-color:white;
-}
-
-/* 모바일 */
-
-@media (max-width:768px){
-
-  .slider{
-
-    width:100vw;
-
-    display:flex;
-    justify-content:center;
-    align-items:center;
+  .app{
+    padding:16px 14px 120px;
   }
 
-  .track{
-
-    gap:0;
+  .logo{
+    font-size:22px;
   }
 
-  .card{
-
-    width:88vw;
-    min-width:88vw;
-
-    margin:0 6vw;
-
-    height:420px;
-  }
-
-  .main{
-
-    transform:scale(1);
-    opacity:1;
-  }
-
-  .side{
-
-    transform:scale(0.82);
-    opacity:0;
-    pointer-events:none;
-  }
-
-  .arrow{
-
-    width:44px;
-    height:44px;
-
+  .write-title{
     font-size:20px;
   }
 
-  #prevBtn{
-
-    left:10px;
-  }
-
-  #nextBtn{
-
-    right:10px;
-  }
-
-  .topButtons{
-
-    top:16px;
-    right:16px;
-
-    gap:8px;
-  }
-
-  .topBtn{
-
-    padding:10px 14px;
-
-    font-size:13px;
+  .player{
+    width:calc(100% - 28px);
+    right:14px;
+    left:14px;
+    bottom:12px;
   }
 
 }
@@ -355,617 +870,1579 @@ body.dark .selectedColor{
 
 <body>
 
-<div class="topButtons">
+<!-- =========================
+LOCK
+========================= -->
 
-  <button
-    class="topBtn"
-    id="randomBtn">
-    🎲 추억 보기
-  </button>
+<div class="lock" id="lockScreen">
 
-  <button
-    class="topBtn"
-    id="themeToggle">
-    🌙 다크모드
-  </button>
+  <div class="lock-card glass" id="lockCard">
+
+    <h2>🔒 하루 일기</h2>
+
+    <p
+      style="
+        margin-top:10px;
+        opacity:.7;
+      "
+    >
+      4자리 PIN 입력
+    </p>
+
+    <div class="pin-dots" id="pinDots"></div>
+
+    <div class="keypad" id="keypad"></div>
+
+  </div>
 
 </div>
 
-<div class="wrapper">
+<!-- =========================
+APP
+========================= -->
 
-  <button
-    class="arrow"
-    id="prevBtn">
-    〈
-  </button>
+<div class="app">
 
-  <div class="slider">
+  <!-- TOP -->
 
-    <div
-      class="track"
-      id="track">
+  <div class="topbar">
+
+    <div class="logo">
+      🌙 하루 일기
+    </div>
+
+    <div class="top-actions">
+
+      <button
+        class="icon-btn glass"
+        id="randomBtn"
+      >
+        🎲 추억 보기
+      </button>
+
+      <button
+        class="icon-btn glass"
+        id="themeBtn"
+      >
+        🌙 다크모드
+      </button>
+
     </div>
 
   </div>
 
-  <button
-    class="arrow"
-    id="nextBtn">
-    〉
-  </button>
+  <!-- GRID -->
 
-</div>
+  <div class="grid">
 
-<script>
+    <!-- SIDEBAR -->
 
-const track =
-  document.getElementById("track");
+    <aside class="sidebar glass">
 
-const prevBtn =
-  document.getElementById("prevBtn");
-
-const nextBtn =
-  document.getElementById("nextBtn");
-
-const randomBtn =
-  document.getElementById("randomBtn");
-
-const themeToggle =
-  document.getElementById("themeToggle");
-
-let MOVE_DISTANCE =
-  window.innerWidth <= 768
-  ? window.innerWidth
-  : 618;
-
-let isAnimating = false;
-
-let selectedColor =
-  "#ffffff";
-
-const today =
-  new Date()
-    .toLocaleDateString(
-      "sv-SE",
-      {
-        timeZone:"Asia/Seoul"
-      }
-    );
-
-let diaries = JSON.parse(
-  localStorage.getItem(
-    "diaries"
-  )
-) || [];
-
-let currentIndex = 0;
-
-function getKoreanDateTime(){
-
-  return new Date()
-    .toLocaleString(
-      "ko-KR",
-      {
-        timeZone:"Asia/Seoul"
-      }
-    );
-}
-
-function getSlides(){
-
-  return [
-
-    {
-      type:"today"
-    },
-
-    ...diaries
-      .slice()
-      .reverse()
-      .map(diary=>({
-
-        type:"diary",
-
-        data:diary
-      }))
-  ];
-}
-
-function escapeHtml(text){
-
-  return text
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;");
-}
-
-function getColorPickerHTML(
-  currentColor = "#ffffff"
-){
-
-  return `
-
-    <div class="colorPicker">
-
-      <div
-        class="colorBtn whiteColor ${
-          currentColor === "#ffffff"
-          ? "selectedColor"
-          : ""
-        }"
-        data-color="#ffffff"></div>
-
-      <div
-        class="colorBtn redColor ${
-          currentColor === "#fecaca"
-          ? "selectedColor"
-          : ""
-        }"
-        data-color="#fecaca"></div>
-
-      <div
-        class="colorBtn orangeColor ${
-          currentColor === "#fed7aa"
-          ? "selectedColor"
-          : ""
-        }"
-        data-color="#fed7aa"></div>
-
-      <div
-        class="colorBtn yellowColor ${
-          currentColor === "#fef08a"
-          ? "selectedColor"
-          : ""
-        }"
-        data-color="#fef08a"></div>
-
-      <div
-        class="colorBtn greenColor ${
-          currentColor === "#bbf7d0"
-          ? "selectedColor"
-          : ""
-        }"
-        data-color="#bbf7d0"></div>
-
-      <div
-        class="colorBtn blueColor ${
-          currentColor === "#bfdbfe"
-          ? "selectedColor"
-          : ""
-        }"
-        data-color="#bfdbfe"></div>
-
-      <div
-        class="colorBtn purpleColor ${
-          currentColor === "#e9d5ff"
-          ? "selectedColor"
-          : ""
-        }"
-        data-color="#e9d5ff"></div>
-
-    </div>
-  `;
-}
-
-function getCardHTML(slide){
-
-  if(slide.type === "today"){
-
-    const alreadyWritten =
-      diaries.find(
-        d => d.date === today
-      );
-
-    return `
-      <div
-        class="card"
-        style="background:${selectedColor}">
-
-        <div class="title">
-          오늘의 일기
-        </div>
-
-        <div class="date">
-          ${today}
-        </div>
-
-        <textarea
-          class="diaryInput"
-          placeholder="오늘 하루를 기록해보세요..."
-          ${alreadyWritten ? "disabled" : ""}
-        >${
-          alreadyWritten
-          ? alreadyWritten.content
-          : ""
-        }</textarea>
-
-        ${
-          alreadyWritten
-          ? ""
-          : getColorPickerHTML(
-              selectedColor
-            )
-        }
+      <div class="calendar-header">
 
         <button
-          class="save ${
-            alreadyWritten
-            ? "disabled"
-            : ""
-          }">
+          class="glass"
+          id="prevMonth"
+        >
+          ←
+        </button>
 
-          ${
-            alreadyWritten
-            ? "오늘은 이미 작성 완료"
-            : "작성 완료"
-          }
+        <h3 id="monthTitle"></h3>
 
+        <button
+          class="glass"
+          id="nextMonth"
+        >
+          →
         </button>
 
       </div>
-    `;
+
+      <div
+        class="calendar"
+        id="calendar"
+      ></div>
+
+    </aside>
+
+    <!-- MAIN -->
+
+    <main class="main">
+
+      <!-- WRITE -->
+
+      <section
+        class="write-card glass"
+      >
+
+        <div class="write-top">
+
+          <div>
+
+            <div class="write-title">
+              오늘의 기록
+            </div>
+
+            <div
+              class="date-text"
+              id="todayText"
+            ></div>
+
+          </div>
+
+        </div>
+
+        <input
+          type="text"
+          id="titleInput"
+          class="diary-title"
+          placeholder="오늘의 제목"
+        />
+
+        <textarea
+          id="contentInput"
+          class="diary-content"
+          placeholder="오늘 하루를 감성적으로 기록해보세요..."
+        ></textarea>
+
+        <!-- EMOTION -->
+
+        <div class="emotions">
+
+          <button
+            class="emotion glass active"
+            data-emotion="happy"
+          >
+            😊 행복
+          </button>
+
+          <button
+            class="emotion glass"
+            data-emotion="normal"
+          >
+            😐 평범
+          </button>
+
+          <button
+            class="emotion glass"
+            data-emotion="sad"
+          >
+            😢 슬픔
+          </button>
+
+          <button
+            class="emotion glass"
+            data-emotion="angry"
+          >
+            😡 화남
+          </button>
+
+          <button
+            class="emotion glass"
+            data-emotion="tired"
+          >
+            😴 피곤
+          </button>
+
+        </div>
+
+        <!-- UPLOAD -->
+
+        <div
+          class="upload-box"
+          id="uploadBox"
+        >
+          📷 사진 업로드<br/>
+          드래그 & 드롭 가능
+          <input
+            type="file"
+            id="imageInput"
+            accept="image/*"
+            multiple
+            hidden
+          />
+        </div>
+
+        <div
+          class="preview-grid"
+          id="previewGrid"
+        ></div>
+
+        <!-- SUMMARY -->
+
+        <div
+          class="summary glass"
+          id="summaryCard"
+        >
+          <h4>
+            ✨ 오늘의 하루 요약
+          </h4>
+
+          <p id="summaryText"></p>
+
+          <p
+            style="
+              margin-top:10px;
+              opacity:.7;
+            "
+          >
+            감정 분석:
+            <span id="sentiment"></span>
+          </p>
+
+        </div>
+
+        <div class="action-row">
+
+          <button
+            class="primary-btn"
+            id="saveBtn"
+          >
+            기록 저장하기
+          </button>
+
+        </div>
+
+      </section>
+
+      <!-- SEARCH -->
+
+      <section
+        class="search-card glass"
+      >
+
+        <h3>
+          🔍 검색 및 필터
+        </h3>
+
+        <div class="search-box">
+
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="제목 또는 내용 검색"
+          />
+
+        </div>
+
+        <div class="filter-row">
+
+          <button
+            class="filter-btn glass"
+            data-filter="all"
+          >
+            전체
+          </button>
+
+          <button
+            class="filter-btn glass"
+            data-filter="happy"
+          >
+            😊
+          </button>
+
+          <button
+            class="filter-btn glass"
+            data-filter="normal"
+          >
+            😐
+          </button>
+
+          <button
+            class="filter-btn glass"
+            data-filter="sad"
+          >
+            😢
+          </button>
+
+          <button
+            class="filter-btn glass"
+            data-filter="angry"
+          >
+            😡
+          </button>
+
+          <button
+            class="filter-btn glass"
+            data-filter="tired"
+          >
+            😴
+          </button>
+
+        </div>
+
+      </section>
+
+      <!-- STATS -->
+
+      <section
+        class="stats glass"
+      >
+
+        <h3>
+          📊 감정 통계
+        </h3>
+
+        <div
+          style="
+            margin-top:14px;
+            line-height:1.9;
+          "
+          id="statsText"
+        ></div>
+
+        <div
+          class="chart"
+          id="chart"
+        ></div>
+
+      </section>
+
+      <!-- TIMELINE -->
+
+      <section
+        class="timeline"
+        id="timeline"
+      ></section>
+
+    </main>
+
+  </div>
+
+</div>
+
+<!-- PLAYER -->
+
+<div class="player glass">
+
+  <div class="player-top">
+
+    <strong>
+      🎵 감성 BGM
+    </strong>
+
+    <button
+      class="icon-btn glass"
+      id="musicToggle"
+    >
+      ▶
+    </button>
+
+  </div>
+
+  <select id="musicSelect">
+
+    <option value="rain">
+      🌧 빗소리
+    </option>
+
+    <option value="cafe">
+      ☕ 카페
+    </option>
+
+    <option value="piano">
+      🎹 피아노
+    </option>
+
+  </select>
+
+  <input
+    type="range"
+    id="volume"
+    min="0"
+    max="1"
+    step="0.01"
+  />
+
+</div>
+
+<!-- MODAL -->
+
+<div class="modal" id="modal">
+
+  <img id="modalImg"/>
+
+</div>
+
+<!-- AUDIO -->
+
+<audio
+  id="audio"
+  loop
+></audio>
+
+<script>
+
+/* =========================
+DATA
+========================= */
+
+let diaries =
+  JSON.parse(
+    localStorage.getItem("diaries")
+  ) || [];
+
+let currentEmotion =
+  "happy";
+
+let selectedImages = [];
+
+let currentFilter =
+  "all";
+
+const emotions = {
+
+  happy:{
+    emoji:"😊",
+    class:"happy"
+  },
+
+  normal:{
+    emoji:"😐",
+    class:"normal"
+  },
+
+  sad:{
+    emoji:"😢",
+    class:"sad"
+  },
+
+  angry:{
+    emoji:"😡",
+    class:"angry"
+  },
+
+  tired:{
+    emoji:"😴",
+    class:"tired"
   }
 
-  return `
-    <div
-      class="card side"
-      data-date="${slide.data.date}"
-      style="background:${
-        slide.data.color || "#ffffff"
-      }">
+};
 
-      <div class="title">
-        작성된 일기
-      </div>
+/* =========================
+THEME
+========================= */
 
-      <div class="date">
-        ${slide.data.date}
-      </div>
+const savedTheme =
+  localStorage.getItem("theme");
 
-      <div class="content">
-        ${escapeHtml(
-          slide.data.content
-        )}
-      </div>
+if(savedTheme === "dark"){
 
-      ${getColorPickerHTML(
-        slide.data.color || "#ffffff"
-      )}
+  document.body.classList.add("dark");
 
-      <div class="time">
-        ${slide.data.time}
-      </div>
-
-    </div>
-  `;
 }
 
-function render(){
+document
+  .getElementById("themeBtn")
+  .onclick = ()=>{
 
-  const slides =
-    getSlides();
+    document.body.classList.toggle("dark");
 
-  const prevIndex =
-    (currentIndex - 1 + slides.length)
-    % slides.length;
-
-  const nextIndex =
-    (currentIndex + 1)
-    % slides.length;
-
-  track.innerHTML =
-
-    getCardHTML(
-      slides[prevIndex]
-    )
-
-    +
-
-    getCardHTML(
-      slides[currentIndex]
-    )
-
-    +
-
-    getCardHTML(
-      slides[nextIndex]
+    localStorage.setItem(
+      "theme",
+      document.body.classList.contains("dark")
+      ? "dark"
+      : "light"
     );
 
-  const cards =
-    document.querySelectorAll(
-      ".card"
-    );
+  };
 
-  cards.forEach(card=>{
+/* =========================
+DATE
+========================= */
 
-    card.classList.remove(
-      "main"
-    );
+const today =
+  new Date();
 
-    card.classList.remove(
-      "side"
-    );
+document
+  .getElementById("todayText")
+  .innerText =
+  today.toLocaleDateString(
+    "ko-KR",
+    {
+      year:"numeric",
+      month:"long",
+      day:"numeric",
+      weekday:"long"
+    }
+  );
+
+/* =========================
+EMOTION
+========================= */
+
+document
+  .querySelectorAll(".emotion")
+  .forEach(btn=>{
+
+    btn.onclick = ()=>{
+
+      document
+        .querySelectorAll(".emotion")
+        .forEach(e=>{
+
+          e.classList.remove("active");
+
+        });
+
+      btn.classList.add("active");
+
+      currentEmotion =
+        btn.dataset.emotion;
+
+    };
+
   });
 
-  cards[0].classList.add(
-    "side"
-  );
+/* =========================
+UPLOAD
+========================= */
 
-  cards[1].classList.add(
-    "main"
-  );
+const uploadBox =
+  document.getElementById("uploadBox");
 
-  cards[2].classList.add(
-    "side"
-  );
+const imageInput =
+  document.getElementById("imageInput");
+
+uploadBox.onclick = ()=>{
+
+  imageInput.click();
+
+};
+
+uploadBox.addEventListener(
+  "dragover",
+  e=>{
+
+    e.preventDefault();
+
+    uploadBox.classList.add("drag");
+
+  }
+);
+
+uploadBox.addEventListener(
+  "dragleave",
+  ()=>{
+
+    uploadBox.classList.remove("drag");
+
+  }
+);
+
+uploadBox.addEventListener(
+  "drop",
+  e=>{
+
+    e.preventDefault();
+
+    uploadBox.classList.remove("drag");
+
+    handleFiles(e.dataTransfer.files);
+
+  }
+);
+
+imageInput.addEventListener(
+  "change",
+  e=>{
+
+    handleFiles(e.target.files);
+
+  }
+);
+
+function handleFiles(files){
+
+  [...files].forEach(file=>{
+
+    const reader =
+      new FileReader();
+
+    reader.onload = e=>{
+
+      selectedImages.push(
+        e.target.result
+      );
+
+      renderPreview();
+
+    };
+
+    reader.readAsDataURL(file);
+
+  });
+
 }
 
-function slide(direction){
+function renderPreview(){
 
-  if(isAnimating) return;
+  const grid =
+    document.getElementById(
+      "previewGrid"
+    );
 
-  isAnimating = true;
+  grid.innerHTML =
+    selectedImages
+      .map(img=>`
 
-  track.style.transform =
+        <img src="${img}"/>
 
-    direction === "next"
+      `)
+      .join("");
 
-    ? `translateX(-${MOVE_DISTANCE}px)`
+}
 
-    : `translateX(${MOVE_DISTANCE}px)`;
+/* =========================
+SUMMARY AI
+========================= */
 
-  setTimeout(()=>{
+function generateSummary(text){
 
-    const slides =
-      getSlides();
+  const positive = [
+    "행복",
+    "좋",
+    "웃",
+    "재밌",
+    "편안"
+  ];
 
-    currentIndex =
+  const negative = [
+    "힘들",
+    "슬프",
+    "짜증",
+    "우울",
+    "화"
+  ];
 
-      direction === "next"
+  let score = 0;
 
-      ? (currentIndex + 1)
-        % slides.length
+  positive.forEach(word=>{
 
-      : (
-          currentIndex - 1
-          + slides.length
-        )
-        % slides.length;
+    if(text.includes(word))
+      score++;
 
-    track.style.transition =
-      "none";
+  });
 
-    track.style.transform =
-      "translateX(0px)";
+  negative.forEach(word=>{
 
-    render();
+    if(text.includes(word))
+      score--;
 
-    requestAnimationFrame(()=>{
+  });
 
-      track.style.transition =
-        "transform 0.28s cubic-bezier(0.22,1,0.36,1)";
+  let summary = "";
+  let sentiment = "";
 
-      isAnimating = false;
+  if(score > 0){
+
+    summary =
+      "오늘은 따뜻하고 편안한 감정이 느껴지는 하루였어요.";
+
+    sentiment =
+      "긍정적";
+
+  }
+
+  else if(score < 0){
+
+    summary =
+      "조금 지치고 복잡했지만 의미 있는 하루였네요.";
+
+    sentiment =
+      "부정적";
+
+  }
+
+  else{
+
+    summary =
+      "소소하지만 차분하게 흘러간 하루였어요.";
+
+    sentiment =
+      "중립적";
+
+  }
+
+  document
+    .getElementById("summaryCard")
+    .classList.add("show");
+
+  document
+    .getElementById("summaryText")
+    .innerText =
+    summary;
+
+  document
+    .getElementById("sentiment")
+    .innerText =
+    sentiment;
+
+  return {
+    summary,
+    sentiment
+  };
+
+}
+
+/* =========================
+SAVE
+========================= */
+
+document
+  .getElementById("saveBtn")
+  .onclick = ()=>{
+
+    const title =
+      document
+        .getElementById("titleInput")
+        .value
+        .trim();
+
+    const content =
+      document
+        .getElementById("contentInput")
+        .value
+        .trim();
+
+    if(!content){
+
+      alert("일기를 입력해주세요!");
+
+      return;
+
+    }
+
+    const ai =
+      generateSummary(content);
+
+    diaries.unshift({
+
+      id:Date.now(),
+
+      title:
+        title || "제목 없는 하루",
+
+      content,
+
+      emotion:currentEmotion,
+
+      summary:ai.summary,
+
+      sentiment:ai.sentiment,
+
+      images:selectedImages,
+
+      date:
+        new Date()
+          .toLocaleDateString("sv-SE"),
+
+      time:
+        new Date()
+          .toLocaleString("ko-KR")
 
     });
 
-  },280);
+    localStorage.setItem(
+      "diaries",
+      JSON.stringify(diaries)
+    );
+
+    selectedImages = [];
+
+    document
+      .getElementById("titleInput")
+      .value = "";
+
+    document
+      .getElementById("contentInput")
+      .value = "";
+
+    renderPreview();
+
+    renderTimeline();
+
+    renderCalendar();
+
+    renderStats();
+
+  };
+
+/* =========================
+TIMELINE
+========================= */
+
+function renderTimeline(){
+
+  const timeline =
+    document.getElementById(
+      "timeline"
+    );
+
+  const keyword =
+    document
+      .getElementById(
+        "searchInput"
+      )
+      .value
+      .toLowerCase();
+
+  const filtered =
+    diaries.filter(d=>{
+
+      const searchMatch =
+
+        d.title
+          .toLowerCase()
+          .includes(keyword)
+
+        ||
+
+        d.content
+          .toLowerCase()
+          .includes(keyword);
+
+      const emotionMatch =
+
+        currentFilter === "all"
+
+        ||
+
+        d.emotion === currentFilter;
+
+      return (
+        searchMatch &&
+        emotionMatch
+      );
+
+    });
+
+  timeline.innerHTML =
+    filtered
+      .map((d,index)=>`
+
+        <div
+          class="
+            timeline-card
+            glass
+          "
+          style="
+            animation-delay:
+            ${index * 0.05}s
+          "
+        >
+
+          <div class="timeline-head">
+
+            <div>
+
+              <div class="timeline-title">
+
+                ${
+                  emotions[d.emotion]
+                  .emoji
+                }
+
+                ${d.title}
+
+              </div>
+
+              <div class="timeline-meta">
+
+                ${d.time}
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="preview">
+
+            ${
+              d.content.length > 120
+
+              ? d.content.slice(0,120)
+                + "..."
+
+              : d.content
+            }
+
+          </div>
+
+          <div class="card-images">
+
+            ${d.images
+              .map(img=>`
+
+                <img
+                  src="${img}"
+                  onclick="
+                    openModal(
+                      '${img}'
+                    )
+                  "
+                />
+
+              `)
+              .join("")
+            }
+
+          </div>
+
+          <button
+            class="more"
+            onclick="
+              alert(
+                ${JSON.stringify(
+                  d.content
+                )}
+              )
+            "
+          >
+            전체 보기
+          </button>
+
+        </div>
+
+      `)
+      .join("");
+
 }
 
-function saveDiary(button){
+/* =========================
+SEARCH
+========================= */
 
-  const card =
-    button.closest(".card");
-
-  const input =
-    card.querySelector(
-      ".diaryInput"
-    );
-
-  const value =
-    input.value.trim();
-
-  if(!value){
-
-    alert(
-      "일기를 입력해주세요!"
-    );
-
-    return;
-  }
-
-  diaries.push({
-
-    date:today,
-
-    time:getKoreanDateTime(),
-
-    content:value,
-
-    color:selectedColor
-  });
-
-  localStorage.setItem(
-    "diaries",
-    JSON.stringify(diaries)
+document
+  .getElementById("searchInput")
+  .addEventListener(
+    "input",
+    renderTimeline
   );
 
-  render();
+document
+  .querySelectorAll(".filter-btn")
+  .forEach(btn=>{
+
+    btn.onclick = ()=>{
+
+      currentFilter =
+        btn.dataset.filter;
+
+      renderTimeline();
+
+    };
+
+  });
+
+/* =========================
+CALENDAR
+========================= */
+
+let currentMonth =
+  new Date();
+
+function renderCalendar(){
+
+  const calendar =
+    document.getElementById(
+      "calendar"
+    );
+
+  const monthTitle =
+    document.getElementById(
+      "monthTitle"
+    );
+
+  calendar.innerHTML = "";
+
+  const year =
+    currentMonth.getFullYear();
+
+  const month =
+    currentMonth.getMonth();
+
+  monthTitle.innerText =
+
+    `${year}년 ${month+1}월`;
+
+  const dayNames =
+
+    ["일","월","화","수","목","금","토"];
+
+  dayNames.forEach(d=>{
+
+    calendar.innerHTML += `
+
+      <div class="day-name">
+        ${d}
+      </div>
+
+    `;
+
+  });
+
+  const firstDay =
+    new Date(year,month,1)
+    .getDay();
+
+  const days =
+    new Date(
+      year,
+      month + 1,
+      0
+    ).getDate();
+
+  for(let i=0;i<firstDay;i++){
+
+    calendar.innerHTML +=
+      "<div></div>";
+
+  }
+
+  for(let day=1;day<=days;day++){
+
+    const dateStr =
+
+      `${year}-${String(month+1)
+        .padStart(2,"0")}-${String(day)
+        .padStart(2,"0")}`;
+
+    const diary =
+      diaries.find(
+        d => d.date === dateStr
+      );
+
+    const isToday =
+      dateStr ===
+      new Date()
+        .toLocaleDateString(
+          "sv-SE"
+        );
+
+    calendar.innerHTML += `
+
+      <div
+        class="
+          day
+          ${
+            diary
+            ? emotions[
+                diary.emotion
+              ].class
+            : ""
+          }
+          ${
+            isToday
+            ? "today"
+            : ""
+          }
+        "
+      >
+
+        ${day}
+
+        ${
+          diary
+          ? `<div class="dot"></div>`
+          : ""
+        }
+
+      </div>
+
+    `;
+
+  }
+
 }
 
-function moveToRandomDiary(){
+document
+  .getElementById("prevMonth")
+  .onclick = ()=>{
 
-  if(diaries.length === 0){
+    currentMonth.setMonth(
+      currentMonth.getMonth()-1
+    );
+
+    renderCalendar();
+
+  };
+
+document
+  .getElementById("nextMonth")
+  .onclick = ()=>{
+
+    currentMonth.setMonth(
+      currentMonth.getMonth()+1
+    );
+
+    renderCalendar();
+
+  };
+
+/* =========================
+STATS
+========================= */
+
+function renderStats(){
+
+  const statsText =
+    document.getElementById(
+      "statsText"
+    );
+
+  const chart =
+    document.getElementById(
+      "chart"
+    );
+
+  const count = {
+
+    happy:0,
+    normal:0,
+    sad:0,
+    angry:0,
+    tired:0
+
+  };
+
+  diaries.forEach(d=>{
+
+    count[d.emotion]++;
+
+  });
+
+  const maxEmotion =
+    Object.entries(count)
+      .sort((a,b)=>b[1]-a[1])[0];
+
+  statsText.innerHTML = `
+
+    총 작성 일수:
+    <strong>
+      ${diaries.length}일
+    </strong>
+    <br/>
+
+    가장 많았던 감정:
+    <strong>
+      ${
+        emotions[maxEmotion[0]]
+        .emoji
+      }
+    </strong>
+
+  `;
+
+  chart.innerHTML =
+    Object.entries(count)
+      .map(([key,val])=>`
+
+        <div class="bar-wrap">
+
+          <div
+            class="bar"
+            style="
+              height:${val * 28}px;
+              background:
+              ${
+                key === "happy"
+                ? "#ffd966"
+
+                : key === "normal"
+                ? "#d9d9d9"
+
+                : key === "sad"
+                ? "#9dc4ff"
+
+                : key === "angry"
+                ? "#ff9f9f"
+
+                : "#cbb5ff"
+              };
+            "
+          ></div>
+
+          <small>
+            ${
+              emotions[key]
+              .emoji
+            }
+          </small>
+
+        </div>
+
+      `)
+      .join("");
+
+}
+
+/* =========================
+RANDOM
+========================= */
+
+document
+  .getElementById("randomBtn")
+  .onclick = ()=>{
+
+    if(!diaries.length){
+
+      alert("아직 기록이 없어요!");
+
+      return;
+
+    }
+
+    const random =
+      diaries[
+        Math.floor(
+          Math.random()
+          * diaries.length
+        )
+      ];
 
     alert(
-      "작성된 일기가 없습니다!"
+      `${random.title}\n\n${random.content}`
     );
 
-    return;
-  }
+  };
 
-  const slides =
-    getSlides();
+/* =========================
+MODAL
+========================= */
 
-  let randomIndex;
+function openModal(src){
 
-  do{
+  document
+    .getElementById("modal")
+    .classList.add("show");
 
-    randomIndex =
-      Math.floor(
-        Math.random()
-        * slides.length
-      );
+  document
+    .getElementById("modalImg")
+    .src = src;
 
-  }
-  while(randomIndex === 0);
-
-  currentIndex =
-    randomIndex;
-
-  render();
 }
 
-track.addEventListener(
-  "click",
-  (e)=>{
+document
+  .getElementById("modal")
+  .onclick = ()=>{
 
-    if(
-      e.target.classList.contains(
-        "save"
-      ) &&
-      !e.target.classList.contains(
-        "disabled"
-      )
-    ){
+    document
+      .getElementById("modal")
+      .classList.remove("show");
 
-      saveDiary(
-        e.target
-      );
-    }
+  };
 
-    if(
-      e.target.classList.contains(
-        "colorBtn"
-      )
-    ){
+/* =========================
+MUSIC
+========================= */
 
-      const clickedColor =
-        e.target.dataset.color;
+const audio =
+  document.getElementById(
+    "audio"
+  );
 
-      const card =
-        e.target.closest(".card");
+const musicMap = {
 
-      card
-        .querySelectorAll(
-          ".colorBtn"
-        )
-        .forEach(btn=>{
+  rain:"./music/rain.mp3",
 
-          btn.classList.remove(
-            "selectedColor"
-          );
-        });
+  cafe:"./music/cafe.mp3",
 
-      e.target.classList.add(
-        "selectedColor"
-      );
+  piano:"./music/piano.mp3"
 
-      card.style.background =
-        clickedColor;
+};
 
-      const textarea =
-        card.querySelector(
-          ".diaryInput"
-        );
+const musicSelect =
+  document.getElementById(
+    "musicSelect"
+  );
 
-      if(textarea){
+const volume =
+  document.getElementById(
+    "volume"
+  );
 
-        selectedColor =
-          clickedColor;
+const musicToggle =
+  document.getElementById(
+    "musicToggle"
+  );
 
-        return;
-      }
+musicSelect.value =
+  localStorage.getItem(
+    "music"
+  ) || "rain";
 
-      const date =
-        card.dataset.date;
+volume.value =
+  localStorage.getItem(
+    "volume"
+  ) || 0.5;
 
-      const diaryIndex =
-        diaries.findIndex(
-          d => d.date === date
-        );
+audio.src =
+  musicMap[
+    musicSelect.value
+  ];
 
-      if(diaryIndex !== -1){
+audio.volume =
+  volume.value;
 
-        diaries[
-          diaryIndex
-        ].color =
-          clickedColor;
+musicSelect.onchange = ()=>{
 
-        localStorage.setItem(
-          "diaries",
-          JSON.stringify(diaries)
-        );
-      }
-    }
+  audio.src =
+    musicMap[
+      musicSelect.value
+    ];
+
+  localStorage.setItem(
+    "music",
+    musicSelect.value
+  );
+
+};
+
+volume.oninput = ()=>{
+
+  audio.volume =
+    volume.value;
+
+  localStorage.setItem(
+    "volume",
+    volume.value
+  );
+
+};
+
+musicToggle.onclick = ()=>{
+
+  if(audio.paused){
+
+    audio.play();
+
+    musicToggle.innerText =
+      "⏸";
+
   }
-);
 
-nextBtn.addEventListener(
-  "click",
-  ()=>slide("next")
-);
+  else{
 
-prevBtn.addEventListener(
-  "click",
-  ()=>slide("prev")
-);
+    audio.pause();
 
-randomBtn.addEventListener(
-  "click",
-  moveToRandomDiary
-);
+    musicToggle.innerText =
+      "▶";
 
-themeToggle.addEventListener(
-  "click",
-  ()=>{
+  }
 
-    document.body.classList.toggle(
-      "dark"
+};
+
+/* =========================
+LOCK
+========================= */
+
+const savedPin =
+  localStorage.getItem(
+    "pin"
+  ) || "1234";
+
+let pinInput = "";
+
+function renderPinDots(){
+
+  const dots =
+    document.getElementById(
+      "pinDots"
     );
 
-    const isDark =
-      document.body.classList.contains(
-        "dark"
+  dots.innerHTML = "";
+
+  for(let i=0;i<4;i++){
+
+    dots.innerHTML += `
+
+      <div
+        class="
+          pin-dot
+          ${
+            pinInput[i]
+            ? "fill"
+            : ""
+          }
+        "
+      ></div>
+
+    `;
+
+  }
+
+}
+
+function createKeypad(){
+
+  const keypad =
+    document.getElementById(
+      "keypad"
+    );
+
+  for(let i=1;i<=9;i++){
+
+    keypad.innerHTML += `
+
+      <button
+        class="
+          key
+          glass
+        "
+      >
+        ${i}
+      </button>
+
+    `;
+
+  }
+
+  keypad.innerHTML += `
+
+    <button
+      class="
+        key
+        glass
+      "
+    >
+      ⌫
+    </button>
+
+  `;
+
+  keypad.innerHTML += `
+
+    <button
+      class="
+        key
+        glass
+      "
+    >
+      0
+    </button>
+
+  `;
+
+  keypad.innerHTML += `
+
+    <button
+      class="
+        key
+        glass
+      "
+    >
+      ✓
+    </button>
+
+  `;
+
+}
+
+createKeypad();
+
+renderPinDots();
+
+document
+  .querySelectorAll(".key")
+  .forEach(btn=>{
+
+    btn.onclick = ()=>{
+
+      const val =
+        btn.innerText;
+
+      if(val === "⌫"){
+
+        pinInput =
+          pinInput.slice(0,-1);
+
+      }
+
+      else if(val === "✓"){
+
+        if(pinInput === savedPin){
+
+          document
+            .getElementById(
+              "lockScreen"
+            )
+            .style.display = "none";
+
+        }
+
+        else{
+
+          document
+            .getElementById(
+              "lockCard"
+            )
+            .classList.add("shake");
+
+          setTimeout(()=>{
+
+            document
+              .getElementById(
+                "lockCard"
+              )
+              .classList.remove(
+                "shake"
+              );
+
+          },350);
+
+          pinInput = "";
+
+        }
+
+      }
+
+      else{
+
+        if(pinInput.length < 4){
+
+          pinInput += val;
+
+        }
+
+      }
+
+      renderPinDots();
+
+    };
+
+  });
+
+/* =========================
+SERVICE WORKER
+========================= */
+
+if("serviceWorker" in navigator){
+
+  window.addEventListener(
+    "load",
+    ()=>{
+
+      navigator.serviceWorker.register(
+        "./service-worker.js"
       );
 
-    themeToggle.innerText =
+    }
+  );
 
-      isDark
+}
 
-      ? "☀️ 라이트모드"
+/* =========================
+INIT
+========================= */
 
-      : "🌙 다크모드";
-  }
-);
+renderTimeline();
 
-window.addEventListener(
-  "resize",
-  ()=>{
+renderCalendar();
 
-    MOVE_DISTANCE =
-
-      window.innerWidth <= 768
-
-      ? window.innerWidth
-
-      : 618;
-
-    render();
-  }
-);
-
-render();
+renderStats();
 
 </script>
 
