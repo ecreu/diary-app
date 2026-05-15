@@ -1,804 +1,12 @@
+```html
 <!-- =========================================================
-하루 일기 - PLATFORM SPLIT VERSION
-모바일 앱 UI + 데스크탑 대시보드 UI 완전 분리
-공통 데이터 / 공통 로직 / UI 시스템 분리 구조
+MOBILE CALENDAR NATURAL FLOW FIX
+모바일 캘린더 스크롤 구조 전체 수정본
+기존 모바일 UI 부분 교체
 ========================================================= -->
 
-<!DOCTYPE html>
-<html lang="ko">
-
-<head>
-
-<meta charset="UTF-8"/>
-
-<meta
-  name="viewport"
-  content="
-    width=device-width,
-    initial-scale=1.0,
-    viewport-fit=cover
-  "
-/>
-
-<title>하루 일기</title>
-
-<link
-  rel="preconnect"
-  href="https://fonts.googleapis.com"
-/>
-
-<link
-  rel="preconnect"
-  href="https://fonts.gstatic.com"
-  crossorigin
-/>
-
-<link
-  href="
-https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap"
-  rel="stylesheet"
-/>
-
-<style>
-
-/* =========================================================
-COMMON.CSS
-========================================================= */
-
-:root{
-
-  --bg:
-    linear-gradient(
-      145deg,
-      #f7efe6,
-      #eef2ff
-    );
-
-  --card:
-    rgba(255,255,255,.18);
-
-  --border:
-    rgba(255,255,255,.24);
-
-  --text:#111;
-
-  --sub:#666;
-
-  --blur:22px;
-
-  --radius:28px;
-
-  --shadow:
-    0 10px 40px rgba(0,0,0,.08);
-
-  --transition:
-    .35s cubic-bezier(.22,1,.36,1);
-
-}
-
-body.dark{
-
-  --bg:
-    linear-gradient(
-      145deg,
-      #101216,
-      #181b25
-    );
-
-  --card:
-    rgba(255,255,255,.05);
-
-  --border:
-    rgba(255,255,255,.08);
-
-  --text:#f3f3f3;
-
-  --sub:#b5b5b5;
-
-  --shadow:
-    0 12px 45px rgba(0,0,0,.35);
-
-}
-
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-  -webkit-tap-highlight-color:transparent;
-}
-
-html{
-  scroll-behavior:smooth;
-}
-
-body{
-
-  font-family:"Pretendard",sans-serif;
-
-  background:var(--bg);
-
-  color:var(--text);
-
-  transition:
-    background .5s ease,
-    color .5s ease;
-
-  overflow-x:hidden;
-}
-
-.glass{
-
-  background:var(--card);
-
-  backdrop-filter:
-    blur(var(--blur));
-
-  -webkit-backdrop-filter:
-    blur(var(--blur));
-
-  border:
-    1px solid var(--border);
-
-  box-shadow:var(--shadow);
-}
-
-.hidden{
-  display:none !important;
-}
-
-.fade-up{
-
-  animation:
-    fadeUp .55s cubic-bezier(.22,1,.36,1);
-}
-
-@keyframes fadeUp{
-
-  from{
-    opacity:0;
-    transform:
-      translateY(18px);
-  }
-
-  to{
-    opacity:1;
-    transform:
-      translateY(0);
-  }
-
-}
-
-button,
-input,
-textarea{
-  font-family:inherit;
-}
-
-button{
-  cursor:pointer;
-  border:none;
-}
-
-textarea{
-  resize:none;
-}
-
-.section-title{
-  font-size:18px;
-  font-weight:700;
-  margin-bottom:16px;
-}
-
-.card{
-
-  border-radius:var(--radius);
-
-  padding:20px;
-}
-
-::-webkit-scrollbar{
-  width:8px;
-}
-
-::-webkit-scrollbar-thumb{
-  background:
-    rgba(255,255,255,.2);
-  border-radius:999px;
-}
-
-/* =========================================================
-MOBILE.CSS
-========================================================= */
-
-body.mobile{
-
-  min-height:100vh;
-
-  padding-bottom:120px;
-}
-
-.mobile-shell{
-
-  width:100%;
-
-  max-width:540px;
-
-  margin:auto;
-
-  padding:
-    env(safe-area-inset-top)
-    16px
-    140px;
-}
-
-.mobile-header{
-
-  display:flex;
-
-  justify-content:space-between;
-
-  align-items:center;
-
-  margin-bottom:22px;
-}
-
-.mobile-logo{
-
-  font-size:28px;
-
-  font-weight:700;
-}
-
-.mobile-page{
-
-  display:none;
-}
-
-.mobile-page.active{
-  display:block;
-}
-
-.mobile-diary-card{
-
-  border-radius:34px;
-
-  padding:24px;
-
-  margin-bottom:20px;
-}
-
-.mobile-input{
-
-  width:100%;
-
-  border:none;
-
-  outline:none;
-
-  background:
-    rgba(255,255,255,.28);
-
-  border-radius:22px;
-
-  padding:18px;
-
-  margin-top:14px;
-
-  color:var(--text);
-}
-
-.mobile-textarea{
-
-  min-height:240px;
-
-  line-height:1.9;
-
-  font-size:15px;
-}
-
-.mobile-emotions{
-
-  display:flex;
-
-  gap:10px;
-
-  overflow:auto;
-
-  margin-top:18px;
-}
-
-.mobile-emotion{
-
-  padding:12px 16px;
-
-  border-radius:999px;
-
-  min-width:max-content;
-
-  transition:var(--transition);
-}
-
-.mobile-emotion.active{
-
-  background:#111;
-
-  color:white;
-
-  transform:scale(1.05);
-}
-
-body.dark .mobile-emotion.active{
-
-  background:white;
-
-  color:#111;
-}
-
-.mobile-save{
-
-  position:fixed;
-
-  bottom:110px;
-
-  right:20px;
-
-  width:62px;
-  height:62px;
-
-  border-radius:50%;
-
-  font-size:28px;
-
-  z-index:999;
-
-  transition:var(--transition);
-}
-
-.mobile-save:hover{
-
-  transform:
-    scale(1.06)
-    translateY(-2px);
-}
-
-.mobile-feed{
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:18px;
-}
-
-.mobile-post{
-
-  border-radius:30px;
-
-  padding:20px;
-
-  animation:
-    fadeUp .5s ease;
-}
-
-.mobile-post img{
-
-  width:100%;
-
-  border-radius:22px;
-
-  margin-top:14px;
-}
-
-.mobile-tabbar{
-
-  position:fixed;
-
-  left:50%;
-  bottom:20px;
-
-  transform:translateX(-50%);
-
-  width:92%;
-
-  max-width:520px;
-
-  height:82px;
-
-  border-radius:32px;
-
-  display:flex;
-
-  justify-content:space-around;
-
-  align-items:center;
-
-  z-index:9999;
-}
-
-.mobile-tab{
-
-  display:flex;
-
-  flex-direction:column;
-
-  align-items:center;
-
-  justify-content:center;
-
-  gap:4px;
-
-  width:64px;
-  height:64px;
-
-  border-radius:22px;
-
-  color:var(--sub);
-
-  transition:var(--transition);
-}
-
-.mobile-tab.active{
-
-  background:
-    rgba(255,255,255,.22);
-
-  color:var(--text);
-
-  transform:
-    translateY(-8px);
-
-  box-shadow:
-    0 0 24px rgba(255,255,255,.18);
-}
-
-.mobile-calendar{
-
-  display:grid;
-
-  grid-template-columns:
-    repeat(7,1fr);
-
-  gap:10px;
-}
-
-.mobile-day{
-
-  aspect-ratio:1/1;
-
-  border-radius:18px;
-
-  display:flex;
-
-  justify-content:center;
-  align-items:center;
-
-  font-size:14px;
-
-  position:relative;
-}
-
-.mobile-dot{
-
-  width:7px;
-  height:7px;
-
-  border-radius:50%;
-
-  position:absolute;
-
-  bottom:10px;
-}
-
-.mobile-stats{
-
-  display:grid;
-
-  grid-template-columns:
-    repeat(2,1fr);
-
-  gap:14px;
-}
-
-.mobile-stat{
-
-  padding:20px;
-
-  border-radius:26px;
-
-  text-align:center;
-}
-
-/* =========================================================
-DESKTOP.CSS
-========================================================= */
-
-body.desktop{
-
-  overflow:hidden;
-}
-
-.desktop-shell{
-
-  width:100vw;
-  height:100vh;
-
-  padding:24px;
-
-  display:grid;
-
-  grid-template-columns:
-    280px
-    1fr
-    320px;
-
-  gap:24px;
-}
-
-.desktop-sidebar{
-
-  border-radius:36px;
-
-  padding:24px;
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:20px;
-}
-
-.desktop-logo{
-
-  font-size:30px;
-
-  font-weight:700;
-}
-
-.desktop-menu{
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:12px;
-}
-
-.desktop-menu button{
-
-  height:56px;
-
-  border-radius:20px;
-
-  background:transparent;
-
-  color:var(--text);
-
-  transition:var(--transition);
-
-  text-align:left;
-
-  padding-left:18px;
-}
-
-.desktop-menu button:hover{
-
-  transform:
-    translateX(6px);
-
-  background:
-    rgba(255,255,255,.08);
-}
-
-.desktop-center{
-
-  overflow:auto;
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:22px;
-
-  padding-right:8px;
-}
-
-.desktop-grid{
-
-  display:grid;
-
-  grid-template-columns:
-    repeat(2,1fr);
-
-  gap:18px;
-}
-
-.desktop-panel{
-
-  border-radius:34px;
-
-  padding:24px;
-
-  transition:var(--transition);
-}
-
-.desktop-panel:hover{
-
-  transform:
-    translateY(-4px);
-
-  box-shadow:
-    0 18px 45px rgba(0,0,0,.12);
-}
-
-.desktop-write textarea{
-
-  width:100%;
-
-  height:220px;
-
-  margin-top:16px;
-
-  border:none;
-
-  outline:none;
-
-  border-radius:24px;
-
-  padding:20px;
-
-  background:
-    rgba(255,255,255,.2);
-
-  color:var(--text);
-}
-
-.desktop-feed{
-
-  display:grid;
-
-  grid-template-columns:
-    repeat(auto-fill,minmax(280px,1fr));
-
-  gap:18px;
-}
-
-.desktop-post{
-
-  border-radius:30px;
-
-  padding:20px;
-
-  transition:var(--transition);
-
-  position:relative;
-
-  overflow:hidden;
-}
-
-.desktop-post:hover{
-
-  transform:
-    translateY(-6px)
-    scale(1.01);
-}
-
-.desktop-post::before{
-
-  content:"";
-
-  position:absolute;
-
-  inset:0;
-
-  background:
-    radial-gradient(
-      circle at top left,
-      rgba(255,255,255,.16),
-      transparent
-    );
-
-  pointer-events:none;
-}
-
-.desktop-post img{
-
-  width:100%;
-
-  border-radius:20px;
-
-  margin-top:14px;
-}
-
-.desktop-right{
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:20px;
-
-  overflow:auto;
-}
-
-.desktop-mini{
-
-  border-radius:30px;
-
-  padding:20px;
-}
-
-.desktop-calendar{
-
-  display:grid;
-
-  grid-template-columns:
-    repeat(7,1fr);
-
-  gap:10px;
-}
-
-.desktop-day{
-
-  aspect-ratio:1/1;
-
-  border-radius:18px;
-
-  display:flex;
-
-  align-items:center;
-  justify-content:center;
-
-  position:relative;
-
-  transition:var(--transition);
-}
-
-.desktop-day:hover{
-
-  transform:scale(1.08);
-}
-
-.desktop-player{
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:12px;
-}
-
-/* =========================================================
-UTILS
-========================================================= */
-
-.emotion-happy{
-  background:#ffe89d;
-}
-
-.emotion-normal{
-  background:#ececec;
-}
-
-.emotion-sad{
-  background:#bdd8ff;
-}
-
-.emotion-angry{
-  background:#ffb7b7;
-}
-
-.emotion-tired{
-  background:#d9c7ff;
-}
-
-</style>
-
-</head>
-
-<body>
-
 <!-- =========================================================
-MOBILE APP UI
+MOBILE UI
 ========================================================= -->
 
 <div
@@ -809,7 +17,9 @@ MOBILE APP UI
   id="mobileUI"
 >
 
-  <div class="mobile-header">
+  <!-- HEADER -->
+
+  <header class="mobile-header fade-up">
 
     <div class="mobile-logo">
       🌙 하루 일기
@@ -818,16 +28,16 @@ MOBILE APP UI
     <button
       class="
         glass
-        card
+        mobile-theme-btn
       "
       id="themeToggleMobile"
     >
       🌗
     </button>
 
-  </div>
+  </header>
 
-  <!-- HOME -->
+  <!-- HOME PAGE -->
 
   <section
     class="
@@ -837,10 +47,13 @@ MOBILE APP UI
     id="m-home"
   >
 
+    <!-- TODAY EMOTION -->
+
     <div
       class="
-        mobile-diary-card
+        mobile-card
         glass
+        fade-up
       "
     >
 
@@ -849,62 +62,114 @@ MOBILE APP UI
       </div>
 
       <div
-        style="
-          font-size:34px;
-          margin-top:10px;
-        "
+        class="mobile-emotion-big"
         id="mobileTodayEmotion"
       >
         😊
       </div>
 
+      <p class="mobile-subtext">
+        오늘 하루의 분위기를 기록해보세요.
+      </p>
+
     </div>
 
-    <div
+    <!-- CALENDAR -->
+
+    <section
       class="
-        mobile-diary-card
-        glass
+        mobile-calendar-section
+        fade-up
       "
     >
 
-      <div class="section-title">
-        최근 기록
+      <div
+        class="
+          mobile-card
+          glass
+        "
+      >
+
+        <!-- CALENDAR HEADER -->
+
+        <div class="mobile-calendar-header">
+
+          <button
+            class="
+              mobile-calendar-btn
+              glass
+            "
+            id="mobilePrevMonth"
+          >
+            ←
+          </button>
+
+          <h3 id="mobileMonthTitle">
+            2026년 5월
+          </h3>
+
+          <button
+            class="
+              mobile-calendar-btn
+              glass
+            "
+            id="mobileNextMonth"
+          >
+            →
+          </button>
+
+        </div>
+
+        <!-- WEEK -->
+
+        <div class="mobile-week-row">
+
+          <span>일</span>
+          <span>월</span>
+          <span>화</span>
+          <span>수</span>
+          <span>목</span>
+          <span>금</span>
+          <span>토</span>
+
+        </div>
+
+        <!-- CALENDAR -->
+
+        <div
+          class="mobile-calendar"
+          id="mobileCalendar"
+        ></div>
+
       </div>
 
-      <div id="mobileRecent"></div>
+    </section>
 
-    </div>
+    <!-- RECENT FEED -->
 
-  </section>
-
-  <!-- CALENDAR -->
-
-  <section
-    class="mobile-page"
-    id="m-calendar"
-  >
-
-    <div
+    <section
       class="
-        mobile-diary-card
-        glass
+        mobile-feed-section
+        fade-up
       "
     >
 
-      <div class="section-title">
-        감성 캘린더
+      <div class="mobile-feed-title">
+
+        최근 기록
+
       </div>
 
       <div
-        class="mobile-calendar"
-        id="mobileCalendar"
+        class="mobile-feed"
+        id="mobileFeed"
       ></div>
 
-    </div>
+    </section>
 
   </section>
 
-  <!-- WRITE -->
+  <!-- WRITE PAGE -->
 
   <section
     class="mobile-page"
@@ -913,7 +178,7 @@ MOBILE APP UI
 
     <div
       class="
-        mobile-diary-card
+        mobile-card
         glass
       "
     >
@@ -937,6 +202,8 @@ MOBILE APP UI
         "
         placeholder="오늘 하루를 기록해보세요..."
       ></textarea>
+
+      <!-- EMOTION -->
 
       <div class="mobile-emotions">
 
@@ -987,20 +254,6 @@ MOBILE APP UI
 
   </section>
 
-  <!-- TIMELINE -->
-
-  <section
-    class="mobile-page"
-    id="m-timeline"
-  >
-
-    <div
-      class="mobile-feed"
-      id="mobileFeed"
-    ></div>
-
-  </section>
-
   <!-- STATS -->
 
   <section
@@ -1016,11 +269,13 @@ MOBILE APP UI
           glass
         "
       >
-        <h3 id="mobileCount">
+
+        <h2 id="mobileCount">
           0
-        </h3>
+        </h2>
 
         <p>총 기록</p>
+
       </div>
 
       <div
@@ -1029,18 +284,20 @@ MOBILE APP UI
           glass
         "
       >
-        <h3 id="mobileBestEmotion">
+
+        <h2 id="mobileBestEmotion">
           😊
-        </h3>
+        </h2>
 
         <p>최다 감정</p>
+
       </div>
 
     </div>
 
   </section>
 
-  <!-- SAVE -->
+  <!-- FLOAT SAVE -->
 
   <button
     class="
@@ -1054,7 +311,7 @@ MOBILE APP UI
 
   <!-- TABBAR -->
 
-  <div
+  <nav
     class="
       mobile-tabbar
       glass
@@ -1074,26 +331,10 @@ MOBILE APP UI
 
     <button
       class="mobile-tab"
-      data-page="m-calendar"
-    >
-      📅
-      <small>Calendar</small>
-    </button>
-
-    <button
-      class="mobile-tab"
       data-page="m-write"
     >
       ✍️
       <small>Write</small>
-    </button>
-
-    <button
-      class="mobile-tab"
-      data-page="m-timeline"
-    >
-      🌙
-      <small>Timeline</small>
     </button>
 
     <button
@@ -1104,810 +345,597 @@ MOBILE APP UI
       <small>Stats</small>
     </button>
 
-  </div>
+  </nav>
 
 </div>
 
-<!-- =========================================================
-DESKTOP DASHBOARD UI
-========================================================= -->
-
-<div
-  class="
-    desktop-shell
-    hidden
-  "
-  id="desktopUI"
->
-
-  <!-- LEFT -->
-
-  <aside
-    class="
-      desktop-sidebar
-      glass
-    "
-  >
-
-    <div class="desktop-logo">
-      🌙 하루 일기
-    </div>
-
-    <div class="desktop-menu">
-
-      <button>
-        🏠 Dashboard
-      </button>
-
-      <button>
-        📅 Calendar
-      </button>
-
-      <button>
-        ✍️ Write
-      </button>
-
-      <button>
-        📊 Statistics
-      </button>
-
-    </div>
-
-    <div
-      class="
-        desktop-mini
-        glass
-      "
-    >
-
-      <div class="section-title">
-        감정 요약
-      </div>
-
-      <h2 id="desktopEmotion">
-        😊
-      </h2>
-
-    </div>
-
-    <div
-      class="
-        desktop-mini
-        glass
-      "
-    >
-
-      <div class="section-title">
-        BGM
-      </div>
-
-      <div class="desktop-player">
-
-        <button
-          class="
-            glass
-            card
-          "
-          id="musicBtn"
-        >
-          ▶ 재생
-        </button>
-
-      </div>
-
-    </div>
-
-  </aside>
-
-  <!-- CENTER -->
-
-  <main class="desktop-center">
-
-    <div class="desktop-grid">
-
-      <section
-        class="
-          desktop-panel
-          glass
-        "
-      >
-
-        <div class="section-title">
-          월간 캘린더
-        </div>
-
-        <div
-          class="desktop-calendar"
-          id="desktopCalendar"
-        ></div>
-
-      </section>
-
-      <section
-        class="
-          desktop-panel
-          glass
-        "
-      >
-
-        <div class="section-title">
-          오늘 기록
-        </div>
-
-        <div class="desktop-write">
-
-          <input
-            type="text"
-            id="desktopTitle"
-            class="mobile-input"
-            placeholder="오늘의 제목"
-          />
-
-          <textarea
-            id="desktopContent"
-            placeholder="오늘 하루를 기록해보세요..."
-          ></textarea>
-
-          <button
-            class="
-              glass
-              card
-            "
-            id="desktopSave"
-            style="
-              margin-top:16px;
-            "
-          >
-            저장하기
-          </button>
-
-        </div>
-
-      </section>
-
-    </div>
-
-    <section
-      class="
-        desktop-panel
-        glass
-      "
-    >
-
-      <div class="section-title">
-        감성 타임라인
-      </div>
-
-      <div
-        class="desktop-feed"
-        id="desktopFeed"
-      ></div>
-
-    </section>
-
-  </main>
-
-  <!-- RIGHT -->
-
-  <aside class="desktop-right">
-
-    <section
-      class="
-        desktop-mini
-        glass
-      "
-    >
-
-      <div class="section-title">
-        AI 하루 요약
-      </div>
-
-      <p id="desktopSummary">
-        오늘 하루를 기록해보세요.
-      </p>
-
-    </section>
-
-    <section
-      class="
-        desktop-mini
-        glass
-      "
-    >
-
-      <div class="section-title">
-        연속 기록
-      </div>
-
-      <h2 id="streak">
-        🔥 0일
-      </h2>
-
-    </section>
-
-    <section
-      class="
-        desktop-mini
-        glass
-      "
-    >
-
-      <div class="section-title">
-        빠른 메모
-      </div>
-
-      <textarea
-        class="mobile-input"
-        style="
-          min-height:160px;
-        "
-      ></textarea>
-
-    </section>
-
-  </aside>
-
-</div>
-
-<script>
+<style>
 
 /* =========================================================
-COMMON DATA
+MOBILE NATURAL FLOW CSS
 ========================================================= */
 
-let diaries =
+body.mobile{
 
-  JSON.parse(
-    localStorage.getItem("diaries")
-  ) || [];
+  min-height:100vh;
 
-let currentEmotion =
-  "happy";
+  overflow-x:hidden;
+  overflow-y:auto;
 
-const emotionEmoji = {
+  -webkit-overflow-scrolling:touch;
 
-  happy:"😊",
-  normal:"😐",
-  sad:"😢",
-  angry:"😡"
-
-};
+  padding-bottom:150px;
+}
 
 /* =========================================================
-PLATFORM DETECT
+ROOT
 ========================================================= */
 
-function detectPlatform(){
+.mobile-shell{
 
-  document.body.classList.remove(
-    "mobile",
-    "desktop"
-  );
+  width:100%;
 
-  if(window.innerWidth <= 768){
+  max-width:560px;
 
-    document.body.classList.add(
-      "mobile"
-    );
+  margin:0 auto;
 
-    document
-      .getElementById("mobileUI")
-      .classList.remove("hidden");
+  padding:
+    calc(env(safe-area-inset-top) + 18px)
+    16px
+    170px;
 
-    document
-      .getElementById("desktopUI")
-      .classList.add("hidden");
+  display:flex;
 
+  flex-direction:column;
+
+  gap:24px;
+
+  overflow:visible;
+
+  position:relative;
+}
+
+/* =========================================================
+HEADER
+========================================================= */
+
+.mobile-header{
+
+  display:flex;
+
+  justify-content:space-between;
+
+  align-items:center;
+}
+
+.mobile-logo{
+
+  font-size:30px;
+
+  font-weight:700;
+}
+
+.mobile-theme-btn{
+
+  width:52px;
+  height:52px;
+
+  border:none;
+
+  border-radius:18px;
+}
+
+/* =========================================================
+PAGE
+========================================================= */
+
+.mobile-page{
+
+  display:none;
+
+  width:100%;
+
+  overflow:visible;
+}
+
+.mobile-page.active{
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:22px;
+
+  animation:
+    mobileFade .45s cubic-bezier(.22,1,.36,1);
+}
+
+@keyframes mobileFade{
+
+  from{
+    opacity:0;
+    transform:translateY(16px);
   }
 
-  else{
-
-    document.body.classList.add(
-      "desktop"
-    );
-
-    document
-      .getElementById("desktopUI")
-      .classList.remove("hidden");
-
-    document
-      .getElementById("mobileUI")
-      .classList.add("hidden");
-
+  to{
+    opacity:1;
+    transform:translateY(0);
   }
 
 }
 
-detectPlatform();
-
-window.addEventListener(
-  "resize",
-  detectPlatform
-);
-
 /* =========================================================
-THEME
+CARD
 ========================================================= */
 
-const savedTheme =
-  localStorage.getItem("theme");
+.mobile-card{
 
-if(savedTheme === "dark"){
+  border-radius:34px;
 
-  document.body.classList.add("dark");
+  padding:24px;
 
+  position:relative;
+
+  overflow:hidden;
 }
 
-function toggleTheme(){
+.mobile-card::before{
 
-  document.body.classList.toggle("dark");
+  content:"";
 
-  localStorage.setItem(
-    "theme",
-    document.body.classList.contains("dark")
-    ? "dark"
-    : "light"
-  );
+  position:absolute;
 
+  inset:0;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.12),
+      transparent
+    );
+
+  pointer-events:none;
 }
-
-document
-  .getElementById("themeToggleMobile")
-  .onclick =
-  toggleTheme;
 
 /* =========================================================
-SAVE LOGIC
+TODAY
 ========================================================= */
 
-function generateSummary(text){
+.mobile-emotion-big{
 
-  if(
-    text.includes("행복")
-    ||
-    text.includes("좋")
-  ){
+  font-size:58px;
 
-    return
-      "오늘은 따뜻하고 행복한 하루였어요.";
+  margin-top:14px;
+}
 
+.mobile-subtext{
+
+  margin-top:12px;
+
+  line-height:1.7;
+
+  color:var(--sub);
+}
+
+/* =========================================================
+CALENDAR FLOW
+========================================================= */
+
+.mobile-calendar-section{
+
+  width:100%;
+
+  position:relative;
+
+  overflow:visible;
+
+  height:auto;
+}
+
+.mobile-calendar-header{
+
+  display:flex;
+
+  justify-content:space-between;
+
+  align-items:center;
+
+  margin-bottom:22px;
+}
+
+.mobile-calendar-btn{
+
+  width:46px;
+  height:46px;
+
+  border:none;
+
+  border-radius:16px;
+}
+
+/* =========================================================
+WEEK
+========================================================= */
+
+.mobile-week-row{
+
+  display:grid;
+
+  grid-template-columns:
+    repeat(7,1fr);
+
+  margin-bottom:12px;
+
+  opacity:.55;
+
+  text-align:center;
+
+  font-size:13px;
+}
+
+/* =========================================================
+CALENDAR
+========================================================= */
+
+.mobile-calendar{
+
+  width:100%;
+
+  display:grid;
+
+  grid-template-columns:
+    repeat(7,1fr);
+
+  gap:10px;
+
+  overflow:visible;
+
+  position:relative;
+
+  transition:
+    transform .45s cubic-bezier(.22,1,.36,1),
+    opacity .35s ease;
+}
+
+.mobile-day{
+
+  aspect-ratio:1/1;
+
+  border-radius:22px;
+
+  display:flex;
+
+  justify-content:center;
+  align-items:center;
+
+  position:relative;
+
+  font-size:14px;
+
+  transition:
+    transform .25s ease,
+    background .25s ease;
+}
+
+.mobile-day:active{
+
+  transform:scale(.94);
+}
+
+.mobile-dot{
+
+  width:7px;
+  height:7px;
+
+  border-radius:50%;
+
+  position:absolute;
+
+  bottom:10px;
+}
+
+/* =========================================================
+FEED
+========================================================= */
+
+.mobile-feed-section{
+
+  width:100%;
+}
+
+.mobile-feed-title{
+
+  font-size:20px;
+
+  font-weight:700;
+
+  margin-bottom:16px;
+}
+
+.mobile-feed{
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:18px;
+
+  overflow:visible;
+}
+
+.mobile-post{
+
+  border-radius:30px;
+
+  padding:22px;
+
+  animation:
+    postFade .55s cubic-bezier(.22,1,.36,1);
+}
+
+@keyframes postFade{
+
+  from{
+    opacity:0;
+    transform:
+      translateY(24px);
   }
 
-  if(
-    text.includes("힘들")
-    ||
-    text.includes("슬프")
-  ){
-
-    return
-      "조금 지쳤지만 의미 있는 하루였네요.";
-
-  }
-
-  return
-    "소소하지만 편안한 하루를 보냈어요.";
-
-}
-
-function saveDiary(title,content){
-
-  if(!content.trim()) return;
-
-  diaries.unshift({
-
-    id:Date.now(),
-
-    title:
-      title || "제목 없는 하루",
-
-    content,
-
-    emotion:currentEmotion,
-
-    date:
-      new Date()
-        .toLocaleDateString("sv-SE"),
-
-    summary:
-      generateSummary(content)
-
-  });
-
-  localStorage.setItem(
-    "diaries",
-    JSON.stringify(diaries)
-  );
-
-  renderAll();
-
-}
-
-/* =========================================================
-MOBILE UI JS
-========================================================= */
-
-document
-  .querySelectorAll(
-    ".mobile-emotion"
-  )
-  .forEach(btn=>{
-
-    btn.onclick = ()=>{
-
-      document
-        .querySelectorAll(
-          ".mobile-emotion"
-        )
-        .forEach(b=>{
-
-          b.classList.remove(
-            "active"
-          );
-
-        });
-
-      btn.classList.add("active");
-
-      currentEmotion =
-        btn.dataset.emotion;
-
-    };
-
-  });
-
-document
-  .getElementById("mobileSave")
-  .onclick = ()=>{
-
-    saveDiary(
-
-      document
-        .getElementById("mobileTitle")
-        .value,
-
-      document
-        .getElementById("mobileContent")
-        .value
-
-    );
-
-  };
-
-document
-  .querySelectorAll(
-    ".mobile-tab"
-  )
-  .forEach(tab=>{
-
-    tab.onclick = ()=>{
-
-      document
-        .querySelectorAll(
-          ".mobile-tab"
-        )
-        .forEach(t=>{
-
-          t.classList.remove(
-            "active"
-          );
-
-        });
-
-      tab.classList.add(
-        "active"
-      );
-
-      document
-        .querySelectorAll(
-          ".mobile-page"
-        )
-        .forEach(page=>{
-
-          page.classList.remove(
-            "active"
-          );
-
-        });
-
-      document
-        .getElementById(
-          tab.dataset.page
-        )
-        .classList.add("active");
-
-    };
-
-  });
-
-/* =========================================================
-DESKTOP UI JS
-========================================================= */
-
-document
-  .getElementById("desktopSave")
-  .onclick = ()=>{
-
-    saveDiary(
-
-      document
-        .getElementById("desktopTitle")
-        .value,
-
-      document
-        .getElementById("desktopContent")
-        .value
-
-    );
-
-  };
-
-/* =========================================================
-RENDER
-========================================================= */
-
-function renderMobileFeed(){
-
-  const feed =
-    document.getElementById(
-      "mobileFeed"
-    );
-
-  feed.innerHTML =
-    diaries
-      .map(d=>`
-
-        <div
-          class="
-            mobile-post
-            glass
-          "
-        >
-
-          <h3>
-
-            ${
-              emotionEmoji[
-                d.emotion
-              ]
-            }
-
-            ${d.title}
-
-          </h3>
-
-          <p
-            style="
-              margin-top:14px;
-              line-height:1.9;
-            "
-          >
-
-            ${d.content}
-
-          </p>
-
-        </div>
-
-      `)
-      .join("");
-
-}
-
-function renderDesktopFeed(){
-
-  const feed =
-    document.getElementById(
-      "desktopFeed"
-    );
-
-  feed.innerHTML =
-    diaries
-      .map(d=>`
-
-        <div
-          class="
-            desktop-post
-            glass
-          "
-        >
-
-          <h3>
-
-            ${
-              emotionEmoji[
-                d.emotion
-              ]
-            }
-
-            ${d.title}
-
-          </h3>
-
-          <p
-            style="
-              margin-top:14px;
-              line-height:1.8;
-            "
-          >
-
-            ${
-              d.content
-                .slice(0,120)
-            }
-
-          </p>
-
-        </div>
-
-      `)
-      .join("");
-
-}
-
-function renderCalendar(){
-
-  const mobileCal =
-    document.getElementById(
-      "mobileCalendar"
-    );
-
-  const desktopCal =
-    document.getElementById(
-      "desktopCalendar"
-    );
-
-  mobileCal.innerHTML = "";
-  desktopCal.innerHTML = "";
-
-  for(let i=1;i<=31;i++){
-
-    const diary =
-      diaries[i-1];
-
-    mobileCal.innerHTML += `
-
-      <div
-        class="
-          mobile-day
-          glass
-          ${
-            diary
-            ? `emotion-${diary.emotion}`
-            : ""
-          }
-        "
-      >
-
-        ${i}
-
-      </div>
-
-    `;
-
-    desktopCal.innerHTML += `
-
-      <div
-        class="
-          desktop-day
-          glass
-          ${
-            diary
-            ? `emotion-${diary.emotion}`
-            : ""
-          }
-        "
-      >
-
-        ${i}
-
-      </div>
-
-    `;
-
+  to{
+    opacity:1;
+    transform:
+      translateY(0);
   }
 
 }
 
-function renderStats(){
+.mobile-post img{
 
-  document
-    .getElementById("mobileCount")
-    .innerText =
-    diaries.length;
+  width:100%;
 
-  const emotionCount = {};
+  border-radius:24px;
 
-  diaries.forEach(d=>{
+  margin-top:16px;
 
-    emotionCount[d.emotion] =
-      (emotionCount[d.emotion] || 0) + 1;
-
-  });
-
-  const best =
-    Object.keys(emotionCount)[0]
-    || "happy";
-
-  document
-    .getElementById("mobileBestEmotion")
-    .innerText =
-    emotionEmoji[best];
-
-  document
-    .getElementById("desktopEmotion")
-    .innerText =
-    emotionEmoji[best];
-
+  display:block;
 }
 
-function renderSummary(){
+/* =========================================================
+WRITE
+========================================================= */
 
-  if(!diaries.length) return;
+.mobile-input{
 
-  document
-    .getElementById("desktopSummary")
-    .innerText =
-    diaries[0].summary;
+  width:100%;
 
+  border:none;
+
+  outline:none;
+
+  background:
+    rgba(255,255,255,.2);
+
+  border-radius:24px;
+
+  padding:18px;
+
+  color:var(--text);
+
+  margin-top:14px;
 }
 
-function renderRecent(){
+.mobile-textarea{
 
-  if(!diaries.length) return;
+  min-height:240px;
 
-  document
-    .getElementById("mobileRecent")
-    .innerHTML = `
+  line-height:1.9;
 
-      <div
-        style="
-          margin-top:12px;
-          line-height:1.8;
-        "
-      >
+  resize:none;
 
-        ${
-          emotionEmoji[
-            diaries[0].emotion
-          ]
-        }
-
-        ${diaries[0].title}
-
-      </div>
-
-    `;
-
-  document
-    .getElementById(
-      "mobileTodayEmotion"
-    )
-    .innerText =
-    emotionEmoji[
-      diaries[0].emotion
-    ];
-
+  overflow:hidden;
 }
 
-function renderAll(){
+/* =========================================================
+EMOTIONS
+========================================================= */
 
-  renderMobileFeed();
+.mobile-emotions{
 
-  renderDesktopFeed();
+  display:flex;
 
-  renderCalendar();
+  gap:10px;
 
-  renderStats();
+  overflow-x:auto;
 
-  renderSummary();
+  margin-top:18px;
 
-  renderRecent();
-
+  padding-bottom:2px;
 }
 
-renderAll();
+.mobile-emotion{
 
-</script>
+  border:none;
 
-</body>
-</html>
+  border-radius:999px;
+
+  padding:12px 16px;
+
+  min-width:max-content;
+
+  transition:
+    transform .25s ease,
+    background .25s ease;
+}
+
+.mobile-emotion.active{
+
+  background:#111;
+
+  color:white;
+
+  transform:scale(1.04);
+}
+
+body.dark .mobile-emotion.active{
+
+  background:white;
+
+  color:#111;
+}
+
+/* =========================================================
+SAVE BUTTON
+========================================================= */
+
+.mobile-save{
+
+  position:fixed;
+
+  right:22px;
+  bottom:112px;
+
+  width:66px;
+  height:66px;
+
+  border:none;
+
+  border-radius:50%;
+
+  font-size:30px;
+
+  z-index:999;
+
+  transition:
+    transform .25s ease;
+}
+
+.mobile-save:active{
+
+  transform:scale(.92);
+}
+
+/* =========================================================
+TABBAR
+========================================================= */
+
+.mobile-tabbar{
+
+  position:fixed;
+
+  left:50%;
+  bottom:18px;
+
+  transform:translateX(-50%);
+
+  width:92%;
+
+  max-width:520px;
+
+  height:84px;
+
+  border-radius:34px;
+
+  display:flex;
+
+  justify-content:space-around;
+
+  align-items:center;
+
+  z-index:9999;
+}
+
+.mobile-tab{
+
+  width:64px;
+  height:64px;
+
+  border:none;
+
+  border-radius:24px;
+
+  display:flex;
+
+  flex-direction:column;
+
+  align-items:center;
+  justify-content:center;
+
+  gap:4px;
+
+  color:var(--sub);
+
+  transition:
+    transform .25s ease,
+    background .25s ease;
+}
+
+.mobile-tab.active{
+
+  background:
+    rgba(255,255,255,.18);
+
+  color:var(--text);
+
+  transform:
+    translateY(-8px);
+
+  box-shadow:
+    0 0 30px rgba(255,255,255,.16);
+}
+
+/* =========================================================
+STATS
+========================================================= */
+
+.mobile-stats{
+
+  display:grid;
+
+  grid-template-columns:
+    repeat(2,1fr);
+
+  gap:16px;
+}
+
+.mobile-stat{
+
+  border-radius:30px;
+
+  padding:24px;
+
+  text-align:center;
+}
+
+/* =========================================================
+REMOVE OLD SCROLL SYSTEM
+중요
+========================================================= */
+
+.mobile-calendar-wrapper,
+.mobile-scroll-container,
+.mobile-inner-scroll{
+
+  overflow:visible !important;
+
+  height:auto !important;
+
+  max-height:none !important;
+
+  position:relative !important;
+}
+
+/* sticky 제거 */
+
+.mobile-calendar-section,
+.mobile-feed-section,
+.mobile-page{
+
+  position:relative !important;
+
+  top:auto !important;
+
+  bottom:auto !important;
+}
+
+</style>
+```
