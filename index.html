@@ -1,39 +1,969 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8" />
-<meta
-  name="viewport"
-  content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-/>
+<!-- body 안에 추가 -->
+<div
+  id="debug-log"
+  style="
+    position:fixed;
+    left:0;
+    bottom:0;
+    width:100%;
+    max-height:40dvh;
+    overflow:auto;
+    z-index:999999;
+    background:#000;
+    color:#00ff88;
+    font-size:11px;
+    padding:8px;
+    font-family:monospace;
+    border-top:1px solid #333;
+  "
+></div>
 
-<title>하루 일기</title>
+<script>
 
-<style>
+/* =========================
+   앱 생존 안정화 버전
+========================= */
 
-:root{
-  --bg1:#0f172a;
-  --bg2:#1e293b;
+/* -------------------------
+   debug
+------------------------- */
 
-  --card:
-    rgba(255,255,255,.08);
+function debug(message){
 
-  --line:
-    rgba(255,255,255,.08);
+  console.log(message);
 
-  --text:#f8fafc;
+  const log =
+    document.getElementById(
+      "debug-log"
+    );
 
-  --sub:#cbd5e1;
+  if(!log){
+    return;
+  }
 
-  --accent:#8b5cf6;
+  const line =
+    document.createElement("div");
+
+  line.textContent =
+    String(message);
+
+  log.appendChild(line);
+
+  log.scrollTop =
+    log.scrollHeight;
 }
 
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-  -webkit-tap-highlight-color:
-    transparent;
+/* init 중복 방지 */
+
+let initialized = false;
+
+/* 앱 상태 */
+
+const state = {
+  entries:[]
+};
+
+/* -------------------------
+   storage
+------------------------- */
+
+function loadEntries(){
+
+  debug(
+    "ENTER loadEntries"
+  );
+
+  /* storage 완전 격리 테스트 */
+
+  debug(
+    "LOAD ENTRIES DISABLED"
+  );
+
+  debug(
+    "EXIT loadEntries"
+  );
+
+  return [];
+
+  /*
+  try{
+
+    const raw =
+      localStorage.getItem(
+        "entries"
+      );
+
+    debug(
+      "storage raw exists: " +
+      !!raw
+    );
+
+    if(!raw){
+
+      debug(
+        "EXIT loadEntries empty"
+      );
+
+      return [];
+    }
+
+    const parsed =
+      JSON.parse(raw);
+
+    debug(
+      "parsed array: " +
+      Array.isArray(parsed)
+    );
+
+    if(!Array.isArray(parsed)){
+
+      debug(
+        "EXIT loadEntries invalid"
+      );
+
+      return [];
+    }
+
+    debug(
+      "EXIT loadEntries success"
+    );
+
+    return parsed;
+
+  }catch(error){
+
+    debug(
+      "loadEntries error: " +
+      error.message
+    );
+
+    console.error(
+      "storage load failed",
+      error
+    );
+
+    return [];
+  }
+  */
+
+}
+
+function saveEntries(){
+
+  debug(
+    "ENTER saveEntries"
+  );
+
+  try{
+
+    localStorage.setItem(
+      "entries",
+      JSON.stringify(
+        state.entries
+      )
+    );
+
+    debug(
+      "EXIT saveEntries"
+    );
+
+  }catch(error){
+
+    debug(
+      "saveEntries error: " +
+      error.message
+    );
+
+    console.error(
+      "storage save failed",
+      error
+    );
+  }
+
+}
+
+/* -------------------------
+   emotion
+------------------------- */
+
+function analyzeEmotion(text){
+
+  debug(
+    "ENTER analyzeEmotion"
+  );
+
+  const content =
+    text.toLowerCase();
+
+  if(
+    content.includes("행복") ||
+    content.includes("좋") ||
+    content.includes("재밌")
+  ){
+
+    debug(
+      "EXIT analyzeEmotion 행복"
+    );
+
+    return {
+      emoji:"😊",
+      label:"행복"
+    };
+  }
+
+  if(
+    content.includes("슬") ||
+    content.includes("우울")
+  ){
+
+    debug(
+      "EXIT analyzeEmotion 슬픔"
+    );
+
+    return {
+      emoji:"😢",
+      label:"슬픔"
+    };
+  }
+
+  if(
+    content.includes("짜증") ||
+    content.includes("화")
+  ){
+
+    debug(
+      "EXIT analyzeEmotion 화남"
+    );
+
+    return {
+      emoji:"😡",
+      label:"화남"
+    };
+  }
+
+  if(
+    content.includes("피곤") ||
+    content.includes("졸")
+  ){
+
+    debug(
+      "EXIT analyzeEmotion 피곤"
+    );
+
+    return {
+      emoji:"😴",
+      label:"피곤"
+    };
+  }
+
+  debug(
+    "EXIT analyzeEmotion 평범"
+  );
+
+  return {
+    emoji:"😐",
+    label:"평범"
+  };
+
+}
+
+function createSummary(emotion){
+
+  debug(
+    "ENTER createSummary"
+  );
+
+  const summaries = {
+
+    행복:
+      "오늘은 따뜻한 하루였어요.",
+
+    슬픔:
+      "조금 지친 하루였네요.",
+
+    화남:
+      "감정 기복이 있었던 하루예요.",
+
+    피곤:
+      "많이 피곤했던 하루였어요.",
+
+    평범:
+      "소소하고 조용한 하루였어요."
+  };
+
+  debug(
+    "EXIT createSummary"
+  );
+
+  return summaries[
+    emotion.label
+  ];
+
+}
+
+/* -------------------------
+   layout
+------------------------- */
+
+function createLayout(){
+
+  debug(
+    "ENTER createLayout"
+  );
+
+  const app =
+    document.getElementById(
+      "app"
+    );
+
+  debug(
+    "app exists: " +
+    !!app
+  );
+
+  if(!app){
+
+    debug(
+      "EXIT createLayout no app"
+    );
+
+    return;
+  }
+
+  debug(
+    "createLayout step 1"
+  );
+
+  app.innerHTML = `
+
+    <div class="mobile-app">
+
+      <div class="debug-alive">
+        APP RUNNING
+      </div>
+
+      <header class="header">
+
+        <h1>
+          하루 일기
+        </h1>
+
+        <p>
+          오늘 하루를 기록해보세요
+        </p>
+
+      </header>
+
+      <section class="card">
+
+        <input
+          id="titleInput"
+          class="input"
+          placeholder="제목"
+        />
+
+        <textarea
+          id="contentInput"
+          class="textarea"
+          placeholder="오늘 하루는 어땠나요?"
+        ></textarea>
+
+        <button
+          id="saveBtn"
+          class="save-btn"
+        >
+          작성 완료
+        </button>
+
+      </section>
+
+      <section
+        id="timeline"
+        class="timeline"
+      ></section>
+
+    </div>
+
+  `;
+
+  debug(
+    "createLayout step 2"
+  );
+
+  debug(
+    "EXIT createLayout"
+  );
+
+}
+
+/* -------------------------
+   render
+------------------------- */
+
+function renderTimeline(){
+
+  debug(
+    "ENTER renderTimeline"
+  );
+
+  /* timeline 완전 비활성화 테스트 */
+
+  debug(
+    "TIMELINE DISABLED"
+  );
+
+  debug(
+    "EXIT renderTimeline"
+  );
+
+  return;
+
+  /*
+  try{
+
+    debug(
+      "timeline step 1"
+    );
+
+    const timeline =
+      document.getElementById(
+        "timeline"
+      );
+
+    debug(
+      "timeline exists: " +
+      !!timeline
+    );
+
+    if(!timeline){
+
+      debug(
+        "EXIT renderTimeline no timeline"
+      );
+
+      return;
+    }
+
+    debug(
+      "timeline step 2"
+    );
+
+    debug(
+      "entries length: " +
+      state.entries.length
+    );
+
+    if(
+      state.entries.length === 0
+    ){
+
+      debug(
+        "timeline empty render"
+      );
+
+      timeline.innerHTML = `
+
+        <div class="card empty">
+          아직 작성된 일기가 없어요.
+        </div>
+
+      `;
+
+      debug(
+        "EXIT renderTimeline empty"
+      );
+
+      return;
+    }
+
+    debug(
+      "timeline step 3"
+    );
+
+    timeline.innerHTML =
+
+      state.entries
+        .slice()
+        .reverse()
+        .map(entry=>`
+
+          <div class="entry">
+
+            <div class="entry-top">
+
+              <div>
+
+                <div class="entry-title">
+
+                  ${entry.emotion.emoji}
+                  ${escapeHtml(
+                    entry.title
+                  )}
+
+                </div>
+
+                <div class="entry-date">
+
+                  ${entry.createdAt}
+
+                </div>
+
+              </div>
+
+            </div>
+
+            <div class="entry-content">
+
+              ${escapeHtml(
+                entry.content
+              )}
+
+            </div>
+
+            <div class="entry-summary">
+
+              ${entry.summary}
+
+            </div>
+
+          </div>
+
+        `)
+        .join("");
+
+    debug(
+      "timeline step 4"
+    );
+
+    debug(
+      "EXIT renderTimeline"
+    );
+
+  }catch(error){
+
+    debug(
+      "renderTimeline error: " +
+      error.message
+    );
+
+    console.error(
+      "timeline render failed",
+      error
+    );
+
+  }
+  */
+
+}
+
+function renderCalendar(){
+
+  debug(
+    "ENTER renderCalendar"
+  );
+
+  debug(
+    "CALENDAR DISABLED"
+  );
+
+  debug(
+    "EXIT renderCalendar"
+  );
+
+}
+
+function renderApp(){
+
+  debug(
+    "ENTER renderApp"
+  );
+
+  debug(
+    "renderApp step 1"
+  );
+
+  renderTimeline();
+
+  debug(
+    "renderApp step 2"
+  );
+
+  renderCalendar();
+
+  debug(
+    "renderApp step 3"
+  );
+
+  debug(
+    "EXIT renderApp"
+  );
+
+}
+
+/* -------------------------
+   save
+------------------------- */
+
+function saveEntry(){
+
+  debug(
+    "ENTER saveEntry"
+  );
+
+  try{
+
+    debug(
+      "save step 1"
+    );
+
+    const titleInput =
+      document.getElementById(
+        "titleInput"
+      );
+
+    const contentInput =
+      document.getElementById(
+        "contentInput"
+      );
+
+    debug(
+      "titleInput exists: " +
+      !!titleInput
+    );
+
+    debug(
+      "contentInput exists: " +
+      !!contentInput
+    );
+
+    if(
+      !titleInput ||
+      !contentInput
+    ){
+
+      debug(
+        "EXIT saveEntry missing input"
+      );
+
+      return;
+    }
+
+    debug(
+      "save step 2"
+    );
+
+    const title =
+      titleInput.value.trim();
+
+    const content =
+      contentInput.value.trim();
+
+    debug(
+      "content length: " +
+      content.length
+    );
+
+    if(!content){
+
+      debug(
+        "EXIT saveEntry empty content"
+      );
+
+      return;
+    }
+
+    debug(
+      "save step 3"
+    );
+
+    const emotion =
+      analyzeEmotion(content);
+
+    debug(
+      "save step 4"
+    );
+
+    const entry = {
+
+      id:Date.now(),
+
+      title:
+        title ||
+        "제목 없는 일기",
+
+      content,
+
+      createdAt:
+        new Date()
+          .toLocaleString(
+            "ko-KR"
+          ),
+
+      emotion,
+
+      summary:
+        createSummary(
+          emotion
+        )
+    };
+
+    debug(
+      "save step 5"
+    );
+
+    state.entries.push(
+      entry
+    );
+
+    debug(
+      "save step 6"
+    );
+
+    saveEntries();
+
+    debug(
+      "save step 7"
+    );
+
+    renderApp();
+
+    debug(
+      "save step 8"
+    );
+
+    titleInput.value = "";
+    contentInput.value = "";
+
+    debug(
+      "EXIT saveEntry"
+    );
+
+  }catch(error){
+
+    debug(
+      "saveEntry error: " +
+      error.message
+    );
+
+    console.error(
+      "save failed",
+      error
+    );
+
+  }
+
+}
+
+/* -------------------------
+   events
+------------------------- */
+
+function attachEvents(){
+
+  debug(
+    "ENTER attachEvents"
+  );
+
+  const saveBtn =
+    document.getElementById(
+      "saveBtn"
+    );
+
+  debug(
+    "saveBtn exists: " +
+    !!saveBtn
+  );
+
+  if(!saveBtn){
+
+    debug(
+      "EXIT attachEvents no button"
+    );
+
+    return;
+  }
+
+  debug(
+    "attachEvents step 1"
+  );
+
+  saveBtn.addEventListener(
+    "pointerdown",
+    function(event){
+
+      debug(
+        "pointerdown fired"
+      );
+
+      event.preventDefault();
+
+      saveEntry();
+
+    },
+    {
+      passive:false
+    }
+  );
+
+  debug(
+    "attachEvents step 2"
+  );
+
+  debug(
+    "EXIT attachEvents"
+  );
+
+}
+
+/* -------------------------
+   utils
+------------------------- */
+
+function escapeHtml(text){
+
+  debug(
+    "ENTER escapeHtml"
+  );
+
+  const result =
+    text
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;");
+
+  debug(
+    "EXIT escapeHtml"
+  );
+
+  return result;
+
+}
+
+/* -------------------------
+   init
+------------------------- */
+
+function initApp(){
+
+  debug(
+    "ENTER initApp"
+  );
+
+  if(initialized){
+
+    debug(
+      "already initialized"
+    );
+
+    return;
+  }
+
+  initialized = true;
+
+  debug(
+    "1. init start"
+  );
+
+  debug(
+    "2. platform detect"
+  );
+
+  debug(
+    "userAgent: " +
+    navigator.userAgent
+  );
+
+  debug(
+    "3. create layout"
+  );
+
+  createLayout();
+
+  debug(
+    "4. load storage"
+  );
+
+  state.entries =
+    loadEntries();
+
+  debug(
+    "5. render composer"
+  );
+
+  debug(
+    "6. render timeline"
+  );
+
+  renderApp();
+
+  debug(
+    "7. attach events"
+  );
+
+  attachEvents();
+
+  debug(
+    "8. init complete"
+  );
+
+  debug(
+    "EXIT initApp"
+  );
+
+}
+
+/* -------------------------
+   global crash tracking
+------------------------- */
+
+window.addEventListener(
+  "error",
+  function(event){
+
+    debug(
+      "GLOBAL ERROR: " +
+      event.message
+    );
+
+  }
+);
+
+window.addEventListener(
+  "unhandledrejection",
+  function(event){
+
+    debug(
+      "PROMISE ERROR: " +
+      event.reason
+    );
+
+  }
+);
+
+/* -------------------------
+   start
+------------------------- */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  function(){
+
+    debug(
+      "DOMContentLoaded fired"
+    );
+
+    initApp();
+
+  },
+  {
+    once:true
+  }
+);
+
+</script>
+
+
+
 }
 
 html,
