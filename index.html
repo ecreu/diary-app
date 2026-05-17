@@ -1,38 +1,949 @@
 <!-- =========================================================
-STABILIZATION + REFACTOR PATCH v3
-실서비스 수준 안정화 구조 패치
+EMERGENCY MOBILE RENDER FIX PATCH
+화이트스크린 / 블랙스크린 긴급 복구 패치
 ========================================================= -->
 
 <script>
 
 /* =========================================================
-APP CORE
+EMERGENCY SAFE APP ROOT
 ========================================================= */
 
-const APP = {
+(function(){
 
-  STORAGE_KEY:
-    "emotionalDiaryEntries",
+  try{
 
-  VERSION:"3.0.0",
+    /* 기존 app root 확인 */
 
-  entries:[],
+    let app =
+      document.getElementById(
+        "app"
+      );
 
-  ui:{
-    platform:null
-  },
+    /* 없으면 생성 */
 
-  state:{
+    if(!app){
 
-    currentMonth:
-      new Date().getMonth(),
+      app =
+        document.createElement(
+          "div"
+        );
 
-    currentYear:
-      new Date().getFullYear(),
+      app.id = "app";
 
-    rendering:false,
+      document.body.appendChild(
+        app
+      );
 
-    resizeTimer:null,
+    }
+
+    /* body 기본 클래스 초기화 */
+
+    document.body.classList.remove(
+      "mobile-app",
+      "desktop-app"
+    );
+
+    /* body 기본 스타일 복구 */
+
+    document.body.style.opacity =
+      "1";
+
+    document.body.style.visibility =
+      "visible";
+
+    document.body.style.display =
+      "block";
+
+    document.body.style.minHeight =
+      "100dvh";
+
+    document.body.style.overflowX =
+      "hidden";
+
+  }
+
+  catch(error){
+
+    console.error(
+      "Emergency root fix:",
+      error
+    );
+
+  }
+
+})();
+
+/* =========================================================
+SAFE STORAGE LOAD
+========================================================= */
+
+function safeLoadEntries(){
+
+  try{
+
+    const raw =
+      localStorage.getItem(
+        "emotionalDiaryEntries"
+      );
+
+    if(!raw){
+
+      return [];
+    }
+
+    const parsed =
+      JSON.parse(raw);
+
+    if(
+      !Array.isArray(parsed)
+    ){
+
+      return [];
+    }
+
+    return parsed;
+
+  }
+
+  catch(error){
+
+    console.error(
+      "Storage parse error:",
+      error
+    );
+
+    /* 깨진 데이터 자동 복구 */
+
+    localStorage.removeItem(
+      "emotionalDiaryEntries"
+    );
+
+    return [];
+
+  }
+
+}
+
+/* =========================================================
+GLOBAL STATE
+========================================================= */
+
+window.APP_STATE = {
+
+  entries:
+    safeLoadEntries(),
+
+  platform:null
+
+};
+
+/* =========================================================
+SAFE PLATFORM DETECT
+========================================================= */
+
+function detectPlatform(){
+
+  try{
+
+    return window.innerWidth <= 768
+
+      ? "mobile"
+
+      : "desktop";
+
+  }
+
+  catch(error){
+
+    console.error(
+      "Platform detect error:",
+      error
+    );
+
+    return "mobile";
+
+  }
+
+}
+
+/* =========================================================
+MINIMAL MOBILE UI
+========================================================= */
+
+function renderMobileFallback(){
+
+  try{
+
+    const app =
+      document.getElementById(
+        "app"
+      );
+
+    if(!app){
+
+      throw new Error(
+        "#app missing"
+      );
+
+    }
+
+    document.body.className =
+      "mobile-app";
+
+    app.innerHTML = `
+
+      <div class="mobile-shell">
+
+        <header class="mobile-header">
+
+          <h1>
+            하루 일기
+          </h1>
+
+          <p>
+            오늘 하루를 기록해보세요.
+          </p>
+
+        </header>
+
+        <main class="mobile-feed">
+
+          <section class="mobile-card">
+
+            <textarea
+              id="diaryInput"
+              placeholder="
+                오늘 하루는 어땠나요?
+              "
+            ></textarea>
+
+            <button
+              id="saveBtn"
+            >
+
+              저장하기
+
+            </button>
+
+          </section>
+
+          <section
+            id="timeline"
+          >
+
+            ${
+              APP_STATE.entries.length
+
+              ? APP_STATE.entries
+                  .map(entry=>`
+
+                    <article class="timeline-card">
+
+                      <h3>
+                        ${
+                          entry.title
+                          || "오늘의 하루"
+                        }
+                      </h3>
+
+                      <p>
+                        ${
+                          entry.content
+                          || ""
+                        }
+                      </p>
+
+                    </article>
+
+                  `)
+                  .join("")
+
+              : `
+
+                <div class="empty-state">
+
+                  아직 작성된 일기가 없어요.
+
+                </div>
+
+              `
+            }
+
+          </section>
+
+        </main>
+
+      </div>
+
+    `;
+
+    registerMinimalEvents();
+
+  }
+
+  catch(error){
+
+    console.error(
+      "Mobile fallback render error:",
+      error
+    );
+
+    emergencyRender();
+
+  }
+
+}
+
+/* =========================================================
+SAFE DESKTOP UI
+========================================================= */
+
+function renderDesktopFallback(){
+
+  try{
+
+    const app =
+      document.getElementById(
+        "app"
+      );
+
+    document.body.className =
+      "desktop-app";
+
+    app.innerHTML = `
+
+      <div class="desktop-layout">
+
+        <aside class="sidebar">
+
+          <h1>
+            하루 일기
+          </h1>
+
+        </aside>
+
+        <main class="desktop-main">
+
+          <section class="desktop-card">
+
+            <textarea
+              id="diaryInput"
+              placeholder="
+                오늘 하루를 기록해보세요.
+              "
+            ></textarea>
+
+            <button
+              id="saveBtn"
+            >
+
+              저장하기
+
+            </button>
+
+          </section>
+
+        </main>
+
+      </div>
+
+    `;
+
+    registerMinimalEvents();
+
+  }
+
+  catch(error){
+
+    console.error(
+      "Desktop render error:",
+      error
+    );
+
+    emergencyRender();
+
+  }
+
+}
+
+/* =========================================================
+MINIMAL EVENT SYSTEM
+========================================================= */
+
+function registerMinimalEvents(){
+
+  try{
+
+    const saveBtn =
+      document.getElementById(
+        "saveBtn"
+      );
+
+    if(!saveBtn){
+
+      return;
+    }
+
+    /* 중복 제거 */
+
+    saveBtn.onpointerdown =
+      null;
+
+    saveBtn.ontouchstart =
+      null;
+
+    saveBtn.onclick =
+      null;
+
+    saveBtn.addEventListener(
+
+      "pointerdown",
+
+      handleSave,
+
+      {
+        passive:true
+      }
+
+    );
+
+  }
+
+  catch(error){
+
+    console.error(
+      "Event bind error:",
+      error
+    );
+
+  }
+
+}
+
+/* =========================================================
+SAFE SAVE
+========================================================= */
+
+function handleSave(){
+
+  try{
+
+    const input =
+      document.getElementById(
+        "diaryInput"
+      );
+
+    if(!input){
+
+      return;
+    }
+
+    const content =
+      input.value.trim();
+
+    if(!content){
+
+      alert(
+        "일기를 입력해주세요."
+      );
+
+      return;
+    }
+
+    const entry = {
+
+      id:
+        Date.now(),
+
+      title:
+        content.length > 12
+
+        ? content.slice(0,12)
+          + "..."
+
+        : content,
+
+      content,
+
+      createdAt:
+        new Date()
+          .toISOString()
+
+    };
+
+    APP_STATE.entries.unshift(
+      entry
+    );
+
+    localStorage.setItem(
+
+      "emotionalDiaryEntries",
+
+      JSON.stringify(
+        APP_STATE.entries
+      )
+
+    );
+
+    input.value = "";
+
+    renderApp();
+
+  }
+
+  catch(error){
+
+    console.error(
+      "Save error:",
+      error
+    );
+
+    alert(
+      "저장 중 오류가 발생했어요."
+    );
+
+  }
+
+}
+
+/* =========================================================
+SAFE MAIN RENDER
+========================================================= */
+
+function renderApp(){
+
+  try{
+
+    const platform =
+      detectPlatform();
+
+    APP_STATE.platform =
+      platform;
+
+    if(platform === "mobile"){
+
+      renderMobileFallback();
+
+    }
+
+    else{
+
+      renderDesktopFallback();
+
+    }
+
+  }
+
+  catch(error){
+
+    console.error(
+      "Main render failed:",
+      error
+    );
+
+    emergencyRender();
+
+  }
+
+}
+
+/* =========================================================
+EMERGENCY LAST RESORT UI
+========================================================= */
+
+function emergencyRender(){
+
+  try{
+
+    document.body.innerHTML = `
+
+      <div
+        style="
+          min-height:100dvh;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          padding:24px;
+          background:#f3f4f6;
+          font-family:Pretendard,sans-serif;
+        "
+      >
+
+        <div
+          style="
+            width:100%;
+            max-width:420px;
+            background:white;
+            border-radius:24px;
+            padding:24px;
+            box-shadow:
+              0 10px 30px rgba(0,0,0,.08);
+          "
+        >
+
+          <h1
+            style="
+              margin-bottom:12px;
+            "
+          >
+
+            하루 일기
+
+          </h1>
+
+          <p
+            style="
+              color:#666;
+            "
+          >
+
+            앱을 복구하는 중이에요.
+
+          </p>
+
+        </div>
+
+      </div>
+
+    `;
+
+  }
+
+  catch(error){
+
+    console.error(
+      "Emergency render failed:",
+      error
+    );
+
+  }
+
+}
+
+/* =========================================================
+SAFE INIT
+========================================================= */
+
+function initApp(){
+
+  try{
+
+    renderApp();
+
+  }
+
+  catch(error){
+
+    console.error(
+      "Init failed:",
+      error
+    );
+
+    emergencyRender();
+
+  }
+
+}
+
+/* =========================================================
+DOM READY
+========================================================= */
+
+if(
+  document.readyState
+  === "loading"
+){
+
+  document.addEventListener(
+
+    "DOMContentLoaded",
+
+    initApp,
+
+    {
+      passive:true
+    }
+
+  );
+
+}
+
+else{
+
+  initApp();
+
+}
+
+/* =========================================================
+SAFE RESIZE
+========================================================= */
+
+window.addEventListener(
+
+  "resize",
+
+  debounce(()=>{
+
+    try{
+
+      renderApp();
+
+    }
+
+    catch(error){
+
+      console.error(
+        "Resize render error:",
+        error
+      );
+
+    }
+
+  },180),
+
+  {
+    passive:true
+  }
+
+);
+
+/* =========================================================
+DEBOUNCE
+========================================================= */
+
+function debounce(
+  fn,
+  delay
+){
+
+  let timer;
+
+  return (...args)=>{
+
+    clearTimeout(timer);
+
+    timer = setTimeout(()=>{
+
+      fn(...args);
+
+    },delay);
+
+  };
+
+}
+
+</script>
+
+<style>
+
+/* =========================================================
+EMERGENCY STABLE CSS
+========================================================= */
+
+html,
+body{
+
+  width:100%;
+
+  min-height:100%;
+
+  margin:0;
+  padding:0;
+
+  overflow-x:hidden;
+
+  background:#f3f4f6;
+
+  font-family:
+    Pretendard,
+    sans-serif;
+}
+
+body{
+
+  min-height:100dvh;
+}
+
+/* =========================================================
+APP ROOT
+========================================================= */
+
+#app{
+
+  width:100%;
+
+  min-height:100dvh;
+
+  display:block;
+}
+
+/* =========================================================
+MOBILE
+========================================================= */
+
+.mobile-shell{
+
+  width:100%;
+
+  min-height:100dvh;
+
+  padding:
+    24px
+    16px
+    120px;
+}
+
+.mobile-header{
+
+  margin-bottom:24px;
+}
+
+.mobile-header h1{
+
+  font-size:32px;
+
+  margin-bottom:8px;
+}
+
+.mobile-header p{
+
+  color:#666;
+}
+
+.mobile-feed{
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:18px;
+}
+
+.mobile-card{
+
+  background:white;
+
+  border-radius:28px;
+
+  padding:20px;
+
+  box-shadow:
+    0 10px 30px rgba(0,0,0,.06);
+}
+
+textarea{
+
+  width:100%;
+
+  min-height:160px;
+
+  border:none;
+
+  border-radius:20px;
+
+  padding:16px;
+
+  background:#f3f4f6;
+
+  resize:none;
+
+  outline:none;
+
+  font-size:15px;
+
+  box-sizing:border-box;
+}
+
+button{
+
+  width:100%;
+
+  height:56px;
+
+  margin-top:16px;
+
+  border:none;
+
+  border-radius:18px;
+
+  background:#111827;
+
+  color:white;
+
+  font-size:15px;
+
+  touch-action:
+    manipulation;
+}
+
+.timeline-card{
+
+  background:white;
+
+  border-radius:24px;
+
+  padding:18px;
+
+  box-shadow:
+    0 8px 24px rgba(0,0,0,.05);
+}
+
+.timeline-card h3{
+
+  margin-bottom:10px;
+}
+
+.empty-state{
+
+  text-align:center;
+
+  color:#777;
+
+  padding:32px
+    12px;
+}
+
+/* =========================================================
+DESKTOP
+========================================================= */
+
+.desktop-layout{
+
+  width:100%;
+
+  min-height:100vh;
+
+  display:grid;
+
+  grid-template-columns:
+    280px 1fr;
+}
+
+.sidebar{
+
+  padding:24px;
+
+  background:white;
+}
+
+.desktop-main{
+
+  padding:24px;
+}
+
+.desktop-card{
+
+  background:white;
+
+  border-radius:28px;
+
+  padding:24px;
+}
+
+</style>
+
+
 
     saveTimer:null
   }
