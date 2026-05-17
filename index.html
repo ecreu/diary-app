@@ -1,39 +1,282 @@
-<!-- body 안에 추가 -->
-<div
-  id="debug-log"
-  style="
-    position:fixed;
-    left:0;
-    bottom:0;
-    width:100%;
-    max-height:40dvh;
-    overflow:auto;
-    z-index:999999;
-    background:#000;
-    color:#00ff88;
-    font-size:11px;
-    padding:8px;
-    font-family:monospace;
-    border-top:1px solid #333;
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+
+<meta
+  name="viewport"
+  content="
+    width=device-width,
+    initial-scale=1.0,
+    viewport-fit=cover
   "
-></div>
+/>
+
+<title>하루 일기</title>
+
+<style>
+
+body{
+  margin:0;
+  padding:0;
+  background:#111827;
+  color:white;
+  font-family:sans-serif;
+}
+
+#boot-test{
+  color:white;
+  padding:20px;
+  font-size:20px;
+  border-bottom:1px solid #333;
+}
+
+#debug{
+  padding:20px;
+  font-size:14px;
+  line-height:1.7;
+  white-space:pre-wrap;
+}
+
+#app{
+  padding:20px;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- =========================
+     1. HTML 로딩 확인
+========================= -->
+
+<div id="boot-test">
+  HTML LOADED
+</div>
+
+<div id="debug"></div>
+
+<div id="app"></div>
+
+<!-- =========================
+     2. JS 실행 확인
+========================= -->
 
 <script>
 
-/* =========================
-   앱 생존 안정화 버전
-========================= */
+/* -------------------------
+   JS 파일 자체 로딩 확인
+------------------------- */
+
+alert("JS FILE LOADED");
 
 /* -------------------------
-   debug
+   debug helper
 ------------------------- */
 
 function debug(message){
 
   console.log(message);
 
-  const log =
+  const debugEl =
     document.getElementById(
+      "debug"
+    );
+
+  if(!debugEl){
+    return;
+  }
+
+  debugEl.innerHTML +=
+    message + "\n";
+}
+
+/* -------------------------
+   script 시작 확인
+------------------------- */
+
+debug(
+  "SCRIPT START"
+);
+
+/* -------------------------
+   syntax 생존 체크
+------------------------- */
+
+debug(
+  "BASIC JS OK"
+);
+
+/* -------------------------
+   window error 추적
+------------------------- */
+
+window.onerror =
+  function(
+    message,
+    source,
+    line,
+    column,
+    error
+  ){
+
+    alert(
+      "GLOBAL ERROR:\n" +
+      message
+    );
+
+    debug(
+      "GLOBAL ERROR: " +
+      message
+    );
+
+    debug(
+      "LINE: " + line
+    );
+
+    debug(
+      "COLUMN: " + column
+    );
+
+    console.error(error);
+  };
+
+/* -------------------------
+   promise error 추적
+------------------------- */
+
+window.addEventListener(
+  "unhandledrejection",
+  function(event){
+
+    alert(
+      "PROMISE ERROR"
+    );
+
+    debug(
+      "PROMISE ERROR"
+    );
+
+    console.error(
+      event.reason
+    );
+  }
+);
+
+/* -------------------------
+   DOMContentLoaded 확인
+------------------------- */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  function(){
+
+    alert(
+      "DOM LOADED"
+    );
+
+    debug(
+      "DOMContentLoaded OK"
+    );
+
+    try{
+
+      initApp();
+
+    }catch(error){
+
+      alert(
+        "INIT CRASH"
+      );
+
+      debug(
+        "INIT ERROR: " +
+        error.message
+      );
+
+      console.error(error);
+    }
+
+  }
+);
+
+/* -------------------------
+   initApp 확인
+------------------------- */
+
+function initApp(){
+
+  alert(
+    "INIT APP"
+  );
+
+  debug(
+    "INIT START"
+  );
+
+  const app =
+    document.getElementById(
+      "app"
+    );
+
+  debug(
+    "app exists: " +
+    !!app
+  );
+
+  if(!app){
+
+    debug(
+      "APP NOT FOUND"
+    );
+
+    return;
+  }
+
+  debug(
+    "BEFORE INNERHTML"
+  );
+
+  app.innerHTML = `
+
+    <div
+      style="
+        padding:20px;
+        border:1px solid #444;
+        margin-top:20px;
+      "
+    >
+      APP RENDER SUCCESS
+    </div>
+
+  `;
+
+  debug(
+    "AFTER INNERHTML"
+  );
+
+  debug(
+    "INIT COMPLETE"
+  );
+
+}
+
+/* -------------------------
+   script 마지막 확인
+------------------------- */
+
+debug(
+  "SCRIPT END"
+);
+
+</script>
+
+</body>
+</html>
+
+
+
       "debug-log"
     );
 
