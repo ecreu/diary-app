@@ -1,39 +1,990 @@
 <!-- =========================================================
-PIN SYSTEM REMOVE PATCH
-아래 코드를 기존 파일에 적용
-========================================================= -->
-
-<!-- =========================================================
-1. 앱 시작 부분 수정
-기존:
-initPin();
-삭제
+STABILIZATION + REFACTOR PATCH v3
+실서비스 수준 안정화 구조 패치
 ========================================================= -->
 
 <script>
 
 /* =========================================================
-REMOVE OLD PIN STORAGE
-앱 시작 시 기존 PIN 데이터 제거
+APP CORE
 ========================================================= */
 
-localStorage.removeItem(
-  "diaryPin"
-);
+const APP = {
 
-localStorage.removeItem(
-  "enteredPin"
-);
+  STORAGE_KEY:
+    "emotionalDiaryEntries",
 
-localStorage.removeItem(
-  "hasPin"
-);
+  VERSION:"3.0.0",
 
-localStorage.removeItem(
-  "pinEnabled"
+  entries:[],
+
+  ui:{
+    platform:null
+  },
+
+  state:{
+
+    currentMonth:
+      new Date().getMonth(),
+
+    currentYear:
+      new Date().getFullYear(),
+
+    rendering:false,
+
+    resizeTimer:null,
+
+    saveTimer:null
+  }
+
+};
+
+/* =========================================================
+SAFE STORAGE
+========================================================= */
+
+const StorageManager = {
+
+  load(){
+
+    try{
+
+      const raw =
+        localStorage.getItem(
+          APP.STORAGE_KEY
+        );
+
+      if(!raw){
+
+        return [];
+      }
+
+      const parsed =
+        JSON.parse(raw);
+
+      if(
+        !Array.isArray(parsed)
+      ){
+
+        throw new Error(
+          "Invalid storage"
+        );
+      }
+
+      return parsed
+        .filter(Boolean)
+        .map(entry=>
+          this.migrate(entry)
+        );
+
+    }
+
+    catch(error){
+
+      console.error(
+        "Storage recovery:",
+        error
+      );
+
+      localStorage.removeItem(
+        APP.STORAGE_KEY
+      );
+
+      return [];
+    }
+
+  },
+
+  save(entries){
+
+    try{
+
+      localStorage.setItem(
+
+        APP.STORAGE_KEY,
+
+        JSON.stringify(entries)
+
+      );
+
+      return true;
+
+    }
+
+    catch(error){
+
+      console.error(
+        "Save failed:",
+        error
+      );
+
+      Toast.show(
+        "저장에 실패했어요."
+      );
+
+      return false;
+    }
+
+  },
+
+  migrate(entry){
+
+    return {
+
+      id:
+        entry.id
+        || crypto.randomUUID(),
+
+      title:
+        entry.title
+        || "오늘의 하루",
+
+      content:
+        entry.content
+        || "",
+
+      createdAt:
+        entry.createdAt
+        || new Date().toISOString(),
+
+      emotion:
+        entry.emotion
+        || "normal",
+
+      confidence:
+        entry.confidence
+        || 50,
+
+      summary:
+        entry.summary
+        || "",
+
+      oneLine:
+        entry.oneLine
+        || "",
+
+      images:
+        Array.isArray(
+          entry.images
+        )
+        ? entry.images
+        : [],
+
+      dateKey:
+        entry.dateKey
+        || new Date()
+            .toLocaleDateString(
+              "sv-SE"
+            )
+
+    };
+
+  }
+
+};
+
+/* =========================================================
+EMOTION ENGINE
+========================================================= */
+
+const EmotionEngine = {
+
+  emotions:{
+
+    happy:{
+      emoji:"😊",
+      color:"#facc15",
+      weight:0,
+      words:[
+        "행복",
+        "좋",
+        "웃",
+        "재밌",
+        "신났",
+        "기뻤"
+      ]
+    },
+
+    sad:{
+      emoji:"😢",
+      color:"#60a5fa",
+      weight:0,
+      words:[
+        "우울",
+        "슬프",
+        "눈물",
+        "외롭",
+        "힘들"
+      ]
+    },
+
+    angry:{
+      emoji:"😡",
+      color:"#f87171",
+      weight:0,
+      words:[
+        "짜증",
+        "화나",
+        "열받",
+        "빡쳐"
+      ]
+    },
+
+    tired:{
+      emoji:"😴",
+      color:"#a78bfa",
+      weight:0,
+      words:[
+        "피곤",
+        "졸리",
+        "지쳤",
+        "힘빠"
+      ]
+    },
+
+    normal:{
+      emoji:"😐",
+      color:"#9ca3af",
+      weight:1,
+      words:[]
+    }
+
+  },
+
+  analyze(text=""){
+
+    const scores = {};
+
+    Object.keys(
+      this.emotions
+    ).forEach(key=>{
+
+      scores[key] = 0;
+
+    });
+
+    const lines =
+      text
+        .toLowerCase()
+        .split(/[.!?\n]/);
+
+    lines.forEach(line=>{
+
+      Object.entries(
+        this.emotions
+      ).forEach(([key,data])=>{
+
+        data.words.forEach(word=>{
+
+          if(
+            line.includes(word)
+          ){
+
+            scores[key] += 2;
+          }
+
+        });
+
+      });
+
+    });
+
+    let emotion =
+      "normal";
+
+    let highest = 0;
+
+    Object.entries(scores)
+      .forEach(([k,v])=>{
+
+        if(v > highest){
+
+          highest = v;
+
+          emotion = k;
+        }
+
+      });
+
+    const total =
+      Object.values(scores)
+        .reduce((a,b)=>
+          a+b,0
+        );
+
+    const confidence =
+      total
+      ? Math.min(
+          100,
+          Math.round(
+            highest/total*100
+          )
+        )
+      : 50;
+
+    return {
+
+      emotion,
+
+      confidence
+
+    };
+
+  }
+
+};
+
+/* =========================================================
+AI GENERATOR
+========================================================= */
+
+const AIGenerator = {
+
+  summary(emotion){
+
+    const map = {
+
+      happy:[
+        "따뜻한 감정이 남은 하루였어요.",
+        "소소하지만 행복한 순간들이 있었네요."
+      ],
+
+      sad:[
+        "조금 지친 마음이 느껴지는 하루였어요.",
+        "감정을 천천히 정리한 하루였네요."
+      ],
+
+      angry:[
+        "감정 기복이 있었지만 잘 버텨냈어요.",
+        "쉽지 않았지만 지나간 하루예요."
+      ],
+
+      tired:[
+        "오늘도 충분히 수고했어요.",
+        "몸과 마음이 조금 지친 하루였네요."
+      ],
+
+      normal:[
+        "잔잔하게 하루가 흘러갔어요.",
+        "평온한 하루의 기록이에요."
+      ]
+
+    };
+
+    return map[emotion][
+      Math.floor(
+        Math.random()
+        * map[emotion].length
+      )
+    ];
+
+  },
+
+  oneLine(emotion){
+
+    const map = {
+
+      happy:
+        "오늘도 웃음이 남아있네요.",
+
+      sad:
+        "조용히 지나간 감정의 하루.",
+
+      angry:
+        "흔들렸지만 잘 지나왔어요.",
+
+      tired:
+        "오늘도 충분히 애썼어요.",
+
+      normal:
+        "잔잔한 하루가 흘러갔어요."
+
+    };
+
+    return map[emotion];
+  }
+
+};
+
+/* =========================================================
+SAVE ENTRY
+========================================================= */
+
+function saveEntry(){
+
+  const textarea =
+    document.querySelector(
+      ".mobile-textarea"
+    );
+
+  if(!textarea) return;
+
+  const content =
+    textarea.value.trim();
+
+  if(!content){
+
+    Toast.show(
+      "일기를 입력해주세요."
+    );
+
+    return;
+  }
+
+  const analysis =
+    EmotionEngine.analyze(
+      content
+    );
+
+  const entry = {
+
+    id:
+      crypto.randomUUID(),
+
+    title:
+      generateTitle(
+        content
+      ),
+
+    content,
+
+    createdAt:
+      new Date()
+        .toISOString(),
+
+    emotion:
+      analysis.emotion,
+
+    confidence:
+      analysis.confidence,
+
+    summary:
+      AIGenerator.summary(
+        analysis.emotion
+      ),
+
+    oneLine:
+      AIGenerator.oneLine(
+        analysis.emotion
+      ),
+
+    images:[],
+
+    dateKey:
+      new Date()
+        .toLocaleDateString(
+          "sv-SE"
+        )
+
+  };
+
+  APP.entries.unshift(
+    entry
+  );
+
+  StorageManager.save(
+    APP.entries
+  );
+
+  renderApp();
+
+  Toast.show(
+    "저장 완료"
+  );
+
+  textarea.value = "";
+
+}
+
+/* =========================================================
+TITLE GENERATOR
+========================================================= */
+
+function generateTitle(
+  text
+){
+
+  const cleaned =
+    text
+      .replace(/\n/g," ")
+      .trim();
+
+  return cleaned.length > 18
+
+    ? cleaned.slice(0,18)+"..."
+
+    : cleaned;
+}
+
+/* =========================================================
+UNIFIED RENDER
+========================================================= */
+
+function renderApp(){
+
+  if(APP.state.rendering){
+
+    return;
+  }
+
+  APP.state.rendering =
+    true;
+
+  requestAnimationFrame(()=>{
+
+    const platform =
+      detectPlatform();
+
+    if(platform === "mobile"){
+
+      renderMobileApp();
+    }
+
+    else{
+
+      renderDesktopApp();
+    }
+
+    APP.state.rendering =
+      false;
+
+  });
+
+}
+
+/* =========================================================
+TOAST
+========================================================= */
+
+const Toast = {
+
+  show(message){
+
+    const existing =
+      document.querySelector(
+        ".toast"
+      );
+
+    if(existing){
+
+      existing.remove();
+    }
+
+    const toast =
+      document.createElement(
+        "div"
+      );
+
+    toast.className =
+      "toast";
+
+    toast.textContent =
+      message;
+
+    document.body.appendChild(
+      toast
+    );
+
+    requestAnimationFrame(()=>{
+
+      toast.classList.add(
+        "show"
+      );
+
+    });
+
+    setTimeout(()=>{
+
+      toast.classList.remove(
+        "show"
+      );
+
+      setTimeout(()=>{
+
+        toast.remove();
+
+      },300);
+
+    },1800);
+
+  }
+
+};
+
+/* =========================================================
+PLATFORM
+========================================================= */
+
+function detectPlatform(){
+
+  return
+    window.innerWidth <= 768
+
+    ? "mobile"
+
+    : "desktop";
+}
+
+/* =========================================================
+RESIZE OPTIMIZATION
+========================================================= */
+
+window.addEventListener(
+
+  "resize",
+
+  debounce(()=>{
+
+    renderApp();
+
+  },180),
+
+  {
+    passive:true
+  }
+
 );
 
 /* =========================================================
+DEBOUNCE
+========================================================= */
+
+function debounce(
+  fn,
+  delay=150
+){
+
+  let timer;
+
+  return (...args)=>{
+
+    clearTimeout(timer);
+
+    timer = setTimeout(()=>{
+
+      fn(...args);
+
+    },delay);
+
+  };
+
+}
+
+/* =========================================================
+LAZY IMAGE
+========================================================= */
+
+function lazyImages(){
+
+  const imgs =
+    document.querySelectorAll(
+      "img[data-src]"
+    );
+
+  const observer =
+    new IntersectionObserver(
+      entries=>{
+
+        entries.forEach(entry=>{
+
+          if(
+            entry.isIntersecting
+          ){
+
+            const img =
+              entry.target;
+
+            img.src =
+              img.dataset.src;
+
+            observer.unobserve(
+              img
+            );
+
+          }
+
+        });
+
+      }
+    );
+
+  imgs.forEach(img=>{
+
+    observer.observe(img);
+
+  });
+
+}
+
+/* =========================================================
+MOBILE EVENTS
+========================================================= */
+
+function registerMobileEvents(){
+
+  const saveBtn =
+    document.querySelector(
+      ".mobile-save"
+    );
+
+  if(saveBtn){
+
+    saveBtn.onpointerdown =
+      null;
+
+    saveBtn.addEventListener(
+
+      "pointerdown",
+
+      saveEntry,
+
+      {
+        passive:true
+      }
+
+    );
+
+  }
+
+}
+
+/* =========================================================
+BACKGROUND ENGINE
+========================================================= */
+
+function updateBackground(){
+
+  const latest =
+    APP.entries[0];
+
+  if(!latest){
+
+    document.body.style.background =
+      `
+        linear-gradient(
+          180deg,
+          #f6f7fb,
+          #eceff5
+        )
+      `;
+
+    return;
+  }
+
+  const map = {
+
+    happy:
+      "#fff7d6",
+
+    sad:
+      "#dbeafe",
+
+    angry:
+      "#fee2e2",
+
+    tired:
+      "#ede9fe",
+
+    normal:
+      "#f3f4f6"
+
+  };
+
+  document.body.style.background =
+    `
+      linear-gradient(
+        180deg,
+        ${map[latest.emotion]},
+        #ffffff
+      )
+    `;
+
+}
+
+/* =========================================================
+STREAK
+========================================================= */
+
+function calculateStreak(){
+
+  if(!APP.entries.length){
+
+    return 0;
+  }
+
+  const sorted =
+    [...APP.entries]
+      .sort((a,b)=>
+
+        new Date(b.createdAt)
+        - new Date(a.createdAt)
+
+      );
+
+  let streak = 1;
+
+  for(
+    let i=1;
+    i<sorted.length;
+    i++
+  ){
+
+    const prev =
+      new Date(
+        sorted[i-1].dateKey
+      );
+
+    const curr =
+      new Date(
+        sorted[i].dateKey
+      );
+
+    const diff =
+      (
+        prev - curr
+      )
+      / 86400000;
+
+    if(diff === 1){
+
+      streak++;
+    }
+
+    else{
+
+      break;
+    }
+
+  }
+
+  return streak;
+}
+
+/* =========================================================
+BOOT
+========================================================= */
+
+function boot(){
+
+  APP.entries =
+    StorageManager.load();
+
+  renderApp();
+
+  updateBackground();
+
+}
+
+boot();
+
+</script>
+
+<style>
+
+/* =========================================================
+TOAST
+========================================================= */
+
+.toast{
+
+  position:fixed;
+
+  left:50%;
+  bottom:120px;
+
+  transform:
+    translateX(-50%)
+    translateY(20px);
+
+  padding:
+    14px 20px;
+
+  border-radius:18px;
+
+  background:
+    rgba(17,24,39,.86);
+
+  color:white;
+
+  opacity:0;
+
+  transition:.3s ease;
+
+  z-index:9999;
+
+  backdrop-filter:
+    blur(18px);
+
+  font-size:14px;
+}
+
+.toast.show{
+
+  opacity:1;
+
+  transform:
+    translateX(-50%)
+    translateY(0);
+}
+
+/* =========================================================
+PERFORMANCE
+========================================================= */
+
+.mobile-post,
+.desktop-post,
+.mobile-card{
+
+  will-change:
+    transform,
+    opacity;
+}
+
+/* =========================================================
+REDUCED MOTION
+========================================================= */
+
+@media (
+  prefers-reduced-motion: reduce
+){
+
+  *{
+
+    animation:none !important;
+
+    transition:none !important;
+
+    scroll-behavior:auto !important;
+  }
+
+}
+
+/* =========================================================
+SAFE AREA
+========================================================= */
+
+body{
+
+  padding:
+    env(safe-area-inset-top)
+    env(safe-area-inset-right)
+    env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+/* =========================================================
+SMOOTH SCROLL
+========================================================= */
+
+html{
+
+  scroll-behavior:smooth;
+}
+
+</style>
+
+
+
 APP INIT
 PIN 없이 바로 실행
 ========================================================= */
