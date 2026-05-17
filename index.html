@@ -1,39 +1,816 @@
 <!-- =========================================================
-EMERGENCY MOBILE RENDER FIX PATCH
-화이트스크린 / 블랙스크린 긴급 복구 패치
+MOBILE RENDER DEBUG PATCH
+모바일 렌더링 강제 디버그 시스템
 ========================================================= -->
 
 <script>
 
 /* =========================================================
-EMERGENCY SAFE APP ROOT
+DEBUG BOOT UI
 ========================================================= */
 
 (function(){
 
+  document.body.innerHTML = `
+
+    <div id="debugBoot">
+
+      <div class="debug-card">
+
+        <h1>
+          하루 일기 디버그 모드
+        </h1>
+
+        <div id="debugStatus">
+
+          App Booting...
+
+        </div>
+
+        <div id="debugLogs">
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <div id="app"></div>
+
+  `;
+
+})();
+
+/* =========================================================
+DEBUG LOGGER
+========================================================= */
+
+function debugStep(message){
+
+  console.log(
+    "[DEBUG]",
+    message
+  );
+
+  const status =
+    document.getElementById(
+      "debugStatus"
+    );
+
+  const logs =
+    document.getElementById(
+      "debugLogs"
+    );
+
+  if(status){
+
+    status.textContent =
+      message;
+
+  }
+
+  if(logs){
+
+    const item =
+      document.createElement(
+        "div"
+      );
+
+    item.className =
+      "debug-log";
+
+    item.textContent =
+      "✔ " + message;
+
+    logs.appendChild(item);
+
+  }
+
+}
+
+/* =========================================================
+DEBUG ERROR
+========================================================= */
+
+function debugError(
+  title,
+  error
+){
+
+  console.error(
+    title,
+    error
+  );
+
+  const logs =
+    document.getElementById(
+      "debugLogs"
+    );
+
+  if(logs){
+
+    const item =
+      document.createElement(
+        "div"
+      );
+
+    item.className =
+      "debug-error";
+
+    item.innerHTML = `
+
+      ❌ ${title}
+      <br>
+      ${
+        error?.message
+        || error
+      }
+
+    `;
+
+    logs.appendChild(item);
+
+  }
+
+}
+
+/* =========================================================
+GLOBAL STATE
+========================================================= */
+
+window.APP = {
+
+  entries:[],
+
+  platform:"mobile"
+
+};
+
+/* =========================================================
+INIT APP
+========================================================= */
+
+function initApp(){
+
+  debugStep(
+    "DOM Loaded"
+  );
+
+  detectPlatform();
+
+  createLayout();
+
+  loadStorage();
+
+  renderTimeline();
+
+  attachEvents();
+
+  debugStep(
+    "App Ready"
+  );
+
+}
+
+/* =========================================================
+PLATFORM DETECT
+========================================================= */
+
+function detectPlatform(){
+
   try{
 
-    /* 기존 app root 확인 */
+    debugStep(
+      "Detecting Platform..."
+    );
 
-    let app =
+    APP.platform =
+
+      window.innerWidth <= 768
+
+      ? "mobile"
+
+      : "desktop";
+
+    document.body.classList.add(
+      APP.platform
+    );
+
+    debugStep(
+      "Platform: "
+      + APP.platform
+    );
+
+  }
+
+  catch(error){
+
+    debugError(
+      "Platform Detect Error",
+      error
+    );
+
+  }
+
+}
+
+/* =========================================================
+CREATE LAYOUT
+========================================================= */
+
+function createLayout(){
+
+  try{
+
+    debugStep(
+      "Creating Layout..."
+    );
+
+    const app =
       document.getElementById(
         "app"
       );
 
-    /* 없으면 생성 */
-
     if(!app){
 
-      app =
-        document.createElement(
-          "div"
+      throw new Error(
+        "#app missing"
+      );
+
+    }
+
+    /* =====================================================
+    MOBILE UI
+    ===================================================== */
+
+    if(APP.platform === "mobile"){
+
+      app.innerHTML = `
+
+        <div class="mobile-shell">
+
+          <header class="mobile-header">
+
+            <h1>
+              하루 일기
+            </h1>
+
+            <p>
+              오늘 하루를 기록해보세요
+            </p>
+
+          </header>
+
+          <main class="mobile-feed">
+
+            <section class="write-card">
+
+              <textarea
+                id="diaryInput"
+                placeholder="
+                  오늘 하루는 어땠나요?
+                "
+              ></textarea>
+
+              <button
+                id="saveBtn"
+              >
+
+                저장하기
+
+              </button>
+
+            </section>
+
+            <section
+              id="timeline"
+              class="timeline"
+            >
+
+            </section>
+
+          </main>
+
+        </div>
+
+      `;
+
+      debugStep(
+        "Mobile Layout Loaded"
+      );
+
+    }
+
+    /* =====================================================
+    DESKTOP UI
+    ===================================================== */
+
+    else{
+
+      app.innerHTML = `
+
+        <div class="desktop-shell">
+
+          <aside class="sidebar">
+
+            하루 일기
+
+          </aside>
+
+          <main class="desktop-main">
+
+            <textarea
+              id="diaryInput"
+              placeholder="
+                오늘 하루는 어땠나요?
+              "
+            ></textarea>
+
+            <button
+              id="saveBtn"
+            >
+
+              저장하기
+
+            </button>
+
+            <section
+              id="timeline"
+            ></section>
+
+          </main>
+
+        </div>
+
+      `;
+
+      debugStep(
+        "Desktop Layout Loaded"
+      );
+
+    }
+
+    /* =====================================================
+    강제 렌더 테스트
+    ===================================================== */
+
+    const timeline =
+      document.getElementById(
+        "timeline"
+      );
+
+    if(!timeline){
+
+      throw new Error(
+        "#timeline missing"
+      );
+
+    }
+
+    timeline.innerHTML = `
+
+      <div class="test-card">
+
+        TIMELINE ROOT READY
+
+      </div>
+
+    `;
+
+    debugStep(
+      "Timeline Root Created"
+    );
+
+  }
+
+  catch(error){
+
+    debugError(
+      "Layout Error",
+      error
+    );
+
+  }
+
+}
+
+/* =========================================================
+LOAD STORAGE
+========================================================= */
+
+function loadStorage(){
+
+  try{
+
+    debugStep(
+      "Loading Storage..."
+    );
+
+    /* =========================================
+    임시:
+    storage 완전 비활성화 테스트
+    ========================================= */
+
+    APP.entries = [];
+
+    debugStep(
+      "Storage Loaded"
+    );
+
+  }
+
+  catch(error){
+
+    debugError(
+      "Storage Error",
+      error
+    );
+
+  }
+
+}
+
+/* =========================================================
+RENDER TIMELINE
+========================================================= */
+
+function renderTimeline(){
+
+  try{
+
+    debugStep(
+      "Rendering Timeline..."
+    );
+
+    const timeline =
+      document.getElementById(
+        "timeline"
+      );
+
+    if(!timeline){
+
+      throw new Error(
+        "Timeline container missing"
+      );
+
+    }
+
+    if(APP.entries.length === 0){
+
+      timeline.innerHTML += `
+
+        <div class="empty-card">
+
+          앱 렌더링 성공
+          <br><br>
+          현재 저장된 일기가 없습니다.
+
+        </div>
+
+      `;
+
+    }
+
+    debugStep(
+      "Timeline Rendered"
+    );
+
+  }
+
+  catch(error){
+
+    debugError(
+      "Timeline Error",
+      error
+    );
+
+  }
+
+}
+
+/* =========================================================
+ATTACH EVENTS
+========================================================= */
+
+function attachEvents(){
+
+  try{
+
+    debugStep(
+      "Attaching Events..."
+    );
+
+    const saveBtn =
+      document.getElementById(
+        "saveBtn"
+      );
+
+    if(!saveBtn){
+
+      throw new Error(
+        "Save button missing"
+      );
+
+    }
+
+    saveBtn.addEventListener(
+
+      "pointerdown",
+
+      ()=>{
+
+        debugStep(
+          "Save Button Pressed"
         );
 
-      app.id = "app";
+        alert(
+          "버튼 이벤트 정상 작동"
+        );
 
-      document.body.appendChild(
-        app
-      );
+      },
+
+      {
+        passive:true
+      }
+
+    );
+
+    debugStep(
+      "Events Attached"
+    );
+
+  }
+
+  catch(error){
+
+    debugError(
+      "Event Error",
+      error
+    );
+
+  }
+
+}
+
+/* =========================================================
+SAFE START
+========================================================= */
+
+try{
+
+  initApp();
+
+}
+
+catch(error){
+
+  debugError(
+    "Critical Init Error",
+    error
+  );
+
+}
+
+</script>
+
+<style>
+
+/* =========================================================
+RESET
+========================================================= */
+
+*{
+
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+html,
+body{
+
+  width:100%;
+
+  min-height:100%;
+
+  background:#111827;
+
+  color:white;
+
+  font-family:
+    Pretendard,
+    sans-serif;
+
+  overflow-x:hidden;
+}
+
+body{
+
+  min-height:100dvh;
+}
+
+/* =========================================================
+DEBUG
+========================================================= */
+
+#debugBoot{
+
+  position:fixed;
+
+  top:0;
+  left:0;
+
+  width:100%;
+
+  z-index:999999;
+
+  padding:16px;
+}
+
+.debug-card{
+
+  background:#1f2937;
+
+  border-radius:20px;
+
+  padding:16px;
+
+  border:
+    1px solid rgba(255,255,255,.1);
+}
+
+#debugStatus{
+
+  margin-top:10px;
+
+  color:#93c5fd;
+
+  font-size:14px;
+}
+
+#debugLogs{
+
+  margin-top:14px;
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:8px;
+}
+
+.debug-log{
+
+  font-size:13px;
+
+  color:#d1fae5;
+}
+
+.debug-error{
+
+  font-size:13px;
+
+  color:#fecaca;
+
+  line-height:1.5;
+}
+
+/* =========================================================
+APP ROOT
+========================================================= */
+
+#app{
+
+  width:100%;
+
+  min-height:100dvh;
+
+  padding-top:180px;
+}
+
+/* =========================================================
+MOBILE
+========================================================= */
+
+.mobile-shell{
+
+  width:100%;
+
+  padding:
+    16px
+    16px
+    120px;
+}
+
+.mobile-header{
+
+  margin-bottom:24px;
+}
+
+.mobile-header h1{
+
+  font-size:32px;
+
+  margin-bottom:10px;
+}
+
+.mobile-feed{
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:20px;
+}
+
+.write-card,
+.empty-card,
+.test-card{
+
+  background:#1f2937;
+
+  border-radius:28px;
+
+  padding:20px;
+
+  border:
+    1px solid rgba(255,255,255,.08);
+}
+
+textarea{
+
+  width:100%;
+
+  min-height:180px;
+
+  border:none;
+
+  outline:none;
+
+  background:#111827;
+
+  color:white;
+
+  border-radius:18px;
+
+  padding:16px;
+
+  resize:none;
+
+  font-size:15px;
+}
+
+button{
+
+  width:100%;
+
+  height:56px;
+
+  border:none;
+
+  border-radius:18px;
+
+  background:#60a5fa;
+
+  color:white;
+
+  margin-top:14px;
+
+  font-size:15px;
+
+  touch-action:
+    manipulation;
+}
+
+/* =========================================================
+DESKTOP
+========================================================= */
+
+.desktop-shell{
+
+  display:grid;
+
+  grid-template-columns:
+    260px 1fr;
+
+  min-height:100dvh;
+}
+
+.sidebar{
+
+  padding:24px;
+
+  background:#1f2937;
+}
+
+.desktop-main{
+
+  padding:24px;
+}
+
+</style>
+
+
 
     }
 
