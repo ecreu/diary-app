@@ -1,39 +1,1016 @@
 <!-- =========================================================
-MOBILE RENDER DEBUG PATCH
-모바일 렌더링 강제 디버그 시스템
+STAGE DEBUG RENDER PATCH
+render 단계별 강제 디버그 복구 패치
 ========================================================= -->
 
 <script>
 
 /* =========================================================
-DEBUG BOOT UI
+GLOBAL DEBUG UI
 ========================================================= */
 
-(function(){
+document.body.innerHTML = `
 
-  document.body.innerHTML = `
+  <div id="debugPanel">
 
-    <div id="debugBoot">
+    <div class="debugHeader">
 
-      <div class="debug-card">
+      하루 일기 디버그 모드
 
-        <h1>
-          하루 일기 디버그 모드
-        </h1>
+    </div>
 
-        <div id="debugStatus">
+    <div id="debugCurrent">
 
-          App Booting...
+      App Booting...
+
+    </div>
+
+    <div id="debugLogs">
+
+    </div>
+
+  </div>
+
+  <div id="app"></div>
+
+`;
+
+/* =========================================================
+DEBUG HELPERS
+========================================================= */
+
+function debug(message){
+
+  console.log(
+    "[DEBUG]",
+    message
+  );
+
+  const current =
+    document.getElementById(
+      "debugCurrent"
+    );
+
+  const logs =
+    document.getElementById(
+      "debugLogs"
+    );
+
+  if(current){
+
+    current.textContent =
+      message;
+
+  }
+
+  if(logs){
+
+    const row =
+      document.createElement(
+        "div"
+      );
+
+    row.className =
+      "debugRow success";
+
+    row.textContent =
+      "✓ " + message;
+
+    logs.appendChild(row);
+
+  }
+
+}
+
+function debugError(
+  step,
+  error
+){
+
+  console.error(
+    step,
+    error
+  );
+
+  const logs =
+    document.getElementById(
+      "debugLogs"
+    );
+
+  if(logs){
+
+    const row =
+      document.createElement(
+        "div"
+      );
+
+    row.className =
+      "debugRow error";
+
+    row.innerHTML = `
+
+      ✗ ${step}
+      <br>
+      ${
+        error?.message
+        || "Unknown Error"
+      }
+
+    `;
+
+    logs.appendChild(row);
+
+  }
+
+}
+
+/* =========================================================
+GLOBAL STATE
+========================================================= */
+
+const STATE = {
+
+  platform:"mobile",
+
+  entries:[]
+
+};
+
+/* =========================================================
+SAFE STORAGE LOAD
+========================================================= */
+
+function loadStorage(){
+
+  try{
+
+    debug(
+      "Loading Storage..."
+    );
+
+    const raw =
+      localStorage.getItem(
+        "emotionalDiaryEntries"
+      );
+
+    if(!raw){
+
+      STATE.entries = [];
+
+      debug(
+        "No Storage Data"
+      );
+
+      return;
+
+    }
+
+    const parsed =
+      JSON.parse(raw);
+
+    if(
+      !Array.isArray(parsed)
+    ){
+
+      throw new Error(
+        "Storage not array"
+      );
+
+    }
+
+    STATE.entries =
+      parsed;
+
+    debug(
+      "Storage Loaded"
+    );
+
+  }
+
+  catch(error){
+
+    debugError(
+      "Storage Failed",
+      error
+    );
+
+    STATE.entries = [];
+
+    localStorage.removeItem(
+      "emotionalDiaryEntries"
+    );
+
+  }
+
+}
+
+/* =========================================================
+PLATFORM DETECT
+========================================================= */
+
+function detectPlatform(){
+
+  try{
+
+    debug(
+      "Detecting Platform..."
+    );
+
+    STATE.platform =
+
+      window.innerWidth <= 768
+
+      ? "mobile"
+
+      : "desktop";
+
+    document.body.classList.add(
+      STATE.platform
+    );
+
+    debug(
+      "Platform: "
+      + STATE.platform
+    );
+
+  }
+
+  catch(error){
+
+    debugError(
+      "Platform Detection Failed",
+      error
+    );
+
+  }
+
+}
+
+/* =========================================================
+CREATE LAYOUT
+========================================================= */
+
+function createLayout(){
+
+  try{
+
+    debug(
+      "Creating Layout..."
+    );
+
+    const app =
+      document.getElementById(
+        "app"
+      );
+
+    if(!app){
+
+      throw new Error(
+        "#app missing"
+      );
+
+    }
+
+    /* =====================================================
+    MOBILE
+    ===================================================== */
+
+    if(
+      STATE.platform
+      === "mobile"
+    ){
+
+      app.innerHTML = `
+
+        <div class="mobileShell">
+
+          <header class="mobileHeader">
+
+            <h1>
+              하루 일기
+            </h1>
+
+            <p>
+              오늘 하루를 기록해보세요
+            </p>
+
+          </header>
+
+          <main class="mobileFeed">
+
+            <section class="writeCard">
+
+              <textarea
+                id="diaryInput"
+                placeholder="
+                  오늘 하루는 어땠나요?
+                "
+              ></textarea>
+
+              <button
+                id="saveBtn"
+              >
+
+                저장하기
+
+              </button>
+
+            </section>
+
+            <section
+              id="timeline"
+              class="timeline"
+            >
+
+            </section>
+
+            <section
+              id="calendar"
+              class="calendar"
+            >
+
+            </section>
+
+            <section
+              id="stats"
+              class="stats"
+            >
+
+            </section>
+
+          </main>
 
         </div>
 
-        <div id="debugLogs">
+      `;
+
+    }
+
+    /* =====================================================
+    DESKTOP
+    ===================================================== */
+
+    else{
+
+      app.innerHTML = `
+
+        <div class="desktopShell">
+
+          DESKTOP MODE
 
         </div>
+
+      `;
+
+    }
+
+    debug(
+      "Layout Created"
+    );
+
+  }
+
+  catch(error){
+
+    debugError(
+      "Layout Failed",
+      error
+    );
+
+  }
+
+}
+
+/* =========================================================
+TIMELINE
+========================================================= */
+
+function renderTimeline(){
+
+  try{
+
+    debug(
+      "Rendering Timeline..."
+    );
+
+    const timeline =
+      document.getElementById(
+        "timeline"
+      );
+
+    if(!timeline){
+
+      throw new Error(
+        "Timeline container missing"
+      );
+
+    }
+
+    if(
+      !STATE.entries.length
+    ){
+
+      timeline.innerHTML = `
+
+        <div class="emptyCard">
+
+          아직 작성된 일기가 없어요
+
+        </div>
+
+      `;
+
+      debug(
+        "Timeline Empty State"
+      );
+
+      return;
+
+    }
+
+    timeline.innerHTML =
+
+      STATE.entries
+        .map(entry=>`
+
+          <article class="entryCard">
+
+            <h3>
+              ${
+                entry.title
+                || "제목 없음"
+              }
+            </h3>
+
+            <p>
+              ${
+                entry.content
+                || ""
+              }
+            </p>
+
+          </article>
+
+        `)
+        .join("");
+
+    debug(
+      "Timeline Rendered"
+    );
+
+  }
+
+  catch(error){
+
+    debugError(
+      "Timeline Failed",
+      error
+    );
+
+  }
+
+}
+
+/* =========================================================
+CALENDAR
+========================================================= */
+
+function renderCalendar(){
+
+  try{
+
+    debug(
+      "Rendering Calendar..."
+    );
+
+    const calendar =
+      document.getElementById(
+        "calendar"
+      );
+
+    if(!calendar){
+
+      throw new Error(
+        "Calendar missing"
+      );
+
+    }
+
+    calendar.innerHTML = `
+
+      <div class="simpleCard">
+
+        Calendar Render Success
 
       </div>
 
-    </div>
+    `;
+
+    debug(
+      "Calendar Rendered"
+    );
+
+  }
+
+  catch(error){
+
+    debugError(
+      "Calendar Failed",
+      error
+    );
+
+  }
+
+}
+
+/* =========================================================
+STATS
+========================================================= */
+
+function renderStats(){
+
+  try{
+
+    debug(
+      "Rendering Stats..."
+    );
+
+    const stats =
+      document.getElementById(
+        "stats"
+      );
+
+    if(!stats){
+
+      throw new Error(
+        "Stats missing"
+      );
+
+    }
+
+    stats.innerHTML = `
+
+      <div class="simpleCard">
+
+        총 일기 수:
+        ${STATE.entries.length}
+
+      </div>
+
+    `;
+
+    debug(
+      "Stats Rendered"
+    );
+
+  }
+
+  catch(error){
+
+    debugError(
+      "Stats Failed",
+      error
+    );
+
+  }
+
+}
+
+/* =========================================================
+EVENTS
+========================================================= */
+
+function attachEvents(){
+
+  try{
+
+    debug(
+      "Attaching Events..."
+    );
+
+    const saveBtn =
+      document.getElementById(
+        "saveBtn"
+      );
+
+    if(!saveBtn){
+
+      throw new Error(
+        "Save button missing"
+      );
+
+    }
+
+    saveBtn.addEventListener(
+
+      "pointerdown",
+
+      handleSave,
+
+      {
+        passive:true
+      }
+
+    );
+
+    debug(
+      "Events Attached"
+    );
+
+  }
+
+  catch(error){
+
+    debugError(
+      "Event Attach Failed",
+      error
+    );
+
+  }
+
+}
+
+/* =========================================================
+SAVE
+========================================================= */
+
+function handleSave(){
+
+  try{
+
+    debug(
+      "Saving Entry..."
+    );
+
+    const input =
+      document.getElementById(
+        "diaryInput"
+      );
+
+    if(!input){
+
+      throw new Error(
+        "Input missing"
+      );
+
+    }
+
+    const content =
+      input.value.trim();
+
+    if(!content){
+
+      alert(
+        "일기를 입력해주세요."
+      );
+
+      return;
+    }
+
+    const entry = {
+
+      id:
+        Date.now(),
+
+      title:
+        content.slice(0,10),
+
+      content,
+
+      createdAt:
+        new Date()
+          .toISOString()
+
+    };
+
+    STATE.entries.unshift(
+      entry
+    );
+
+    localStorage.setItem(
+
+      "emotionalDiaryEntries",
+
+      JSON.stringify(
+        STATE.entries
+      )
+
+    );
+
+    input.value = "";
+
+    renderTimeline();
+
+    renderStats();
+
+    debug(
+      "Entry Saved"
+    );
+
+  }
+
+  catch(error){
+
+    debugError(
+      "Save Failed",
+      error
+    );
+
+  }
+
+}
+
+/* =========================================================
+INIT FLOW
+========================================================= */
+
+function initApp(){
+
+  debug(
+    "App Init Started"
+  );
+
+  detectPlatform();
+
+  createLayout();
+
+  loadStorage();
+
+  renderTimeline();
+
+  renderCalendar();
+
+  renderStats();
+
+  attachEvents();
+
+  debug(
+    "App Ready"
+  );
+
+}
+
+/* =========================================================
+SAFE INIT
+========================================================= */
+
+try{
+
+  initApp();
+
+}
+
+catch(error){
+
+  debugError(
+    "Critical Init Failed",
+    error
+  );
+
+}
+
+</script>
+
+<style>
+
+/* =========================================================
+RESET
+========================================================= */
+
+*{
+
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+html,
+body{
+
+  width:100%;
+
+  min-height:100%;
+
+  background:#0f172a;
+
+  color:white;
+
+  font-family:
+    Pretendard,
+    sans-serif;
+
+  overflow-x:hidden;
+}
+
+body{
+
+  min-height:100dvh;
+}
+
+/* =========================================================
+DEBUG PANEL
+========================================================= */
+
+#debugPanel{
+
+  position:fixed;
+
+  top:0;
+  left:0;
+
+  width:100%;
+
+  z-index:999999;
+
+  padding:14px;
+
+  background:
+    rgba(15,23,42,.95);
+
+  backdrop-filter:
+    blur(10px);
+
+  border-bottom:
+    1px solid rgba(255,255,255,.08);
+}
+
+.debugHeader{
+
+  font-size:18px;
+
+  font-weight:700;
+
+  margin-bottom:8px;
+}
+
+#debugCurrent{
+
+  color:#93c5fd;
+
+  font-size:14px;
+
+  margin-bottom:10px;
+}
+
+#debugLogs{
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:6px;
+
+  max-height:180px;
+
+  overflow:auto;
+}
+
+.debugRow{
+
+  font-size:12px;
+
+  line-height:1.5;
+}
+
+.success{
+
+  color:#d1fae5;
+}
+
+.error{
+
+  color:#fecaca;
+}
+
+/* =========================================================
+APP
+========================================================= */
+
+#app{
+
+  width:100%;
+
+  min-height:100dvh;
+
+  padding-top:220px;
+}
+
+/* =========================================================
+MOBILE
+========================================================= */
+
+.mobileShell{
+
+  width:100%;
+
+  padding:
+    16px
+    16px
+    120px;
+}
+
+.mobileHeader{
+
+  margin-bottom:24px;
+}
+
+.mobileHeader h1{
+
+  font-size:32px;
+
+  margin-bottom:10px;
+}
+
+.mobileHeader p{
+
+  color:#cbd5e1;
+}
+
+.mobileFeed{
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:20px;
+}
+
+.writeCard,
+.emptyCard,
+.simpleCard,
+.entryCard{
+
+  background:
+    rgba(30,41,59,.9);
+
+  border-radius:24px;
+
+  padding:20px;
+
+  border:
+    1px solid rgba(255,255,255,.06);
+}
+
+textarea{
+
+  width:100%;
+
+  min-height:160px;
+
+  border:none;
+
+  outline:none;
+
+  resize:none;
+
+  border-radius:18px;
+
+  padding:16px;
+
+  background:#111827;
+
+  color:white;
+
+  font-size:15px;
+}
+
+button{
+
+  width:100%;
+
+  height:56px;
+
+  border:none;
+
+  border-radius:18px;
+
+  background:#60a5fa;
+
+  color:white;
+
+  font-size:15px;
+
+  margin-top:14px;
+
+  touch-action:
+    manipulation;
+}
+
+.entryCard h3{
+
+  margin-bottom:10px;
+}
+
+.entryCard p{
+
+  color:#e2e8f0;
+
+  line-height:1.6;
+}
+
+</style>
+
+
 
     <div id="app"></div>
 
