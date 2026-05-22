@@ -1,314 +1,316 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8" />
+<!-- =========================
+     DEBUG TOGGLE BUTTON
+========================= -->
 
-<meta
-  name="viewport"
-  content="
-    width=device-width,
-    initial-scale=1.0,
-    viewport-fit=cover
-  "
-/>
+<button id="debug-toggle">
+  🐞
+</button>
 
-<title>하루 일기</title>
+<!-- =========================
+     DEBUG CONSOLE
+========================= -->
+
+<div id="debug-log"></div>
 
 <style>
 
-body{
-  margin:0;
-  padding:0;
-  background:#111827;
-  color:white;
-  font-family:sans-serif;
+/* =========================
+   debug toggle
+========================= */
+
+#debug-toggle{
+
+  position:fixed;
+
+  top:14px;
+  right:14px;
+
+  width:42px;
+  height:42px;
+
+  border:none;
+
+  border-radius:50%;
+
+  background:
+    rgba(0,0,0,.7);
+
+  color:#7CFF7C;
+
+  font-size:18px;
+
+  z-index:1000000;
+
+  backdrop-filter:
+    blur(10px);
+
+  cursor:pointer;
 }
 
-#boot-test{
-  color:white;
-  padding:20px;
-  font-size:20px;
-  border-bottom:1px solid #333;
+/* =========================
+   debug console
+========================= */
+
+#debug-log{
+
+  position:fixed;
+
+  bottom:0;
+  left:0;
+
+  width:100%;
+
+  max-height:35vh;
+
+  overflow-y:auto;
+
+  background:
+    rgba(0,0,0,.85);
+
+  color:#7CFF7C;
+
+  font-size:12px;
+
+  line-height:1.5;
+
+  padding:
+    10px
+    10px
+    calc(
+      10px +
+      env(safe-area-inset-bottom)
+    );
+
+  z-index:999999;
+
+  backdrop-filter:
+    blur(10px);
+
+  font-family:monospace;
+
+  border-top:
+    1px solid rgba(
+      255,255,255,.08
+    );
 }
 
-#debug{
-  padding:20px;
-  font-size:14px;
-  line-height:1.7;
-  white-space:pre-wrap;
+#debug-log.hidden{
+  display:none;
 }
 
-#app{
-  padding:20px;
+#debug-log p{
+
+  margin:4px 0;
+
+  word-break:break-word;
+}
+
+.debug-info{
+  color:#7CFF7C;
+}
+
+.debug-error{
+  color:#ff7c7c;
+}
+
+.debug-warn{
+  color:#ffd36e;
 }
 
 </style>
-</head>
-
-<body>
-
-<!-- =========================
-     1. HTML 로딩 확인
-========================= -->
-
-<div id="boot-test">
-  HTML LOADED
-</div>
-
-<div id="debug"></div>
-
-<div id="app"></div>
-
-<!-- =========================
-     2. JS 실행 확인
-========================= -->
 
 <script>
 
-/* -------------------------
-   JS 파일 자체 로딩 확인
-------------------------- */
+/* =========================
+   debug state
+========================= */
 
-alert("JS FILE LOADED");
+const DEBUG_MAX_LOGS = 100;
 
-/* -------------------------
-   debug helper
-------------------------- */
+let debugVisible = true;
 
-function debug(message){
+/* =========================
+   debug function
+========================= */
 
-  console.log(message);
+function debug(
+  message,
+  type = "info"
+){
 
-  const debugEl =
+  try{
+
+    console.log(message);
+
+    const log =
+      document.getElementById(
+        "debug-log"
+      );
+
+    if(!log){
+      return;
+    }
+
+    const time =
+      new Date()
+        .toLocaleTimeString(
+          "ko-KR"
+        );
+
+    const line =
+      document.createElement(
+        "p"
+      );
+
+    line.className =
+      "debug-" + type;
+
+    line.textContent =
+      `[${time}] ${message}`;
+
+    log.appendChild(line);
+
+    /* 최대 로그 제한 */
+
+    while(
+      log.children.length >
+      DEBUG_MAX_LOGS
+    ){
+
+      log.removeChild(
+        log.firstChild
+      );
+    }
+
+    log.scrollTop =
+      log.scrollHeight;
+
+  }catch(error){
+
+    console.error(
+      "debug render failed",
+      error
+    );
+  }
+
+}
+
+/* =========================
+   debug toggle
+========================= */
+
+function setupDebugToggle(){
+
+  debug(
+    "ENTER setupDebugToggle"
+  );
+
+  const toggle =
     document.getElementById(
-      "debug"
+      "debug-toggle"
     );
 
-  if(!debugEl){
+  const log =
+    document.getElementById(
+      "debug-log"
+    );
+
+  debug(
+    "toggle exists: " +
+    !!toggle
+  );
+
+  debug(
+    "debug log exists: " +
+    !!log
+  );
+
+  if(
+    !toggle ||
+    !log
+  ){
+
+    debug(
+      "EXIT setupDebugToggle no element",
+      "warn"
+    );
+
     return;
   }
 
-  debugEl.innerHTML +=
-    message + "\n";
+  toggle.addEventListener(
+    "click",
+    function(){
+
+      debugVisible =
+        !debugVisible;
+
+      log.classList.toggle(
+        "hidden",
+        !debugVisible
+      );
+
+      debug(
+        "DEBUG VISIBILITY: " +
+        debugVisible
+      );
+
+    }
+  );
+
+  debug(
+    "EXIT setupDebugToggle"
+  );
+
 }
 
-/* -------------------------
-   script 시작 확인
-------------------------- */
+/* =========================
+   global error tracking
+========================= */
 
-debug(
-  "SCRIPT START"
-);
-
-/* -------------------------
-   syntax 생존 체크
-------------------------- */
-
-debug(
-  "BASIC JS OK"
-);
-
-/* -------------------------
-   window error 추적
-------------------------- */
-
-window.onerror =
-  function(
-    message,
-    source,
-    line,
-    column,
-    error
-  ){
-
-    alert(
-      "GLOBAL ERROR:\n" +
-      message
-    );
+window.addEventListener(
+  "error",
+  function(event){
 
     debug(
       "GLOBAL ERROR: " +
-      message
+      event.message,
+      "error"
     );
 
     debug(
-      "LINE: " + line
+      "LINE: " +
+      event.lineno,
+      "error"
     );
 
-    debug(
-      "COLUMN: " + column
-    );
-
-    console.error(error);
-  };
-
-/* -------------------------
-   promise error 추적
-------------------------- */
+  }
+);
 
 window.addEventListener(
   "unhandledrejection",
   function(event){
 
-    alert(
-      "PROMISE ERROR"
-    );
-
     debug(
-      "PROMISE ERROR"
+      "PROMISE ERROR: " +
+      event.reason,
+      "error"
     );
-
-    console.error(
-      event.reason
-    );
-  }
-);
-
-/* -------------------------
-   DOMContentLoaded 확인
-------------------------- */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  function(){
-
-    alert(
-      "DOM LOADED"
-    );
-
-    debug(
-      "DOMContentLoaded OK"
-    );
-
-    try{
-
-      initApp();
-
-    }catch(error){
-
-      alert(
-        "INIT CRASH"
-      );
-
-      debug(
-        "INIT ERROR: " +
-        error.message
-      );
-
-      console.error(error);
-    }
 
   }
 );
 
-/* -------------------------
-   initApp 확인
-------------------------- */
-
-function initApp(){
-
-  alert(
-    "INIT APP"
-  );
-
-  debug(
-    "INIT START"
-  );
-
-  const app =
-    document.getElementById(
-      "app"
-    );
-
-  debug(
-    "app exists: " +
-    !!app
-  );
-
-  if(!app){
-
-    debug(
-      "APP NOT FOUND"
-    );
-
-    return;
-  }
-
-  debug(
-    "BEFORE INNERHTML"
-  );
-
-  app.innerHTML = `
-
-    <div
-      style="
-        padding:20px;
-        border:1px solid #444;
-        margin-top:20px;
-      "
-    >
-      APP RENDER SUCCESS
-    </div>
-
-  `;
-
-  debug(
-    "AFTER INNERHTML"
-  );
-
-  debug(
-    "INIT COMPLETE"
-  );
-
-}
-
-/* -------------------------
-   script 마지막 확인
-------------------------- */
-
-debug(
-  "SCRIPT END"
-);
-
-</script>
-
-</body>
-</html>
-
-
-
-      "debug-log"
-    );
-
-  if(!log){
-    return;
-  }
-
-  const line =
-    document.createElement("div");
-
-  line.textContent =
-    String(message);
-
-  log.appendChild(line);
-
-  log.scrollTop =
-    log.scrollHeight;
-}
-
-/* init 중복 방지 */
-
-let initialized = false;
-
-/* 앱 상태 */
+/* =========================
+   state
+========================= */
 
 const state = {
   entries:[]
 };
 
-/* -------------------------
+/* =========================
    storage
-------------------------- */
+========================= */
 
 function loadEntries(){
 
@@ -316,19 +318,6 @@ function loadEntries(){
     "ENTER loadEntries"
   );
 
-  /* storage 완전 격리 테스트 */
-
-  debug(
-    "LOAD ENTRIES DISABLED"
-  );
-
-  debug(
-    "EXIT loadEntries"
-  );
-
-  return [];
-
-  /*
   try{
 
     const raw =
@@ -354,14 +343,17 @@ function loadEntries(){
       JSON.parse(raw);
 
     debug(
-      "parsed array: " +
+      "parsed is array: " +
       Array.isArray(parsed)
     );
 
-    if(!Array.isArray(parsed)){
+    if(
+      !Array.isArray(parsed)
+    ){
 
       debug(
-        "EXIT loadEntries invalid"
+        "EXIT loadEntries invalid",
+        "warn"
       );
 
       return [];
@@ -376,18 +368,15 @@ function loadEntries(){
   }catch(error){
 
     debug(
-      "loadEntries error: " +
-      error.message
+      "ERROR: " +
+      error.message,
+      "error"
     );
 
-    console.error(
-      "storage load failed",
-      error
-    );
+    console.error(error);
 
     return [];
   }
-  */
 
 }
 
@@ -413,21 +402,56 @@ function saveEntries(){
   }catch(error){
 
     debug(
-      "saveEntries error: " +
-      error.message
+      "ERROR: " +
+      error.message,
+      "error"
     );
 
-    console.error(
-      "storage save failed",
-      error
-    );
+    console.error(error);
   }
 
 }
 
-/* -------------------------
+/* =========================
+   utils
+========================= */
+
+function escapeHtml(text){
+
+  debug(
+    "ENTER escapeHtml"
+  );
+
+  try{
+
+    const result =
+      text
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;");
+
+    debug(
+      "EXIT escapeHtml"
+    );
+
+    return result;
+
+  }catch(error){
+
+    debug(
+      "ERROR: " +
+      error.message,
+      "error"
+    );
+
+    return text;
+  }
+
+}
+
+/* =========================
    emotion
-------------------------- */
+========================= */
 
 function analyzeEmotion(text){
 
@@ -435,80 +459,68 @@ function analyzeEmotion(text){
     "ENTER analyzeEmotion"
   );
 
-  const content =
-    text.toLowerCase();
+  try{
 
-  if(
-    content.includes("행복") ||
-    content.includes("좋") ||
-    content.includes("재밌")
-  ){
+    const content =
+      text.toLowerCase();
+
+    if(
+      content.includes("행복") ||
+      content.includes("좋")
+    ){
+
+      debug(
+        "EXIT analyzeEmotion 행복"
+      );
+
+      return {
+        emoji:"😊",
+        label:"행복"
+      };
+    }
+
+    if(
+      content.includes("슬")
+    ){
+
+      debug(
+        "EXIT analyzeEmotion 슬픔"
+      );
+
+      return {
+        emoji:"😢",
+        label:"슬픔"
+      };
+    }
 
     debug(
-      "EXIT analyzeEmotion 행복"
+      "EXIT analyzeEmotion 평범"
     );
 
     return {
-      emoji:"😊",
-      label:"행복"
+      emoji:"😐",
+      label:"평범"
     };
-  }
 
-  if(
-    content.includes("슬") ||
-    content.includes("우울")
-  ){
+  }catch(error){
 
     debug(
-      "EXIT analyzeEmotion 슬픔"
+      "ERROR: " +
+      error.message,
+      "error"
     );
 
     return {
-      emoji:"😢",
-      label:"슬픔"
+      emoji:"😐",
+      label:"평범"
     };
   }
-
-  if(
-    content.includes("짜증") ||
-    content.includes("화")
-  ){
-
-    debug(
-      "EXIT analyzeEmotion 화남"
-    );
-
-    return {
-      emoji:"😡",
-      label:"화남"
-    };
-  }
-
-  if(
-    content.includes("피곤") ||
-    content.includes("졸")
-  ){
-
-    debug(
-      "EXIT analyzeEmotion 피곤"
-    );
-
-    return {
-      emoji:"😴",
-      label:"피곤"
-    };
-  }
-
-  debug(
-    "EXIT analyzeEmotion 평범"
-  );
-
-  return {
-    emoji:"😐",
-    label:"평범"
-  };
 
 }
+
+/* =========================
+   summary
+========================= */
 
 function createSummary(emotion){
 
@@ -524,14 +536,8 @@ function createSummary(emotion){
     슬픔:
       "조금 지친 하루였네요.",
 
-    화남:
-      "감정 기복이 있었던 하루예요.",
-
-    피곤:
-      "많이 피곤했던 하루였어요.",
-
     평범:
-      "소소하고 조용한 하루였어요."
+      "소소한 하루였어요."
   };
 
   debug(
@@ -540,13 +546,13 @@ function createSummary(emotion){
 
   return summaries[
     emotion.label
-  ];
+  ] || summaries.평범;
 
 }
 
-/* -------------------------
+/* =========================
    layout
-------------------------- */
+========================= */
 
 function createLayout(){
 
@@ -554,94 +560,100 @@ function createLayout(){
     "ENTER createLayout"
   );
 
-  const app =
-    document.getElementById(
-      "app"
-    );
+  try{
 
-  debug(
-    "app exists: " +
-    !!app
-  );
-
-  if(!app){
+    const app =
+      document.getElementById(
+        "app"
+      );
 
     debug(
-      "EXIT createLayout no app"
+      "app exists: " +
+      !!app
     );
 
-    return;
-  }
+    if(!app){
 
-  debug(
-    "createLayout step 1"
-  );
+      debug(
+        "EXIT createLayout no app",
+        "warn"
+      );
 
-  app.innerHTML = `
+      return;
+    }
 
-    <div class="mobile-app">
+    app.innerHTML = `
 
-      <div class="debug-alive">
-        APP RUNNING
+      <div class="mobile-app">
+
+        <header class="header">
+
+          <h1>
+            하루 일기
+          </h1>
+
+          <p>
+            오늘 하루를 기록해보세요
+          </p>
+
+        </header>
+
+        <section class="card">
+
+          <input
+            id="titleInput"
+            class="input"
+            placeholder="제목"
+          />
+
+          <textarea
+            id="contentInput"
+            class="textarea"
+            placeholder="오늘 하루는 어땠나요?"
+          ></textarea>
+
+          <button
+            id="saveBtn"
+            class="save-btn"
+          >
+            작성 완료
+          </button>
+
+        </section>
+
+        <section
+          id="timeline"
+          class="timeline"
+        ></section>
+
       </div>
 
-      <header class="header">
+    `;
 
-        <h1>
-          하루 일기
-        </h1>
+    debug(
+      "LAYOUT CREATED"
+    );
 
-        <p>
-          오늘 하루를 기록해보세요
-        </p>
+    debug(
+      "EXIT createLayout"
+    );
 
-      </header>
+  }catch(error){
 
-      <section class="card">
+    debug(
+      "ERROR: " +
+      error.message,
+      "error"
+    );
 
-        <input
-          id="titleInput"
-          class="input"
-          placeholder="제목"
-        />
-
-        <textarea
-          id="contentInput"
-          class="textarea"
-          placeholder="오늘 하루는 어땠나요?"
-        ></textarea>
-
-        <button
-          id="saveBtn"
-          class="save-btn"
-        >
-          작성 완료
-        </button>
-
-      </section>
-
-      <section
-        id="timeline"
-        class="timeline"
-      ></section>
-
-    </div>
-
-  `;
-
-  debug(
-    "createLayout step 2"
-  );
-
-  debug(
-    "EXIT createLayout"
-  );
+    console.error(error);
+  }
 
 }
 
-/* -------------------------
-   render
-------------------------- */
+/* =========================
+   timeline
+========================= */
 
 function renderTimeline(){
 
@@ -649,23 +661,10 @@ function renderTimeline(){
     "ENTER renderTimeline"
   );
 
-  /* timeline 완전 비활성화 테스트 */
-
-  debug(
-    "TIMELINE DISABLED"
-  );
-
-  debug(
-    "EXIT renderTimeline"
-  );
-
-  return;
-
-  /*
   try{
 
     debug(
-      "timeline step 1"
+      "TIMELINE RENDER START"
     );
 
     const timeline =
@@ -681,28 +680,16 @@ function renderTimeline(){
     if(!timeline){
 
       debug(
-        "EXIT renderTimeline no timeline"
+        "EXIT renderTimeline no timeline",
+        "warn"
       );
 
       return;
     }
 
-    debug(
-      "timeline step 2"
-    );
-
-    debug(
-      "entries length: " +
-      state.entries.length
-    );
-
     if(
       state.entries.length === 0
     ){
-
-      debug(
-        "timeline empty render"
-      );
 
       timeline.innerHTML = `
 
@@ -713,45 +700,41 @@ function renderTimeline(){
       `;
 
       debug(
-        "EXIT renderTimeline empty"
+        "TIMELINE EMPTY"
+      );
+
+      debug(
+        "TIMELINE RENDER END"
+      );
+
+      debug(
+        "EXIT renderTimeline"
       );
 
       return;
     }
-
-    debug(
-      "timeline step 3"
-    );
 
     timeline.innerHTML =
 
       state.entries
         .slice()
         .reverse()
-        .map(entry=>`
+        .map(entry => `
 
-          <div class="entry">
+          <article class="entry">
 
-            <div class="entry-top">
+            <div class="entry-title">
 
-              <div>
+              ${entry.emotion.emoji}
+              ${escapeHtml(
+                entry.title
+              )}
 
-                <div class="entry-title">
+            </div>
 
-                  ${entry.emotion.emoji}
-                  ${escapeHtml(
-                    entry.title
-                  )}
+            <div class="entry-date">
 
-                </div>
-
-                <div class="entry-date">
-
-                  ${entry.createdAt}
-
-                </div>
-
-              </div>
+              ${entry.createdAt}
 
             </div>
 
@@ -769,13 +752,13 @@ function renderTimeline(){
 
             </div>
 
-          </div>
+          </article>
 
         `)
         .join("");
 
     debug(
-      "timeline step 4"
+      "TIMELINE RENDER END"
     );
 
     debug(
@@ -785,67 +768,19 @@ function renderTimeline(){
   }catch(error){
 
     debug(
-      "renderTimeline error: " +
-      error.message
+      "ERROR: " +
+      error.message,
+      "error"
     );
 
-    console.error(
-      "timeline render failed",
-      error
-    );
-
+    console.error(error);
   }
-  */
 
 }
 
-function renderCalendar(){
-
-  debug(
-    "ENTER renderCalendar"
-  );
-
-  debug(
-    "CALENDAR DISABLED"
-  );
-
-  debug(
-    "EXIT renderCalendar"
-  );
-
-}
-
-function renderApp(){
-
-  debug(
-    "ENTER renderApp"
-  );
-
-  debug(
-    "renderApp step 1"
-  );
-
-  renderTimeline();
-
-  debug(
-    "renderApp step 2"
-  );
-
-  renderCalendar();
-
-  debug(
-    "renderApp step 3"
-  );
-
-  debug(
-    "EXIT renderApp"
-  );
-
-}
-
-/* -------------------------
+/* =========================
    save
-------------------------- */
+========================= */
 
 function saveEntry(){
 
@@ -854,10 +789,6 @@ function saveEntry(){
   );
 
   try{
-
-    debug(
-      "save step 1"
-    );
 
     const titleInput =
       document.getElementById(
@@ -885,15 +816,12 @@ function saveEntry(){
     ){
 
       debug(
-        "EXIT saveEntry missing input"
+        "EXIT saveEntry missing input",
+        "warn"
       );
 
       return;
     }
-
-    debug(
-      "save step 2"
-    );
 
     const title =
       titleInput.value.trim();
@@ -909,22 +837,15 @@ function saveEntry(){
     if(!content){
 
       debug(
-        "EXIT saveEntry empty content"
+        "EXIT saveEntry empty",
+        "warn"
       );
 
       return;
     }
 
-    debug(
-      "save step 3"
-    );
-
     const emotion =
       analyzeEmotion(content);
-
-    debug(
-      "save step 4"
-    );
 
     const entry = {
 
@@ -950,29 +871,17 @@ function saveEntry(){
         )
     };
 
-    debug(
-      "save step 5"
-    );
-
     state.entries.push(
       entry
     );
 
     debug(
-      "save step 6"
+      "entry pushed"
     );
 
     saveEntries();
 
-    debug(
-      "save step 7"
-    );
-
-    renderApp();
-
-    debug(
-      "save step 8"
-    );
+    renderTimeline();
 
     titleInput.value = "";
     contentInput.value = "";
@@ -984,22 +893,19 @@ function saveEntry(){
   }catch(error){
 
     debug(
-      "saveEntry error: " +
-      error.message
+      "ERROR: " +
+      error.message,
+      "error"
     );
 
-    console.error(
-      "save failed",
-      error
-    );
-
+    console.error(error);
   }
 
 }
 
-/* -------------------------
+/* =========================
    events
-------------------------- */
+========================= */
 
 function attachEvents(){
 
@@ -1007,5750 +913,113 @@ function attachEvents(){
     "ENTER attachEvents"
   );
 
-  const saveBtn =
-    document.getElementById(
-      "saveBtn"
-    );
+  try{
 
-  debug(
-    "saveBtn exists: " +
-    !!saveBtn
-  );
-
-  if(!saveBtn){
+    const saveBtn =
+      document.getElementById(
+        "saveBtn"
+      );
 
     debug(
-      "EXIT attachEvents no button"
+      "saveBtn exists: " +
+      !!saveBtn
     );
 
-    return;
-  }
-
-  debug(
-    "attachEvents step 1"
-  );
-
-  saveBtn.addEventListener(
-    "pointerdown",
-    function(event){
+    if(!saveBtn){
 
       debug(
-        "pointerdown fired"
+        "EXIT attachEvents no button",
+        "warn"
       );
 
-      event.preventDefault();
-
-      saveEntry();
-
-    },
-    {
-      passive:false
+      return;
     }
-  );
 
-  debug(
-    "attachEvents step 2"
-  );
-
-  debug(
-    "EXIT attachEvents"
-  );
-
-}
-
-/* -------------------------
-   utils
-------------------------- */
-
-function escapeHtml(text){
-
-  debug(
-    "ENTER escapeHtml"
-  );
-
-  const result =
-    text
-      .replace(/&/g,"&amp;")
-      .replace(/</g,"&lt;")
-      .replace(/>/g,"&gt;");
-
-  debug(
-    "EXIT escapeHtml"
-  );
-
-  return result;
-
-}
-
-/* -------------------------
-   init
-------------------------- */
-
-function initApp(){
-
-  debug(
-    "ENTER initApp"
-  );
-
-  if(initialized){
+    saveBtn.addEventListener(
+      "click",
+      saveEntry
+    );
 
     debug(
-      "already initialized"
+      "EVENT ATTACHED"
     );
-
-    return;
-  }
-
-  initialized = true;
-
-  debug(
-    "1. init start"
-  );
-
-  debug(
-    "2. platform detect"
-  );
-
-  debug(
-    "userAgent: " +
-    navigator.userAgent
-  );
-
-  debug(
-    "3. create layout"
-  );
-
-  createLayout();
-
-  debug(
-    "4. load storage"
-  );
-
-  state.entries =
-    loadEntries();
-
-  debug(
-    "5. render composer"
-  );
-
-  debug(
-    "6. render timeline"
-  );
-
-  renderApp();
-
-  debug(
-    "7. attach events"
-  );
-
-  attachEvents();
-
-  debug(
-    "8. init complete"
-  );
-
-  debug(
-    "EXIT initApp"
-  );
-
-}
-
-/* -------------------------
-   global crash tracking
-------------------------- */
-
-window.addEventListener(
-  "error",
-  function(event){
 
     debug(
-      "GLOBAL ERROR: " +
-      event.message
+      "EXIT attachEvents"
     );
 
-  }
-);
-
-window.addEventListener(
-  "unhandledrejection",
-  function(event){
+  }catch(error){
 
     debug(
-      "PROMISE ERROR: " +
-      event.reason
+      "ERROR: " +
+      error.message,
+      "error"
     );
 
-  }
-);
-
-/* -------------------------
-   start
-------------------------- */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  function(){
-
-    debug(
-      "DOMContentLoaded fired"
-    );
-
-    initApp();
-
-  },
-  {
-    once:true
-  }
-);
-
-</script>
-
-
-
-}
-
-html,
-body{
-  width:100%;
-  min-height:100dvh;
-
-  background:
-    linear-gradient(
-      180deg,
-      var(--bg2),
-      var(--bg1)
-    );
-
-  color:var(--text);
-
-  font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    "Pretendard",
-    sans-serif;
-
-  overflow-x:hidden;
-}
-
-body{
-  padding-bottom:
-    env(safe-area-inset-bottom);
-}
-
-button,
-textarea,
-input{
-  font:inherit;
-}
-
-#app{
-  width:100%;
-  min-height:100dvh;
-}
-
-/* 앱 생존 확인용 */
-
-.debug-alive{
-  font-size:12px;
-  color:#94a3b8;
-  margin-bottom:10px;
-}
-
-/* 모바일 앱 */
-
-.mobile-app{
-  width:100%;
-  min-height:100dvh;
-
-  padding:
-    20px
-    16px
-    120px;
-}
-
-.header{
-  margin-bottom:24px;
-}
-
-.header h1{
-  font-size:32px;
-  margin-bottom:6px;
-}
-
-.header p{
-  color:var(--sub);
-  font-size:14px;
-}
-
-.card{
-  background:var(--card);
-
-  border:
-    1px solid var(--line);
-
-  border-radius:28px;
-
-  backdrop-filter:
-    blur(14px);
-
-  padding:18px;
-
-  margin-bottom:18px;
-}
-
-.input{
-  width:100%;
-
-  border:none;
-  outline:none;
-
-  background:
-    rgba(255,255,255,.05);
-
-  color:white;
-
-  border-radius:18px;
-
-  padding:14px;
-
-  margin-bottom:12px;
-}
-
-.textarea{
-  width:100%;
-  min-height:160px;
-
-  resize:none;
-
-  border:none;
-  outline:none;
-
-  background:
-    rgba(255,255,255,.05);
-
-  color:white;
-
-  border-radius:22px;
-
-  padding:16px;
-
-  line-height:1.6;
-}
-
-.save-btn{
-  width:100%;
-  height:56px;
-
-  border:none;
-
-  border-radius:18px;
-
-  background:
-    linear-gradient(
-      135deg,
-      #8b5cf6,
-      #6366f1
-    );
-
-  color:white;
-
-  font-weight:700;
-
-  margin-top:14px;
-
-  cursor:pointer;
-}
-
-.save-btn:active{
-  transform:scale(.98);
-}
-
-.timeline{
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-}
-
-.entry{
-  background:
-    rgba(255,255,255,.06);
-
-  border:
-    1px solid rgba(255,255,255,.06);
-
-  border-radius:24px;
-
-  padding:18px;
-}
-
-.entry-top{
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-
-  margin-bottom:10px;
-}
-
-.entry-title{
-  font-size:18px;
-  font-weight:700;
-}
-
-.entry-date{
-  color:var(--sub);
-  font-size:12px;
-}
-
-.entry-content{
-  line-height:1.7;
-  color:#e2e8f0;
-  font-size:14px;
-}
-
-.entry-summary{
-  margin-top:12px;
-  color:#c4b5fd;
-  font-size:13px;
-}
-
-.empty{
-  text-align:center;
-  color:var(--sub);
-  padding:24px 0;
-}
-
-/* PC 최소 안정화 */
-
-@media (min-width:769px){
-
-  .mobile-app{
-    max-width:720px;
-    margin:auto;
-    padding-top:40px;
+    console.error(error);
   }
 
 }
-
-</style>
-</head>
-
-<body>
-
-<div id="app"></div>
-
-<script>
 
 /* =========================
-   앱 생존 안정화 버전
-========================= */
-
-/* init 중복 방지 */
-
-let initialized = false;
-
-/* 앱 상태 */
-
-const state = {
-  entries:[]
-};
-
-/* -------------------------
-   storage
-------------------------- */
-
-function loadEntries(){
-
-  try{
-
-    const raw =
-      localStorage.getItem(
-        "entries"
-      );
-
-    if(!raw){
-      return [];
-    }
-
-    const parsed =
-      JSON.parse(raw);
-
-    if(!Array.isArray(parsed)){
-      return [];
-    }
-
-    return parsed;
-
-  }catch(error){
-
-    console.error(
-      "storage load failed",
-      error
-    );
-
-    return [];
-  }
-
-}
-
-function saveEntries(){
-
-  try{
-
-    localStorage.setItem(
-      "entries",
-      JSON.stringify(
-        state.entries
-      )
-    );
-
-  }catch(error){
-
-    console.error(
-      "storage save failed",
-      error
-    );
-  }
-
-}
-
-/* -------------------------
-   emotion
-------------------------- */
-
-function analyzeEmotion(text){
-
-  const content =
-    text.toLowerCase();
-
-  if(
-    content.includes("행복") ||
-    content.includes("좋") ||
-    content.includes("재밌")
-  ){
-
-    return {
-      emoji:"😊",
-      label:"행복"
-    };
-  }
-
-  if(
-    content.includes("슬") ||
-    content.includes("우울")
-  ){
-
-    return {
-      emoji:"😢",
-      label:"슬픔"
-    };
-  }
-
-  if(
-    content.includes("짜증") ||
-    content.includes("화")
-  ){
-
-    return {
-      emoji:"😡",
-      label:"화남"
-    };
-  }
-
-  if(
-    content.includes("피곤") ||
-    content.includes("졸")
-  ){
-
-    return {
-      emoji:"😴",
-      label:"피곤"
-    };
-  }
-
-  return {
-    emoji:"😐",
-    label:"평범"
-  };
-
-}
-
-function createSummary(emotion){
-
-  const summaries = {
-
-    행복:
-      "오늘은 따뜻한 하루였어요.",
-
-    슬픔:
-      "조금 지친 하루였네요.",
-
-    화남:
-      "감정 기복이 있었던 하루예요.",
-
-    피곤:
-      "많이 피곤했던 하루였어요.",
-
-    평범:
-      "소소하고 조용한 하루였어요."
-  };
-
-  return summaries[
-    emotion.label
-  ];
-
-}
-
-/* -------------------------
-   layout
-------------------------- */
-
-function createLayout(){
-
-  const app =
-    document.getElementById(
-      "app"
-    );
-
-  if(!app){
-    return;
-  }
-
-  app.innerHTML = `
-
-    <div class="mobile-app">
-
-      <div class="debug-alive">
-        APP RUNNING
-      </div>
-
-      <header class="header">
-
-        <h1>
-          하루 일기
-        </h1>
-
-        <p>
-          오늘 하루를 기록해보세요
-        </p>
-
-      </header>
-
-      <section class="card">
-
-        <input
-          id="titleInput"
-          class="input"
-          placeholder="제목"
-        />
-
-        <textarea
-          id="contentInput"
-          class="textarea"
-          placeholder="오늘 하루는 어땠나요?"
-        ></textarea>
-
-        <button
-          id="saveBtn"
-          class="save-btn"
-        >
-          작성 완료
-        </button>
-
-      </section>
-
-      <section
-        id="timeline"
-        class="timeline"
-      ></section>
-
-    </div>
-
-  `;
-
-}
-
-/* -------------------------
-   render
-------------------------- */
-
-function renderTimeline(){
-
-  try{
-
-    const timeline =
-      document.getElementById(
-        "timeline"
-      );
-
-    if(!timeline){
-      return;
-    }
-
-    if(
-      state.entries.length === 0
-    ){
-
-      timeline.innerHTML = `
-
-        <div class="card empty">
-          아직 작성된 일기가 없어요.
-        </div>
-
-      `;
-
-      return;
-    }
-
-    timeline.innerHTML =
-
-      state.entries
-        .slice()
-        .reverse()
-        .map(entry=>`
-
-          <div class="entry">
-
-            <div class="entry-top">
-
-              <div>
-
-                <div class="entry-title">
-
-                  ${entry.emotion.emoji}
-                  ${escapeHtml(
-                    entry.title
-                  )}
-
-                </div>
-
-                <div class="entry-date">
-
-                  ${entry.createdAt}
-
-                </div>
-
-              </div>
-
-            </div>
-
-            <div class="entry-content">
-
-              ${escapeHtml(
-                entry.content
-              )}
-
-            </div>
-
-            <div class="entry-summary">
-
-              ${entry.summary}
-
-            </div>
-
-          </div>
-
-        `)
-        .join("");
-
-  }catch(error){
-
-    console.error(
-      "timeline render failed",
-      error
-    );
-
-  }
-
-}
-
-function renderApp(){
-
-  renderTimeline();
-
-}
-
-/* -------------------------
-   save
-------------------------- */
-
-function saveEntry(){
-
-  try{
-
-    const titleInput =
-      document.getElementById(
-        "titleInput"
-      );
-
-    const contentInput =
-      document.getElementById(
-        "contentInput"
-      );
-
-    if(
-      !titleInput ||
-      !contentInput
-    ){
-      return;
-    }
-
-    const title =
-      titleInput.value.trim();
-
-    const content =
-      contentInput.value.trim();
-
-    if(!content){
-      return;
-    }
-
-    const emotion =
-      analyzeEmotion(content);
-
-    const entry = {
-
-      id:Date.now(),
-
-      title:
-        title ||
-        "제목 없는 일기",
-
-      content,
-
-      createdAt:
-        new Date()
-          .toLocaleString(
-            "ko-KR"
-          ),
-
-      emotion,
-
-      summary:
-        createSummary(
-          emotion
-        )
-    };
-
-    state.entries.push(
-      entry
-    );
-
-    saveEntries();
-
-    renderApp();
-
-    titleInput.value = "";
-    contentInput.value = "";
-
-  }catch(error){
-
-    console.error(
-      "save failed",
-      error
-    );
-
-  }
-
-}
-
-/* -------------------------
-   events
-------------------------- */
-
-function attachEvents(){
-
-  const saveBtn =
-    document.getElementById(
-      "saveBtn"
-    );
-
-  if(!saveBtn){
-    return;
-  }
-
-  saveBtn.addEventListener(
-    "pointerdown",
-    function(event){
-
-      event.preventDefault();
-
-      saveEntry();
-
-    },
-    {
-      passive:false
-    }
-  );
-
-}
-
-/* -------------------------
-   utils
-------------------------- */
-
-function escapeHtml(text){
-
-  return text
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;");
-
-}
-
-/* -------------------------
    init
-------------------------- */
-
-function initApp(){
-
-  if(initialized){
-
-    console.warn(
-      "already initialized"
-    );
-
-    return;
-  }
-
-  initialized = true;
-
-  console.log(
-    "init start"
-  );
-
-  createLayout();
-
-  state.entries =
-    loadEntries();
-
-  renderApp();
-
-  attachEvents();
-
-  console.log(
-    "init complete"
-  );
-
-}
-
-/* -------------------------
-   start
-------------------------- */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  function(){
-
-    initApp();
-
-  },
-  {
-    once:true
-  }
-);
-
-</script>
-
-</body>
-</html>
-
-
-
-}
-
-body{
-  padding:
-    env(safe-area-inset-top)
-    0
-    env(safe-area-inset-bottom);
-}
-
-button,
-textarea,
-input{
-  font:inherit;
-}
-
-#app{
-  width:100%;
-  min-height:100dvh;
-}
-
-/* ---------- BOOT ---------- */
-
-.boot{
-  width:100%;
-  min-height:100dvh;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  gap:18px;
-  padding:24px;
-}
-
-.logo{
-  font-size:32px;
-  font-weight:700;
-}
-
-.bootCard{
-  width:min(92vw,420px);
-  background:var(--card);
-  border:1px solid var(--line);
-  border-radius:28px;
-  padding:22px;
-  backdrop-filter:blur(12px);
-}
-
-.debugLine{
-  font-size:14px;
-  color:var(--sub);
-  margin-top:10px;
-  word-break:break-word;
-}
-
-.ok{
-  color:#4ade80;
-}
-
-.err{
-  color:#f87171;
-}
-
-/* ---------- APP ---------- */
-
-.mobileApp{
-  width:100%;
-  min-height:100dvh;
-  padding:20px 16px 120px;
-}
-
-.header{
-  margin-bottom:24px;
-}
-
-.header h1{
-  font-size:32px;
-  margin-bottom:6px;
-}
-
-.header p{
-  color:var(--sub);
-  font-size:14px;
-}
-
-.card{
-  background:var(--card);
-  border:1px solid var(--line);
-  border-radius:28px;
-  backdrop-filter:blur(14px);
-  padding:18px;
-  margin-bottom:18px;
-}
-
-.writeTitle{
-  width:100%;
-  border:none;
-  outline:none;
-  background:rgba(255,255,255,.05);
-  color:white;
-  border-radius:18px;
-  padding:14px;
-  margin-bottom:12px;
-}
-
-.writeContent{
-  width:100%;
-  min-height:160px;
-  resize:none;
-  border:none;
-  outline:none;
-  background:rgba(255,255,255,.05);
-  color:white;
-  border-radius:20px;
-  padding:16px;
-  line-height:1.6;
-}
-
-.saveBtn{
-  width:100%;
-  height:56px;
-  border:none;
-  border-radius:18px;
-  margin-top:14px;
-  background:linear-gradient(135deg,#8b5cf6,#6366f1);
-  color:white;
-  font-weight:700;
-  cursor:pointer;
-}
-
-.saveBtn:active{
-  transform:scale(.98);
-}
-
-.empty{
-  color:var(--sub);
-  text-align:center;
-  padding:20px 0;
-}
-
-.timeline{
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-}
-
-.entry{
-  background:rgba(255,255,255,.06);
-  border-radius:24px;
-  padding:18px;
-  border:1px solid rgba(255,255,255,.06);
-}
-
-.entryTop{
-  display:flex;
-  justify-content:space-between;
-  gap:10px;
-  margin-bottom:10px;
-}
-
-.entryTitle{
-  font-size:18px;
-  font-weight:700;
-}
-
-.entryDate{
-  font-size:12px;
-  color:var(--sub);
-}
-
-.preview{
-  color:#e2e8f0;
-  line-height:1.6;
-  font-size:14px;
-}
-
-.summary{
-  margin-top:12px;
-  color:#c4b5fd;
-  font-size:13px;
-}
-
-/* ---------- DESKTOP ---------- */
-
-.desktop{
-  display:none;
-}
-
-@media (min-width:769px){
-
-  .mobileApp{
-    display:none;
-  }
-
-  .desktop{
-    display:grid;
-    grid-template-columns:300px 1fr;
-    gap:24px;
-    padding:24px;
-    min-height:100dvh;
-  }
-
-  .sidebar{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:30px;
-    padding:24px;
-    backdrop-filter:blur(18px);
-    height:fit-content;
-    position:sticky;
-    top:24px;
-  }
-
-  .desktopMain{
-    display:flex;
-    flex-direction:column;
-    gap:20px;
-  }
-
-}
-</style>
-</head>
-
-<body>
-
-<div id="app"></div>
-
-<script>
-/* =========================
-   APP STABILITY PATCH
 ========================= */
 
-/* ---------- GLOBAL STATE ---------- */
-
-let APP_INITIALIZED = false;
-let renderCount = 0;
-
-const state = {
-  entries:[]
-};
-
-/* ---------- SAFE STORAGE ---------- */
-
-function loadEntries(){
-
-  try{
-
-    const raw =
-      localStorage.getItem(
-        "emotionalDiaryEntries"
-      );
-
-    if(!raw){
-      return [];
-    }
-
-    const parsed =
-      JSON.parse(raw);
-
-    if(!Array.isArray(parsed)){
-      return [];
-    }
-
-    return parsed;
-
-  }catch(error){
-
-    console.error(
-      "Storage load failed",
-      error
-    );
-
-    localStorage.removeItem(
-      "emotionalDiaryEntries"
-    );
-
-    return [];
-  }
-}
-
-function saveEntries(){
-
-  try{
-
-    localStorage.setItem(
-      "emotionalDiaryEntries",
-      JSON.stringify(state.entries)
-    );
-
-    return true;
-
-  }catch(error){
-
-    console.error(
-      "Storage save failed",
-      error
-    );
-
-    return false;
-  }
-}
-
-/* ---------- DEBUG ---------- */
-
-function setBootMessage(text,type="ok"){
-
-  const debug =
-    document.getElementById(
-      "debugLog"
-    );
-
-  if(!debug) return;
-
-  const line =
-    document.createElement("div");
-
-  line.className =
-    `debugLine ${type}`;
-
-  line.textContent =
-    text;
-
-  debug.appendChild(line);
-}
-
-function showFatalError(message){
-
-  const app =
-    document.getElementById("app");
-
-  if(!app) return;
-
-  app.innerHTML = `
-    <div class="boot">
-      <div class="logo">하루 일기</div>
-
-      <div class="bootCard">
-        <div class="debugLine err">
-          ${message}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-/* ---------- EMOTION ---------- */
-
-function analyzeEmotion(text=""){
-
-  const lower =
-    text.toLowerCase();
-
-  const emotions = {
-
-    happy:[
-      "행복",
-      "좋",
-      "재밌",
-      "웃",
-      "기뻤"
-    ],
-
-    sad:[
-      "슬",
-      "우울",
-      "눈물"
-    ],
-
-    angry:[
-      "화",
-      "짜증",
-      "빡침"
-    ],
-
-    tired:[
-      "피곤",
-      "졸",
-      "지쳤"
-    ]
-  };
-
-  let scores = {
-    happy:0,
-    sad:0,
-    angry:0,
-    tired:0
-  };
-
-  Object.keys(emotions)
-    .forEach(type=>{
-
-      emotions[type]
-        .forEach(word=>{
-
-          if(lower.includes(word)){
-            scores[type]++;
-          }
-
-        });
-
-    });
-
-  const best =
-    Object.entries(scores)
-      .sort((a,b)=>b[1]-a[1])[0];
-
-  if(best[1] === 0){
-
-    return {
-      emoji:"😐",
-      label:"평범"
-    };
-  }
-
-  const map = {
-
-    happy:{
-      emoji:"😊",
-      label:"행복"
-    },
-
-    sad:{
-      emoji:"😢",
-      label:"슬픔"
-    },
-
-    angry:{
-      emoji:"😡",
-      label:"화남"
-    },
-
-    tired:{
-      emoji:"😴",
-      label:"피곤"
-    }
-  };
-
-  return map[best[0]];
-}
-
-function makeSummary(emotion){
-
-  const summaries = {
-
-    행복:
-      "오늘은 따뜻하고 기분 좋은 하루였어요.",
-
-    슬픔:
-      "조금 지쳤지만 잘 버텨낸 하루였네요.",
-
-    화남:
-      "감정의 파도가 있었던 하루였어요.",
-
-    피곤:
-      "몸도 마음도 쉬고 싶었던 하루였어요.",
-
-    평범:
-      "소소하지만 편안한 하루였어요."
-  };
-
-  return summaries[
-    emotion.label
-  ] || summaries["평범"];
-}
-
-/* ---------- LAYOUT ---------- */
-
-function createBoot(){
-
-  const app =
-    document.getElementById("app");
-
-  app.innerHTML = `
-    <div class="boot">
-
-      <div class="logo">
-        하루 일기
-      </div>
-
-      <div class="bootCard">
-
-        <div>
-          앱을 복구하는 중이에요...
-        </div>
-
-        <div id="debugLog"></div>
-
-      </div>
-
-    </div>
-  `;
-}
-
-function createMobileLayout(){
-
-  return `
-    <div class="mobileApp">
-
-      <div class="header">
-        <h1>하루 일기</h1>
-
-        <p>
-          오늘 하루를 기록해보세요
-        </p>
-      </div>
-
-      <div class="card">
-
-        <input
-          id="titleInput"
-          class="writeTitle"
-          placeholder="제목"
-        />
-
-        <textarea
-          id="contentInput"
-          class="writeContent"
-          placeholder="오늘 하루는 어땠나요?"
-        ></textarea>
-
-        <button
-          id="saveBtn"
-          class="saveBtn"
-        >
-          작성 완료
-        </button>
-
-      </div>
-
-      <div
-        id="timeline"
-        class="timeline"
-      ></div>
-
-    </div>
-  `;
-}
-
-function createDesktopLayout(){
-
-  return `
-    <div class="desktop">
-
-      <aside class="sidebar">
-        <h2>하루 일기</h2>
-      </aside>
-
-      <main class="desktopMain">
-
-        <div class="card">
-
-          <input
-            id="titleInput"
-            class="writeTitle"
-            placeholder="제목"
-          />
-
-          <textarea
-            id="contentInput"
-            class="writeContent"
-            placeholder="오늘 하루는 어땠나요?"
-          ></textarea>
-
-          <button
-            id="saveBtn"
-            class="saveBtn"
-          >
-            작성 완료
-          </button>
-
-        </div>
-
-        <div
-          id="timeline"
-          class="timeline"
-        ></div>
-
-      </main>
-
-    </div>
-  `;
-}
-
-/* ---------- RENDER ---------- */
-
-function renderTimeline(){
-
-  try{
-
-    const timeline =
-      document.getElementById(
-        "timeline"
-      );
-
-    if(!timeline){
-      return;
-    }
-
-    if(!state.entries.length){
-
-      timeline.innerHTML = `
-        <div class="card empty">
-          아직 작성된 일기가 없어요.
-        </div>
-      `;
-
-      return;
-    }
-
-    timeline.innerHTML =
-      state.entries
-        .slice()
-        .reverse()
-        .map(entry=>`
-
-          <div class="entry">
-
-            <div class="entryTop">
-
-              <div>
-
-                <div class="entryTitle">
-                  ${entry.emotion.emoji}
-                  ${escapeHtml(entry.title)}
-                </div>
-
-                <div class="entryDate">
-                  ${entry.createdAt}
-                </div>
-
-              </div>
-
-            </div>
-
-            <div class="preview">
-              ${escapeHtml(
-                entry.content.slice(0,120)
-              )}
-            </div>
-
-            <div class="summary">
-              ${entry.summary}
-            </div>
-
-          </div>
-
-        `)
-        .join("");
-
-  }catch(error){
-
-    console.error(
-      "renderTimeline failed",
-      error
-    );
-  }
-}
-
-function renderApp(){
-
-  renderCount++;
-
-  console.log(
-    `renderApp #${renderCount}`
-  );
-
-  renderTimeline();
-}
-
-/* ---------- SAVE ---------- */
-
-function saveEntry(){
-
-  try{
-
-    const title =
-      document
-        .getElementById(
-          "titleInput"
-        )
-        ?.value
-        ?.trim() || "";
-
-    const content =
-      document
-        .getElementById(
-          "contentInput"
-        )
-        ?.value
-        ?.trim() || "";
-
-    if(!content){
-      return;
-    }
-
-    const emotion =
-      analyzeEmotion(content);
-
-    const entry = {
-
-      id:
-        Date.now(),
-
-      title:
-        title || "제목 없는 일기",
-
-      content,
-
-      createdAt:
-        new Date()
-          .toLocaleString("ko-KR"),
-
-      emotion,
-
-      summary:
-        makeSummary(emotion)
-    };
-
-    state.entries.push(entry);
-
-    saveEntries();
-
-    renderApp();
-
-    document.getElementById(
-      "titleInput"
-    ).value = "";
-
-    document.getElementById(
-      "contentInput"
-    ).value = "";
-
-  }catch(error){
-
-    console.error(
-      "saveEntry failed",
-      error
-    );
-  }
-}
-
-/* ---------- EVENTS ---------- */
-
-function attachEvents(){
-
-  try{
-
-    document.addEventListener(
-      "pointerdown",
-      (event)=>{
-
-        const saveBtn =
-          event.target.closest(
-            "#saveBtn"
-          );
-
-        if(saveBtn){
-
-          event.preventDefault();
-
-          saveEntry();
-        }
-
-      },
-      { passive:false }
-    );
-
-  }catch(error){
-
-    console.error(
-      "attachEvents failed",
-      error
-    );
-  }
-}
-
-/* ---------- INIT ---------- */
-
 function initApp(){
 
-  if(APP_INITIALIZED){
-
-    console.warn(
-      "App already initialized"
-    );
-
-    return;
-  }
-
-  APP_INITIALIZED = true;
-
-  createBoot();
-
-  setBootMessage(
-    "✓ DOM Loaded"
+  debug(
+    "INIT START"
   );
 
   try{
 
-    const isMobile =
-      window.innerWidth <= 768;
-
-    setBootMessage(
-      isMobile
-      ? "✓ Mobile Mode"
-      : "✓ Desktop Mode"
-    );
+    createLayout();
 
     state.entries =
       loadEntries();
 
-    setBootMessage(
-      "✓ Storage Loaded"
+    debug(
+      "STORAGE LOADED"
     );
 
-    const app =
-      document.getElementById(
-        "app"
-      );
-
-    if(!app){
-
-      showFatalError(
-        "APP ROOT MISSING"
-      );
-
-      return;
-    }
-
-    app.innerHTML =
-
-      isMobile
-
-      ? createMobileLayout()
-
-      : createDesktopLayout();
-
-    setBootMessage(
-      "✓ Layout Rendered"
-    );
-
-    renderApp();
-
-    setBootMessage(
-      "✓ Timeline Rendered"
-    );
+    renderTimeline();
 
     attachEvents();
 
-    setBootMessage(
-      "✓ Events Attached"
-    );
+    setupDebugToggle();
 
-    console.log(
+    debug(
       "INIT COMPLETE"
     );
 
   }catch(error){
 
-    console.error(error);
-
-    showFatalError(
-      "앱 실행 중 오류가 발생했어요."
+    debug(
+      "ERROR: " +
+      error.message,
+      "error"
     );
+
+    console.error(error);
   }
+
 }
 
-/* ---------- UTILS ---------- */
-
-function escapeHtml(text=""){
-
-  return text
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;");
-}
-
-/* ---------- START ---------- */
+/* =========================
+   start
+========================= */
 
 document.addEventListener(
   "DOMContentLoaded",
-  initApp,
-  { once:true }
-);
-</script>
-
-</body>
-</html>
-
-
-
-/* =========================================================
-DEBUG HELPERS
-========================================================= */
-
-function debug(message){
-
-  console.log(
-    "[DEBUG]",
-    message
-  );
-
-  const current =
-    document.getElementById(
-      "debugCurrent"
-    );
-
-  const logs =
-    document.getElementById(
-      "debugLogs"
-    );
-
-  if(current){
-
-    current.textContent =
-      message;
-
-  }
-
-  if(logs){
-
-    const row =
-      document.createElement(
-        "div"
-      );
-
-    row.className =
-      "debugRow success";
-
-    row.textContent =
-      "✓ " + message;
-
-    logs.appendChild(row);
-
-  }
-
-}
-
-function debugError(
-  step,
-  error
-){
-
-  console.error(
-    step,
-    error
-  );
-
-  const logs =
-    document.getElementById(
-      "debugLogs"
-    );
-
-  if(logs){
-
-    const row =
-      document.createElement(
-        "div"
-      );
-
-    row.className =
-      "debugRow error";
-
-    row.innerHTML = `
-
-      ✗ ${step}
-      <br>
-      ${
-        error?.message
-        || "Unknown Error"
-      }
-
-    `;
-
-    logs.appendChild(row);
-
-  }
-
-}
-
-/* =========================================================
-GLOBAL STATE
-========================================================= */
-
-const STATE = {
-
-  platform:"mobile",
-
-  entries:[]
-
-};
-
-/* =========================================================
-SAFE STORAGE LOAD
-========================================================= */
-
-function loadStorage(){
-
-  try{
+  function(){
 
     debug(
-      "Loading Storage..."
+      "DOMContentLoaded"
     );
 
-    const raw =
-      localStorage.getItem(
-        "emotionalDiaryEntries"
-      );
-
-    if(!raw){
-
-      STATE.entries = [];
-
-      debug(
-        "No Storage Data"
-      );
-
-      return;
-
-    }
-
-    const parsed =
-      JSON.parse(raw);
-
-    if(
-      !Array.isArray(parsed)
-    ){
-
-      throw new Error(
-        "Storage not array"
-      );
-
-    }
-
-    STATE.entries =
-      parsed;
-
-    debug(
-      "Storage Loaded"
-    );
+    initApp();
 
   }
-
-  catch(error){
-
-    debugError(
-      "Storage Failed",
-      error
-    );
-
-    STATE.entries = [];
-
-    localStorage.removeItem(
-      "emotionalDiaryEntries"
-    );
-
-  }
-
-}
-
-/* =========================================================
-PLATFORM DETECT
-========================================================= */
-
-function detectPlatform(){
-
-  try{
-
-    debug(
-      "Detecting Platform..."
-    );
-
-    STATE.platform =
-
-      window.innerWidth <= 768
-
-      ? "mobile"
-
-      : "desktop";
-
-    document.body.classList.add(
-      STATE.platform
-    );
-
-    debug(
-      "Platform: "
-      + STATE.platform
-    );
-
-  }
-
-  catch(error){
-
-    debugError(
-      "Platform Detection Failed",
-      error
-    );
-
-  }
-
-}
-
-/* =========================================================
-CREATE LAYOUT
-========================================================= */
-
-function createLayout(){
-
-  try{
-
-    debug(
-      "Creating Layout..."
-    );
-
-    const app =
-      document.getElementById(
-        "app"
-      );
-
-    if(!app){
-
-      throw new Error(
-        "#app missing"
-      );
-
-    }
-
-    /* =====================================================
-    MOBILE
-    ===================================================== */
-
-    if(
-      STATE.platform
-      === "mobile"
-    ){
-
-      app.innerHTML = `
-
-        <div class="mobileShell">
-
-          <header class="mobileHeader">
-
-            <h1>
-              하루 일기
-            </h1>
-
-            <p>
-              오늘 하루를 기록해보세요
-            </p>
-
-          </header>
-
-          <main class="mobileFeed">
-
-            <section class="writeCard">
-
-              <textarea
-                id="diaryInput"
-                placeholder="
-                  오늘 하루는 어땠나요?
-                "
-              ></textarea>
-
-              <button
-                id="saveBtn"
-              >
-
-                저장하기
-
-              </button>
-
-            </section>
-
-            <section
-              id="timeline"
-              class="timeline"
-            >
-
-            </section>
-
-            <section
-              id="calendar"
-              class="calendar"
-            >
-
-            </section>
-
-            <section
-              id="stats"
-              class="stats"
-            >
-
-            </section>
-
-          </main>
-
-        </div>
-
-      `;
-
-    }
-
-    /* =====================================================
-    DESKTOP
-    ===================================================== */
-
-    else{
-
-      app.innerHTML = `
-
-        <div class="desktopShell">
-
-          DESKTOP MODE
-
-        </div>
-
-      `;
-
-    }
-
-    debug(
-      "Layout Created"
-    );
-
-  }
-
-  catch(error){
-
-    debugError(
-      "Layout Failed",
-      error
-    );
-
-  }
-
-}
-
-/* =========================================================
-TIMELINE
-========================================================= */
-
-function renderTimeline(){
-
-  try{
-
-    debug(
-      "Rendering Timeline..."
-    );
-
-    const timeline =
-      document.getElementById(
-        "timeline"
-      );
-
-    if(!timeline){
-
-      throw new Error(
-        "Timeline container missing"
-      );
-
-    }
-
-    if(
-      !STATE.entries.length
-    ){
-
-      timeline.innerHTML = `
-
-        <div class="emptyCard">
-
-          아직 작성된 일기가 없어요
-
-        </div>
-
-      `;
-
-      debug(
-        "Timeline Empty State"
-      );
-
-      return;
-
-    }
-
-    timeline.innerHTML =
-
-      STATE.entries
-        .map(entry=>`
-
-          <article class="entryCard">
-
-            <h3>
-              ${
-                entry.title
-                || "제목 없음"
-              }
-            </h3>
-
-            <p>
-              ${
-                entry.content
-                || ""
-              }
-            </p>
-
-          </article>
-
-        `)
-        .join("");
-
-    debug(
-      "Timeline Rendered"
-    );
-
-  }
-
-  catch(error){
-
-    debugError(
-      "Timeline Failed",
-      error
-    );
-
-  }
-
-}
-
-/* =========================================================
-CALENDAR
-========================================================= */
-
-function renderCalendar(){
-
-  try{
-
-    debug(
-      "Rendering Calendar..."
-    );
-
-    const calendar =
-      document.getElementById(
-        "calendar"
-      );
-
-    if(!calendar){
-
-      throw new Error(
-        "Calendar missing"
-      );
-
-    }
-
-    calendar.innerHTML = `
-
-      <div class="simpleCard">
-
-        Calendar Render Success
-
-      </div>
-
-    `;
-
-    debug(
-      "Calendar Rendered"
-    );
-
-  }
-
-  catch(error){
-
-    debugError(
-      "Calendar Failed",
-      error
-    );
-
-  }
-
-}
-
-/* =========================================================
-STATS
-========================================================= */
-
-function renderStats(){
-
-  try{
-
-    debug(
-      "Rendering Stats..."
-    );
-
-    const stats =
-      document.getElementById(
-        "stats"
-      );
-
-    if(!stats){
-
-      throw new Error(
-        "Stats missing"
-      );
-
-    }
-
-    stats.innerHTML = `
-
-      <div class="simpleCard">
-
-        총 일기 수:
-        ${STATE.entries.length}
-
-      </div>
-
-    `;
-
-    debug(
-      "Stats Rendered"
-    );
-
-  }
-
-  catch(error){
-
-    debugError(
-      "Stats Failed",
-      error
-    );
-
-  }
-
-}
-
-/* =========================================================
-EVENTS
-========================================================= */
-
-function attachEvents(){
-
-  try{
-
-    debug(
-      "Attaching Events..."
-    );
-
-    const saveBtn =
-      document.getElementById(
-        "saveBtn"
-      );
-
-    if(!saveBtn){
-
-      throw new Error(
-        "Save button missing"
-      );
-
-    }
-
-    saveBtn.addEventListener(
-
-      "pointerdown",
-
-      handleSave,
-
-      {
-        passive:true
-      }
-
-    );
-
-    debug(
-      "Events Attached"
-    );
-
-  }
-
-  catch(error){
-
-    debugError(
-      "Event Attach Failed",
-      error
-    );
-
-  }
-
-}
-
-/* =========================================================
-SAVE
-========================================================= */
-
-function handleSave(){
-
-  try{
-
-    debug(
-      "Saving Entry..."
-    );
-
-    const input =
-      document.getElementById(
-        "diaryInput"
-      );
-
-    if(!input){
-
-      throw new Error(
-        "Input missing"
-      );
-
-    }
-
-    const content =
-      input.value.trim();
-
-    if(!content){
-
-      alert(
-        "일기를 입력해주세요."
-      );
-
-      return;
-    }
-
-    const entry = {
-
-      id:
-        Date.now(),
-
-      title:
-        content.slice(0,10),
-
-      content,
-
-      createdAt:
-        new Date()
-          .toISOString()
-
-    };
-
-    STATE.entries.unshift(
-      entry
-    );
-
-    localStorage.setItem(
-
-      "emotionalDiaryEntries",
-
-      JSON.stringify(
-        STATE.entries
-      )
-
-    );
-
-    input.value = "";
-
-    renderTimeline();
-
-    renderStats();
-
-    debug(
-      "Entry Saved"
-    );
-
-  }
-
-  catch(error){
-
-    debugError(
-      "Save Failed",
-      error
-    );
-
-  }
-
-}
-
-/* =========================================================
-INIT FLOW
-========================================================= */
-
-function initApp(){
-
-  debug(
-    "App Init Started"
-  );
-
-  detectPlatform();
-
-  createLayout();
-
-  loadStorage();
-
-  renderTimeline();
-
-  renderCalendar();
-
-  renderStats();
-
-  attachEvents();
-
-  debug(
-    "App Ready"
-  );
-
-}
-
-/* =========================================================
-SAFE INIT
-========================================================= */
-
-try{
-
-  initApp();
-
-}
-
-catch(error){
-
-  debugError(
-    "Critical Init Failed",
-    error
-  );
-
-}
-
-</script>
-
-<style>
-
-/* =========================================================
-RESET
-========================================================= */
-
-*{
-
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
-
-html,
-body{
-
-  width:100%;
-
-  min-height:100%;
-
-  background:#0f172a;
-
-  color:white;
-
-  font-family:
-    Pretendard,
-    sans-serif;
-
-  overflow-x:hidden;
-}
-
-body{
-
-  min-height:100dvh;
-}
-
-/* =========================================================
-DEBUG PANEL
-========================================================= */
-
-#debugPanel{
-
-  position:fixed;
-
-  top:0;
-  left:0;
-
-  width:100%;
-
-  z-index:999999;
-
-  padding:14px;
-
-  background:
-    rgba(15,23,42,.95);
-
-  backdrop-filter:
-    blur(10px);
-
-  border-bottom:
-    1px solid rgba(255,255,255,.08);
-}
-
-.debugHeader{
-
-  font-size:18px;
-
-  font-weight:700;
-
-  margin-bottom:8px;
-}
-
-#debugCurrent{
-
-  color:#93c5fd;
-
-  font-size:14px;
-
-  margin-bottom:10px;
-}
-
-#debugLogs{
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:6px;
-
-  max-height:180px;
-
-  overflow:auto;
-}
-
-.debugRow{
-
-  font-size:12px;
-
-  line-height:1.5;
-}
-
-.success{
-
-  color:#d1fae5;
-}
-
-.error{
-
-  color:#fecaca;
-}
-
-/* =========================================================
-APP
-========================================================= */
-
-#app{
-
-  width:100%;
-
-  min-height:100dvh;
-
-  padding-top:220px;
-}
-
-/* =========================================================
-MOBILE
-========================================================= */
-
-.mobileShell{
-
-  width:100%;
-
-  padding:
-    16px
-    16px
-    120px;
-}
-
-.mobileHeader{
-
-  margin-bottom:24px;
-}
-
-.mobileHeader h1{
-
-  font-size:32px;
-
-  margin-bottom:10px;
-}
-
-.mobileHeader p{
-
-  color:#cbd5e1;
-}
-
-.mobileFeed{
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:20px;
-}
-
-.writeCard,
-.emptyCard,
-.simpleCard,
-.entryCard{
-
-  background:
-    rgba(30,41,59,.9);
-
-  border-radius:24px;
-
-  padding:20px;
-
-  border:
-    1px solid rgba(255,255,255,.06);
-}
-
-textarea{
-
-  width:100%;
-
-  min-height:160px;
-
-  border:none;
-
-  outline:none;
-
-  resize:none;
-
-  border-radius:18px;
-
-  padding:16px;
-
-  background:#111827;
-
-  color:white;
-
-  font-size:15px;
-}
-
-button{
-
-  width:100%;
-
-  height:56px;
-
-  border:none;
-
-  border-radius:18px;
-
-  background:#60a5fa;
-
-  color:white;
-
-  font-size:15px;
-
-  margin-top:14px;
-
-  touch-action:
-    manipulation;
-}
-
-.entryCard h3{
-
-  margin-bottom:10px;
-}
-
-.entryCard p{
-
-  color:#e2e8f0;
-
-  line-height:1.6;
-}
-
-</style>
-
-
-
-    <div id="app"></div>
-
-  `;
-
-})();
-
-/* =========================================================
-DEBUG LOGGER
-========================================================= */
-
-function debugStep(message){
-
-  console.log(
-    "[DEBUG]",
-    message
-  );
-
-  const status =
-    document.getElementById(
-      "debugStatus"
-    );
-
-  const logs =
-    document.getElementById(
-      "debugLogs"
-    );
-
-  if(status){
-
-    status.textContent =
-      message;
-
-  }
-
-  if(logs){
-
-    const item =
-      document.createElement(
-        "div"
-      );
-
-    item.className =
-      "debug-log";
-
-    item.textContent =
-      "✔ " + message;
-
-    logs.appendChild(item);
-
-  }
-
-}
-
-/* =========================================================
-DEBUG ERROR
-========================================================= */
-
-function debugError(
-  title,
-  error
-){
-
-  console.error(
-    title,
-    error
-  );
-
-  const logs =
-    document.getElementById(
-      "debugLogs"
-    );
-
-  if(logs){
-
-    const item =
-      document.createElement(
-        "div"
-      );
-
-    item.className =
-      "debug-error";
-
-    item.innerHTML = `
-
-      ❌ ${title}
-      <br>
-      ${
-        error?.message
-        || error
-      }
-
-    `;
-
-    logs.appendChild(item);
-
-  }
-
-}
-
-/* =========================================================
-GLOBAL STATE
-========================================================= */
-
-window.APP = {
-
-  entries:[],
-
-  platform:"mobile"
-
-};
-
-/* =========================================================
-INIT APP
-========================================================= */
-
-function initApp(){
-
-  debugStep(
-    "DOM Loaded"
-  );
-
-  detectPlatform();
-
-  createLayout();
-
-  loadStorage();
-
-  renderTimeline();
-
-  attachEvents();
-
-  debugStep(
-    "App Ready"
-  );
-
-}
-
-/* =========================================================
-PLATFORM DETECT
-========================================================= */
-
-function detectPlatform(){
-
-  try{
-
-    debugStep(
-      "Detecting Platform..."
-    );
-
-    APP.platform =
-
-      window.innerWidth <= 768
-
-      ? "mobile"
-
-      : "desktop";
-
-    document.body.classList.add(
-      APP.platform
-    );
-
-    debugStep(
-      "Platform: "
-      + APP.platform
-    );
-
-  }
-
-  catch(error){
-
-    debugError(
-      "Platform Detect Error",
-      error
-    );
-
-  }
-
-}
-
-/* =========================================================
-CREATE LAYOUT
-========================================================= */
-
-function createLayout(){
-
-  try{
-
-    debugStep(
-      "Creating Layout..."
-    );
-
-    const app =
-      document.getElementById(
-        "app"
-      );
-
-    if(!app){
-
-      throw new Error(
-        "#app missing"
-      );
-
-    }
-
-    /* =====================================================
-    MOBILE UI
-    ===================================================== */
-
-    if(APP.platform === "mobile"){
-
-      app.innerHTML = `
-
-        <div class="mobile-shell">
-
-          <header class="mobile-header">
-
-            <h1>
-              하루 일기
-            </h1>
-
-            <p>
-              오늘 하루를 기록해보세요
-            </p>
-
-          </header>
-
-          <main class="mobile-feed">
-
-            <section class="write-card">
-
-              <textarea
-                id="diaryInput"
-                placeholder="
-                  오늘 하루는 어땠나요?
-                "
-              ></textarea>
-
-              <button
-                id="saveBtn"
-              >
-
-                저장하기
-
-              </button>
-
-            </section>
-
-            <section
-              id="timeline"
-              class="timeline"
-            >
-
-            </section>
-
-          </main>
-
-        </div>
-
-      `;
-
-      debugStep(
-        "Mobile Layout Loaded"
-      );
-
-    }
-
-    /* =====================================================
-    DESKTOP UI
-    ===================================================== */
-
-    else{
-
-      app.innerHTML = `
-
-        <div class="desktop-shell">
-
-          <aside class="sidebar">
-
-            하루 일기
-
-          </aside>
-
-          <main class="desktop-main">
-
-            <textarea
-              id="diaryInput"
-              placeholder="
-                오늘 하루는 어땠나요?
-              "
-            ></textarea>
-
-            <button
-              id="saveBtn"
-            >
-
-              저장하기
-
-            </button>
-
-            <section
-              id="timeline"
-            ></section>
-
-          </main>
-
-        </div>
-
-      `;
-
-      debugStep(
-        "Desktop Layout Loaded"
-      );
-
-    }
-
-    /* =====================================================
-    강제 렌더 테스트
-    ===================================================== */
-
-    const timeline =
-      document.getElementById(
-        "timeline"
-      );
-
-    if(!timeline){
-
-      throw new Error(
-        "#timeline missing"
-      );
-
-    }
-
-    timeline.innerHTML = `
-
-      <div class="test-card">
-
-        TIMELINE ROOT READY
-
-      </div>
-
-    `;
-
-    debugStep(
-      "Timeline Root Created"
-    );
-
-  }
-
-  catch(error){
-
-    debugError(
-      "Layout Error",
-      error
-    );
-
-  }
-
-}
-
-/* =========================================================
-LOAD STORAGE
-========================================================= */
-
-function loadStorage(){
-
-  try{
-
-    debugStep(
-      "Loading Storage..."
-    );
-
-    /* =========================================
-    임시:
-    storage 완전 비활성화 테스트
-    ========================================= */
-
-    APP.entries = [];
-
-    debugStep(
-      "Storage Loaded"
-    );
-
-  }
-
-  catch(error){
-
-    debugError(
-      "Storage Error",
-      error
-    );
-
-  }
-
-}
-
-/* =========================================================
-RENDER TIMELINE
-========================================================= */
-
-function renderTimeline(){
-
-  try{
-
-    debugStep(
-      "Rendering Timeline..."
-    );
-
-    const timeline =
-      document.getElementById(
-        "timeline"
-      );
-
-    if(!timeline){
-
-      throw new Error(
-        "Timeline container missing"
-      );
-
-    }
-
-    if(APP.entries.length === 0){
-
-      timeline.innerHTML += `
-
-        <div class="empty-card">
-
-          앱 렌더링 성공
-          <br><br>
-          현재 저장된 일기가 없습니다.
-
-        </div>
-
-      `;
-
-    }
-
-    debugStep(
-      "Timeline Rendered"
-    );
-
-  }
-
-  catch(error){
-
-    debugError(
-      "Timeline Error",
-      error
-    );
-
-  }
-
-}
-
-/* =========================================================
-ATTACH EVENTS
-========================================================= */
-
-function attachEvents(){
-
-  try{
-
-    debugStep(
-      "Attaching Events..."
-    );
-
-    const saveBtn =
-      document.getElementById(
-        "saveBtn"
-      );
-
-    if(!saveBtn){
-
-      throw new Error(
-        "Save button missing"
-      );
-
-    }
-
-    saveBtn.addEventListener(
-
-      "pointerdown",
-
-      ()=>{
-
-        debugStep(
-          "Save Button Pressed"
-        );
-
-        alert(
-          "버튼 이벤트 정상 작동"
-        );
-
-      },
-
-      {
-        passive:true
-      }
-
-    );
-
-    debugStep(
-      "Events Attached"
-    );
-
-  }
-
-  catch(error){
-
-    debugError(
-      "Event Error",
-      error
-    );
-
-  }
-
-}
-
-/* =========================================================
-SAFE START
-========================================================= */
-
-try{
-
-  initApp();
-
-}
-
-catch(error){
-
-  debugError(
-    "Critical Init Error",
-    error
-  );
-
-}
-
-</script>
-
-<style>
-
-/* =========================================================
-RESET
-========================================================= */
-
-*{
-
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
-
-html,
-body{
-
-  width:100%;
-
-  min-height:100%;
-
-  background:#111827;
-
-  color:white;
-
-  font-family:
-    Pretendard,
-    sans-serif;
-
-  overflow-x:hidden;
-}
-
-body{
-
-  min-height:100dvh;
-}
-
-/* =========================================================
-DEBUG
-========================================================= */
-
-#debugBoot{
-
-  position:fixed;
-
-  top:0;
-  left:0;
-
-  width:100%;
-
-  z-index:999999;
-
-  padding:16px;
-}
-
-.debug-card{
-
-  background:#1f2937;
-
-  border-radius:20px;
-
-  padding:16px;
-
-  border:
-    1px solid rgba(255,255,255,.1);
-}
-
-#debugStatus{
-
-  margin-top:10px;
-
-  color:#93c5fd;
-
-  font-size:14px;
-}
-
-#debugLogs{
-
-  margin-top:14px;
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:8px;
-}
-
-.debug-log{
-
-  font-size:13px;
-
-  color:#d1fae5;
-}
-
-.debug-error{
-
-  font-size:13px;
-
-  color:#fecaca;
-
-  line-height:1.5;
-}
-
-/* =========================================================
-APP ROOT
-========================================================= */
-
-#app{
-
-  width:100%;
-
-  min-height:100dvh;
-
-  padding-top:180px;
-}
-
-/* =========================================================
-MOBILE
-========================================================= */
-
-.mobile-shell{
-
-  width:100%;
-
-  padding:
-    16px
-    16px
-    120px;
-}
-
-.mobile-header{
-
-  margin-bottom:24px;
-}
-
-.mobile-header h1{
-
-  font-size:32px;
-
-  margin-bottom:10px;
-}
-
-.mobile-feed{
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:20px;
-}
-
-.write-card,
-.empty-card,
-.test-card{
-
-  background:#1f2937;
-
-  border-radius:28px;
-
-  padding:20px;
-
-  border:
-    1px solid rgba(255,255,255,.08);
-}
-
-textarea{
-
-  width:100%;
-
-  min-height:180px;
-
-  border:none;
-
-  outline:none;
-
-  background:#111827;
-
-  color:white;
-
-  border-radius:18px;
-
-  padding:16px;
-
-  resize:none;
-
-  font-size:15px;
-}
-
-button{
-
-  width:100%;
-
-  height:56px;
-
-  border:none;
-
-  border-radius:18px;
-
-  background:#60a5fa;
-
-  color:white;
-
-  margin-top:14px;
-
-  font-size:15px;
-
-  touch-action:
-    manipulation;
-}
-
-/* =========================================================
-DESKTOP
-========================================================= */
-
-.desktop-shell{
-
-  display:grid;
-
-  grid-template-columns:
-    260px 1fr;
-
-  min-height:100dvh;
-}
-
-.sidebar{
-
-  padding:24px;
-
-  background:#1f2937;
-}
-
-.desktop-main{
-
-  padding:24px;
-}
-
-</style>
-
-
-
-    }
-
-    /* body 기본 클래스 초기화 */
-
-    document.body.classList.remove(
-      "mobile-app",
-      "desktop-app"
-    );
-
-    /* body 기본 스타일 복구 */
-
-    document.body.style.opacity =
-      "1";
-
-    document.body.style.visibility =
-      "visible";
-
-    document.body.style.display =
-      "block";
-
-    document.body.style.minHeight =
-      "100dvh";
-
-    document.body.style.overflowX =
-      "hidden";
-
-  }
-
-  catch(error){
-
-    console.error(
-      "Emergency root fix:",
-      error
-    );
-
-  }
-
-})();
-
-/* =========================================================
-SAFE STORAGE LOAD
-========================================================= */
-
-function safeLoadEntries(){
-
-  try{
-
-    const raw =
-      localStorage.getItem(
-        "emotionalDiaryEntries"
-      );
-
-    if(!raw){
-
-      return [];
-    }
-
-    const parsed =
-      JSON.parse(raw);
-
-    if(
-      !Array.isArray(parsed)
-    ){
-
-      return [];
-    }
-
-    return parsed;
-
-  }
-
-  catch(error){
-
-    console.error(
-      "Storage parse error:",
-      error
-    );
-
-    /* 깨진 데이터 자동 복구 */
-
-    localStorage.removeItem(
-      "emotionalDiaryEntries"
-    );
-
-    return [];
-
-  }
-
-}
-
-/* =========================================================
-GLOBAL STATE
-========================================================= */
-
-window.APP_STATE = {
-
-  entries:
-    safeLoadEntries(),
-
-  platform:null
-
-};
-
-/* =========================================================
-SAFE PLATFORM DETECT
-========================================================= */
-
-function detectPlatform(){
-
-  try{
-
-    return window.innerWidth <= 768
-
-      ? "mobile"
-
-      : "desktop";
-
-  }
-
-  catch(error){
-
-    console.error(
-      "Platform detect error:",
-      error
-    );
-
-    return "mobile";
-
-  }
-
-}
-
-/* =========================================================
-MINIMAL MOBILE UI
-========================================================= */
-
-function renderMobileFallback(){
-
-  try{
-
-    const app =
-      document.getElementById(
-        "app"
-      );
-
-    if(!app){
-
-      throw new Error(
-        "#app missing"
-      );
-
-    }
-
-    document.body.className =
-      "mobile-app";
-
-    app.innerHTML = `
-
-      <div class="mobile-shell">
-
-        <header class="mobile-header">
-
-          <h1>
-            하루 일기
-          </h1>
-
-          <p>
-            오늘 하루를 기록해보세요.
-          </p>
-
-        </header>
-
-        <main class="mobile-feed">
-
-          <section class="mobile-card">
-
-            <textarea
-              id="diaryInput"
-              placeholder="
-                오늘 하루는 어땠나요?
-              "
-            ></textarea>
-
-            <button
-              id="saveBtn"
-            >
-
-              저장하기
-
-            </button>
-
-          </section>
-
-          <section
-            id="timeline"
-          >
-
-            ${
-              APP_STATE.entries.length
-
-              ? APP_STATE.entries
-                  .map(entry=>`
-
-                    <article class="timeline-card">
-
-                      <h3>
-                        ${
-                          entry.title
-                          || "오늘의 하루"
-                        }
-                      </h3>
-
-                      <p>
-                        ${
-                          entry.content
-                          || ""
-                        }
-                      </p>
-
-                    </article>
-
-                  `)
-                  .join("")
-
-              : `
-
-                <div class="empty-state">
-
-                  아직 작성된 일기가 없어요.
-
-                </div>
-
-              `
-            }
-
-          </section>
-
-        </main>
-
-      </div>
-
-    `;
-
-    registerMinimalEvents();
-
-  }
-
-  catch(error){
-
-    console.error(
-      "Mobile fallback render error:",
-      error
-    );
-
-    emergencyRender();
-
-  }
-
-}
-
-/* =========================================================
-SAFE DESKTOP UI
-========================================================= */
-
-function renderDesktopFallback(){
-
-  try{
-
-    const app =
-      document.getElementById(
-        "app"
-      );
-
-    document.body.className =
-      "desktop-app";
-
-    app.innerHTML = `
-
-      <div class="desktop-layout">
-
-        <aside class="sidebar">
-
-          <h1>
-            하루 일기
-          </h1>
-
-        </aside>
-
-        <main class="desktop-main">
-
-          <section class="desktop-card">
-
-            <textarea
-              id="diaryInput"
-              placeholder="
-                오늘 하루를 기록해보세요.
-              "
-            ></textarea>
-
-            <button
-              id="saveBtn"
-            >
-
-              저장하기
-
-            </button>
-
-          </section>
-
-        </main>
-
-      </div>
-
-    `;
-
-    registerMinimalEvents();
-
-  }
-
-  catch(error){
-
-    console.error(
-      "Desktop render error:",
-      error
-    );
-
-    emergencyRender();
-
-  }
-
-}
-
-/* =========================================================
-MINIMAL EVENT SYSTEM
-========================================================= */
-
-function registerMinimalEvents(){
-
-  try{
-
-    const saveBtn =
-      document.getElementById(
-        "saveBtn"
-      );
-
-    if(!saveBtn){
-
-      return;
-    }
-
-    /* 중복 제거 */
-
-    saveBtn.onpointerdown =
-      null;
-
-    saveBtn.ontouchstart =
-      null;
-
-    saveBtn.onclick =
-      null;
-
-    saveBtn.addEventListener(
-
-      "pointerdown",
-
-      handleSave,
-
-      {
-        passive:true
-      }
-
-    );
-
-  }
-
-  catch(error){
-
-    console.error(
-      "Event bind error:",
-      error
-    );
-
-  }
-
-}
-
-/* =========================================================
-SAFE SAVE
-========================================================= */
-
-function handleSave(){
-
-  try{
-
-    const input =
-      document.getElementById(
-        "diaryInput"
-      );
-
-    if(!input){
-
-      return;
-    }
-
-    const content =
-      input.value.trim();
-
-    if(!content){
-
-      alert(
-        "일기를 입력해주세요."
-      );
-
-      return;
-    }
-
-    const entry = {
-
-      id:
-        Date.now(),
-
-      title:
-        content.length > 12
-
-        ? content.slice(0,12)
-          + "..."
-
-        : content,
-
-      content,
-
-      createdAt:
-        new Date()
-          .toISOString()
-
-    };
-
-    APP_STATE.entries.unshift(
-      entry
-    );
-
-    localStorage.setItem(
-
-      "emotionalDiaryEntries",
-
-      JSON.stringify(
-        APP_STATE.entries
-      )
-
-    );
-
-    input.value = "";
-
-    renderApp();
-
-  }
-
-  catch(error){
-
-    console.error(
-      "Save error:",
-      error
-    );
-
-    alert(
-      "저장 중 오류가 발생했어요."
-    );
-
-  }
-
-}
-
-/* =========================================================
-SAFE MAIN RENDER
-========================================================= */
-
-function renderApp(){
-
-  try{
-
-    const platform =
-      detectPlatform();
-
-    APP_STATE.platform =
-      platform;
-
-    if(platform === "mobile"){
-
-      renderMobileFallback();
-
-    }
-
-    else{
-
-      renderDesktopFallback();
-
-    }
-
-  }
-
-  catch(error){
-
-    console.error(
-      "Main render failed:",
-      error
-    );
-
-    emergencyRender();
-
-  }
-
-}
-
-/* =========================================================
-EMERGENCY LAST RESORT UI
-========================================================= */
-
-function emergencyRender(){
-
-  try{
-
-    document.body.innerHTML = `
-
-      <div
-        style="
-          min-height:100dvh;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          padding:24px;
-          background:#f3f4f6;
-          font-family:Pretendard,sans-serif;
-        "
-      >
-
-        <div
-          style="
-            width:100%;
-            max-width:420px;
-            background:white;
-            border-radius:24px;
-            padding:24px;
-            box-shadow:
-              0 10px 30px rgba(0,0,0,.08);
-          "
-        >
-
-          <h1
-            style="
-              margin-bottom:12px;
-            "
-          >
-
-            하루 일기
-
-          </h1>
-
-          <p
-            style="
-              color:#666;
-            "
-          >
-
-            앱을 복구하는 중이에요.
-
-          </p>
-
-        </div>
-
-      </div>
-
-    `;
-
-  }
-
-  catch(error){
-
-    console.error(
-      "Emergency render failed:",
-      error
-    );
-
-  }
-
-}
-
-/* =========================================================
-SAFE INIT
-========================================================= */
-
-function initApp(){
-
-  try{
-
-    renderApp();
-
-  }
-
-  catch(error){
-
-    console.error(
-      "Init failed:",
-      error
-    );
-
-    emergencyRender();
-
-  }
-
-}
-
-/* =========================================================
-DOM READY
-========================================================= */
-
-if(
-  document.readyState
-  === "loading"
-){
-
-  document.addEventListener(
-
-    "DOMContentLoaded",
-
-    initApp,
-
-    {
-      passive:true
-    }
-
-  );
-
-}
-
-else{
-
-  initApp();
-
-}
-
-/* =========================================================
-SAFE RESIZE
-========================================================= */
-
-window.addEventListener(
-
-  "resize",
-
-  debounce(()=>{
-
-    try{
-
-      renderApp();
-
-    }
-
-    catch(error){
-
-      console.error(
-        "Resize render error:",
-        error
-      );
-
-    }
-
-  },180),
-
-  {
-    passive:true
-  }
-
-);
-
-/* =========================================================
-DEBOUNCE
-========================================================= */
-
-function debounce(
-  fn,
-  delay
-){
-
-  let timer;
-
-  return (...args)=>{
-
-    clearTimeout(timer);
-
-    timer = setTimeout(()=>{
-
-      fn(...args);
-
-    },delay);
-
-  };
-
-}
-
-</script>
-
-<style>
-
-/* =========================================================
-EMERGENCY STABLE CSS
-========================================================= */
-
-html,
-body{
-
-  width:100%;
-
-  min-height:100%;
-
-  margin:0;
-  padding:0;
-
-  overflow-x:hidden;
-
-  background:#f3f4f6;
-
-  font-family:
-    Pretendard,
-    sans-serif;
-}
-
-body{
-
-  min-height:100dvh;
-}
-
-/* =========================================================
-APP ROOT
-========================================================= */
-
-#app{
-
-  width:100%;
-
-  min-height:100dvh;
-
-  display:block;
-}
-
-/* =========================================================
-MOBILE
-========================================================= */
-
-.mobile-shell{
-
-  width:100%;
-
-  min-height:100dvh;
-
-  padding:
-    24px
-    16px
-    120px;
-}
-
-.mobile-header{
-
-  margin-bottom:24px;
-}
-
-.mobile-header h1{
-
-  font-size:32px;
-
-  margin-bottom:8px;
-}
-
-.mobile-header p{
-
-  color:#666;
-}
-
-.mobile-feed{
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:18px;
-}
-
-.mobile-card{
-
-  background:white;
-
-  border-radius:28px;
-
-  padding:20px;
-
-  box-shadow:
-    0 10px 30px rgba(0,0,0,.06);
-}
-
-textarea{
-
-  width:100%;
-
-  min-height:160px;
-
-  border:none;
-
-  border-radius:20px;
-
-  padding:16px;
-
-  background:#f3f4f6;
-
-  resize:none;
-
-  outline:none;
-
-  font-size:15px;
-
-  box-sizing:border-box;
-}
-
-button{
-
-  width:100%;
-
-  height:56px;
-
-  margin-top:16px;
-
-  border:none;
-
-  border-radius:18px;
-
-  background:#111827;
-
-  color:white;
-
-  font-size:15px;
-
-  touch-action:
-    manipulation;
-}
-
-.timeline-card{
-
-  background:white;
-
-  border-radius:24px;
-
-  padding:18px;
-
-  box-shadow:
-    0 8px 24px rgba(0,0,0,.05);
-}
-
-.timeline-card h3{
-
-  margin-bottom:10px;
-}
-
-.empty-state{
-
-  text-align:center;
-
-  color:#777;
-
-  padding:32px
-    12px;
-}
-
-/* =========================================================
-DESKTOP
-========================================================= */
-
-.desktop-layout{
-
-  width:100%;
-
-  min-height:100vh;
-
-  display:grid;
-
-  grid-template-columns:
-    280px 1fr;
-}
-
-.sidebar{
-
-  padding:24px;
-
-  background:white;
-}
-
-.desktop-main{
-
-  padding:24px;
-}
-
-.desktop-card{
-
-  background:white;
-
-  border-radius:28px;
-
-  padding:24px;
-}
-
-</style>
-
-
-
-    saveTimer:null
-  }
-
-};
-
-/* =========================================================
-SAFE STORAGE
-========================================================= */
-
-const StorageManager = {
-
-  load(){
-
-    try{
-
-      const raw =
-        localStorage.getItem(
-          APP.STORAGE_KEY
-        );
-
-      if(!raw){
-
-        return [];
-      }
-
-      const parsed =
-        JSON.parse(raw);
-
-      if(
-        !Array.isArray(parsed)
-      ){
-
-        throw new Error(
-          "Invalid storage"
-        );
-      }
-
-      return parsed
-        .filter(Boolean)
-        .map(entry=>
-          this.migrate(entry)
-        );
-
-    }
-
-    catch(error){
-
-      console.error(
-        "Storage recovery:",
-        error
-      );
-
-      localStorage.removeItem(
-        APP.STORAGE_KEY
-      );
-
-      return [];
-    }
-
-  },
-
-  save(entries){
-
-    try{
-
-      localStorage.setItem(
-
-        APP.STORAGE_KEY,
-
-        JSON.stringify(entries)
-
-      );
-
-      return true;
-
-    }
-
-    catch(error){
-
-      console.error(
-        "Save failed:",
-        error
-      );
-
-      Toast.show(
-        "저장에 실패했어요."
-      );
-
-      return false;
-    }
-
-  },
-
-  migrate(entry){
-
-    return {
-
-      id:
-        entry.id
-        || crypto.randomUUID(),
-
-      title:
-        entry.title
-        || "오늘의 하루",
-
-      content:
-        entry.content
-        || "",
-
-      createdAt:
-        entry.createdAt
-        || new Date().toISOString(),
-
-      emotion:
-        entry.emotion
-        || "normal",
-
-      confidence:
-        entry.confidence
-        || 50,
-
-      summary:
-        entry.summary
-        || "",
-
-      oneLine:
-        entry.oneLine
-        || "",
-
-      images:
-        Array.isArray(
-          entry.images
-        )
-        ? entry.images
-        : [],
-
-      dateKey:
-        entry.dateKey
-        || new Date()
-            .toLocaleDateString(
-              "sv-SE"
-            )
-
-    };
-
-  }
-
-};
-
-/* =========================================================
-EMOTION ENGINE
-========================================================= */
-
-const EmotionEngine = {
-
-  emotions:{
-
-    happy:{
-      emoji:"😊",
-      color:"#facc15",
-      weight:0,
-      words:[
-        "행복",
-        "좋",
-        "웃",
-        "재밌",
-        "신났",
-        "기뻤"
-      ]
-    },
-
-    sad:{
-      emoji:"😢",
-      color:"#60a5fa",
-      weight:0,
-      words:[
-        "우울",
-        "슬프",
-        "눈물",
-        "외롭",
-        "힘들"
-      ]
-    },
-
-    angry:{
-      emoji:"😡",
-      color:"#f87171",
-      weight:0,
-      words:[
-        "짜증",
-        "화나",
-        "열받",
-        "빡쳐"
-      ]
-    },
-
-    tired:{
-      emoji:"😴",
-      color:"#a78bfa",
-      weight:0,
-      words:[
-        "피곤",
-        "졸리",
-        "지쳤",
-        "힘빠"
-      ]
-    },
-
-    normal:{
-      emoji:"😐",
-      color:"#9ca3af",
-      weight:1,
-      words:[]
-    }
-
-  },
-
-  analyze(text=""){
-
-    const scores = {};
-
-    Object.keys(
-      this.emotions
-    ).forEach(key=>{
-
-      scores[key] = 0;
-
-    });
-
-    const lines =
-      text
-        .toLowerCase()
-        .split(/[.!?\n]/);
-
-    lines.forEach(line=>{
-
-      Object.entries(
-        this.emotions
-      ).forEach(([key,data])=>{
-
-        data.words.forEach(word=>{
-
-          if(
-            line.includes(word)
-          ){
-
-            scores[key] += 2;
-          }
-
-        });
-
-      });
-
-    });
-
-    let emotion =
-      "normal";
-
-    let highest = 0;
-
-    Object.entries(scores)
-      .forEach(([k,v])=>{
-
-        if(v > highest){
-
-          highest = v;
-
-          emotion = k;
-        }
-
-      });
-
-    const total =
-      Object.values(scores)
-        .reduce((a,b)=>
-          a+b,0
-        );
-
-    const confidence =
-      total
-      ? Math.min(
-          100,
-          Math.round(
-            highest/total*100
-          )
-        )
-      : 50;
-
-    return {
-
-      emotion,
-
-      confidence
-
-    };
-
-  }
-
-};
-
-/* =========================================================
-AI GENERATOR
-========================================================= */
-
-const AIGenerator = {
-
-  summary(emotion){
-
-    const map = {
-
-      happy:[
-        "따뜻한 감정이 남은 하루였어요.",
-        "소소하지만 행복한 순간들이 있었네요."
-      ],
-
-      sad:[
-        "조금 지친 마음이 느껴지는 하루였어요.",
-        "감정을 천천히 정리한 하루였네요."
-      ],
-
-      angry:[
-        "감정 기복이 있었지만 잘 버텨냈어요.",
-        "쉽지 않았지만 지나간 하루예요."
-      ],
-
-      tired:[
-        "오늘도 충분히 수고했어요.",
-        "몸과 마음이 조금 지친 하루였네요."
-      ],
-
-      normal:[
-        "잔잔하게 하루가 흘러갔어요.",
-        "평온한 하루의 기록이에요."
-      ]
-
-    };
-
-    return map[emotion][
-      Math.floor(
-        Math.random()
-        * map[emotion].length
-      )
-    ];
-
-  },
-
-  oneLine(emotion){
-
-    const map = {
-
-      happy:
-        "오늘도 웃음이 남아있네요.",
-
-      sad:
-        "조용히 지나간 감정의 하루.",
-
-      angry:
-        "흔들렸지만 잘 지나왔어요.",
-
-      tired:
-        "오늘도 충분히 애썼어요.",
-
-      normal:
-        "잔잔한 하루가 흘러갔어요."
-
-    };
-
-    return map[emotion];
-  }
-
-};
-
-/* =========================================================
-SAVE ENTRY
-========================================================= */
-
-function saveEntry(){
-
-  const textarea =
-    document.querySelector(
-      ".mobile-textarea"
-    );
-
-  if(!textarea) return;
-
-  const content =
-    textarea.value.trim();
-
-  if(!content){
-
-    Toast.show(
-      "일기를 입력해주세요."
-    );
-
-    return;
-  }
-
-  const analysis =
-    EmotionEngine.analyze(
-      content
-    );
-
-  const entry = {
-
-    id:
-      crypto.randomUUID(),
-
-    title:
-      generateTitle(
-        content
-      ),
-
-    content,
-
-    createdAt:
-      new Date()
-        .toISOString(),
-
-    emotion:
-      analysis.emotion,
-
-    confidence:
-      analysis.confidence,
-
-    summary:
-      AIGenerator.summary(
-        analysis.emotion
-      ),
-
-    oneLine:
-      AIGenerator.oneLine(
-        analysis.emotion
-      ),
-
-    images:[],
-
-    dateKey:
-      new Date()
-        .toLocaleDateString(
-          "sv-SE"
-        )
-
-  };
-
-  APP.entries.unshift(
-    entry
-  );
-
-  StorageManager.save(
-    APP.entries
-  );
-
-  renderApp();
-
-  Toast.show(
-    "저장 완료"
-  );
-
-  textarea.value = "";
-
-}
-
-/* =========================================================
-TITLE GENERATOR
-========================================================= */
-
-function generateTitle(
-  text
-){
-
-  const cleaned =
-    text
-      .replace(/\n/g," ")
-      .trim();
-
-  return cleaned.length > 18
-
-    ? cleaned.slice(0,18)+"..."
-
-    : cleaned;
-}
-
-/* =========================================================
-UNIFIED RENDER
-========================================================= */
-
-function renderApp(){
-
-  if(APP.state.rendering){
-
-    return;
-  }
-
-  APP.state.rendering =
-    true;
-
-  requestAnimationFrame(()=>{
-
-    const platform =
-      detectPlatform();
-
-    if(platform === "mobile"){
-
-      renderMobileApp();
-    }
-
-    else{
-
-      renderDesktopApp();
-    }
-
-    APP.state.rendering =
-      false;
-
-  });
-
-}
-
-/* =========================================================
-TOAST
-========================================================= */
-
-const Toast = {
-
-  show(message){
-
-    const existing =
-      document.querySelector(
-        ".toast"
-      );
-
-    if(existing){
-
-      existing.remove();
-    }
-
-    const toast =
-      document.createElement(
-        "div"
-      );
-
-    toast.className =
-      "toast";
-
-    toast.textContent =
-      message;
-
-    document.body.appendChild(
-      toast
-    );
-
-    requestAnimationFrame(()=>{
-
-      toast.classList.add(
-        "show"
-      );
-
-    });
-
-    setTimeout(()=>{
-
-      toast.classList.remove(
-        "show"
-      );
-
-      setTimeout(()=>{
-
-        toast.remove();
-
-      },300);
-
-    },1800);
-
-  }
-
-};
-
-/* =========================================================
-PLATFORM
-========================================================= */
-
-function detectPlatform(){
-
-  return
-    window.innerWidth <= 768
-
-    ? "mobile"
-
-    : "desktop";
-}
-
-/* =========================================================
-RESIZE OPTIMIZATION
-========================================================= */
-
-window.addEventListener(
-
-  "resize",
-
-  debounce(()=>{
-
-    renderApp();
-
-  },180),
-
-  {
-    passive:true
-  }
-
-);
-
-/* =========================================================
-DEBOUNCE
-========================================================= */
-
-function debounce(
-  fn,
-  delay=150
-){
-
-  let timer;
-
-  return (...args)=>{
-
-    clearTimeout(timer);
-
-    timer = setTimeout(()=>{
-
-      fn(...args);
-
-    },delay);
-
-  };
-
-}
-
-/* =========================================================
-LAZY IMAGE
-========================================================= */
-
-function lazyImages(){
-
-  const imgs =
-    document.querySelectorAll(
-      "img[data-src]"
-    );
-
-  const observer =
-    new IntersectionObserver(
-      entries=>{
-
-        entries.forEach(entry=>{
-
-          if(
-            entry.isIntersecting
-          ){
-
-            const img =
-              entry.target;
-
-            img.src =
-              img.dataset.src;
-
-            observer.unobserve(
-              img
-            );
-
-          }
-
-        });
-
-      }
-    );
-
-  imgs.forEach(img=>{
-
-    observer.observe(img);
-
-  });
-
-}
-
-/* =========================================================
-MOBILE EVENTS
-========================================================= */
-
-function registerMobileEvents(){
-
-  const saveBtn =
-    document.querySelector(
-      ".mobile-save"
-    );
-
-  if(saveBtn){
-
-    saveBtn.onpointerdown =
-      null;
-
-    saveBtn.addEventListener(
-
-      "pointerdown",
-
-      saveEntry,
-
-      {
-        passive:true
-      }
-
-    );
-
-  }
-
-}
-
-/* =========================================================
-BACKGROUND ENGINE
-========================================================= */
-
-function updateBackground(){
-
-  const latest =
-    APP.entries[0];
-
-  if(!latest){
-
-    document.body.style.background =
-      `
-        linear-gradient(
-          180deg,
-          #f6f7fb,
-          #eceff5
-        )
-      `;
-
-    return;
-  }
-
-  const map = {
-
-    happy:
-      "#fff7d6",
-
-    sad:
-      "#dbeafe",
-
-    angry:
-      "#fee2e2",
-
-    tired:
-      "#ede9fe",
-
-    normal:
-      "#f3f4f6"
-
-  };
-
-  document.body.style.background =
-    `
-      linear-gradient(
-        180deg,
-        ${map[latest.emotion]},
-        #ffffff
-      )
-    `;
-
-}
-
-/* =========================================================
-STREAK
-========================================================= */
-
-function calculateStreak(){
-
-  if(!APP.entries.length){
-
-    return 0;
-  }
-
-  const sorted =
-    [...APP.entries]
-      .sort((a,b)=>
-
-        new Date(b.createdAt)
-        - new Date(a.createdAt)
-
-      );
-
-  let streak = 1;
-
-  for(
-    let i=1;
-    i<sorted.length;
-    i++
-  ){
-
-    const prev =
-      new Date(
-        sorted[i-1].dateKey
-      );
-
-    const curr =
-      new Date(
-        sorted[i].dateKey
-      );
-
-    const diff =
-      (
-        prev - curr
-      )
-      / 86400000;
-
-    if(diff === 1){
-
-      streak++;
-    }
-
-    else{
-
-      break;
-    }
-
-  }
-
-  return streak;
-}
-
-/* =========================================================
-BOOT
-========================================================= */
-
-function boot(){
-
-  APP.entries =
-    StorageManager.load();
-
-  renderApp();
-
-  updateBackground();
-
-}
-
-boot();
-
-</script>
-
-<style>
-
-/* =========================================================
-TOAST
-========================================================= */
-
-.toast{
-
-  position:fixed;
-
-  left:50%;
-  bottom:120px;
-
-  transform:
-    translateX(-50%)
-    translateY(20px);
-
-  padding:
-    14px 20px;
-
-  border-radius:18px;
-
-  background:
-    rgba(17,24,39,.86);
-
-  color:white;
-
-  opacity:0;
-
-  transition:.3s ease;
-
-  z-index:9999;
-
-  backdrop-filter:
-    blur(18px);
-
-  font-size:14px;
-}
-
-.toast.show{
-
-  opacity:1;
-
-  transform:
-    translateX(-50%)
-    translateY(0);
-}
-
-/* =========================================================
-PERFORMANCE
-========================================================= */
-
-.mobile-post,
-.desktop-post,
-.mobile-card{
-
-  will-change:
-    transform,
-    opacity;
-}
-
-/* =========================================================
-REDUCED MOTION
-========================================================= */
-
-@media (
-  prefers-reduced-motion: reduce
-){
-
-  *{
-
-    animation:none !important;
-
-    transition:none !important;
-
-    scroll-behavior:auto !important;
-  }
-
-}
-
-/* =========================================================
-SAFE AREA
-========================================================= */
-
-body{
-
-  padding:
-    env(safe-area-inset-top)
-    env(safe-area-inset-right)
-    env(safe-area-inset-bottom)
-    env(safe-area-inset-left);
-}
-
-/* =========================================================
-SMOOTH SCROLL
-========================================================= */
-
-html{
-
-  scroll-behavior:smooth;
-}
-
-</style>
-
-
-
-APP INIT
-PIN 없이 바로 실행
-========================================================= */
-
-loadEntries();
-
-renderCurrentPlatform();
-
-/* 기존 제거 */
-//
-// initPin();
-//
-
-window.addEventListener(
-  "resize",
-  renderCurrentPlatform
 );
 
 </script>
-
-<!-- =========================================================
-2. 아래 전체 삭제
-========================================================= -->
-
-<!-- 삭제 대상 -->
-
-<!--
-<div class="lock-screen"></div>
-<div class="lock-panel"></div>
-<div class="pin-grid"></div>
-<div class="pin-dots"></div>
-<button class="pin-btn"></button>
--->
-
-<!-- =========================================================
-3. 아래 JS 함수 전체 삭제
-========================================================= -->
-
-<script>
-
-/* 삭제 대상 */
-
-//
-// initPin()
-//
-// verifyPin()
-//
-// setupPin()
-//
-// unlock()
-//
-// handlePinInput()
-//
-// resetPin()
-//
-// registerPinEvents()
-//
-// triggerError()
-//
-
-/* 삭제 대상 변수 */
-
-//
-// enteredPin
-//
-// PIN_KEY
-//
-// hasPin
-//
-// savedPin
-//
-
-</script>
-
-<!-- =========================================================
-4. 아래 CSS 전체 삭제
-========================================================= -->
-
-<style>
-
-/* 삭제 대상 */
-
-//
-// .lock-screen
-//
-// .lock-panel
-//
-// .pin-grid
-//
-// .pin-btn
-//
-// .pin-dot
-//
-// .pin-dots
-//
-// .unlock
-//
-// .shake
-//
-
-/* 삭제 대상 animation */
-
-//
-// @keyframes shake
-//
-
-</style>
-
-<!-- =========================================================
-5. 모바일 구조 안정화 추가
-========================================================= -->
-
-<style>
-
-/* =========================================================
-APP ROOT
-========================================================= */
-
-html,
-body{
-
-  width:100%;
-  min-height:100%;
-
-  overflow-x:hidden;
-}
-
-/* =========================================================
-MOBILE APP FLOW
-========================================================= */
-
-body.mobile-app{
-
-  overflow-y:auto;
-
-  -webkit-overflow-scrolling:
-    touch;
-}
-
-.mobile-shell{
-
-  width:100%;
-
-  min-height:100dvh;
-
-  padding:
-    20px
-    16px
-    120px;
-
-  display:flex;
-
-  flex-direction:column;
-}
-
-/* =========================================================
-REMOVE OVERLAY CONFLICT
-========================================================= */
-
-.mobile-feed{
-
-  position:relative;
-
-  z-index:1;
-
-  overflow:visible;
-}
-
-/* =========================================================
-FIX POINTER EVENTS
-========================================================= */
-
-.mobile-card,
-.mobile-post,
-.mobile-tabbar{
-
-  pointer-events:auto;
-}
-
-/* =========================================================
-REMOVE BLACK SCREEN ISSUE
-========================================================= */
-
-#app{
-
-  width:100%;
-
-  min-height:100dvh;
-
-  position:relative;
-
-  z-index:1;
-}
-
-</style>
-
-<!-- =========================================================
-6. renderCurrentPlatform 안정화
-========================================================= -->
-
-<script>
-
-/* =========================================================
-SAFE PLATFORM RENDER
-========================================================= */
-
-function renderCurrentPlatform(){
-
-  const platform =
-    detectPlatform();
-
-  currentPlatform =
-    platform;
-
-  requestAnimationFrame(()=>{
-
-    if(platform === "mobile"){
-
-      renderMobileApp();
-    }
-
-    else{
-
-      renderDesktopApp();
-    }
-
-  });
-
-}
-
-</script>
-
-<!-- =========================================================
-7. 모바일 저장 버튼 안정화
-========================================================= -->
-
-<script>
-
-/* =========================================================
-MOBILE EVENT REBIND
-========================================================= */
-
-function registerMobileEvents(){
-
-  const saveBtn =
-    document.getElementById(
-      "mobileSave"
-    );
-
-  if(!saveBtn) return;
-
-  saveBtn.onpointerdown =
-    null;
-
-  saveBtn.ontouchstart =
-    null;
-
-  saveBtn.addEventListener(
-    "pointerdown",
-    saveEntry,
-    {
-      passive:true
-    }
-  );
-
-}
-
-</script>
-
-<!-- =========================================================
-8. 최종 결과
-========================================================= -->
-
-<!--
-앱 실행
-→ 바로 홈 진입
-
-모바일:
-→ 즉시 피드 표시
-
-PC:
-→ 즉시 대시보드 표시
-
-PIN 관련:
-→ 완전 제거
-→ localStorage 정리
-→ overlay 제거
-→ pointer 충돌 제거
-→ black screen 제거
--->
-
-
-
