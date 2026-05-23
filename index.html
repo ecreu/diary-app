@@ -1,39 +1,384 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8" />
-<meta
-  name="viewport"
-  content="width=device-width, initial-scale=1, viewport-fit=cover"
-/>
+현재 안정화된 모바일 감성 일기 앱에 아래 기능을 추가해줘.
 
-<title>하루 일기</title>
 
-<style>
-html,
-body{
-  margin:0;
-  padding:0;
-  width:100%;
-  min-height:100dvh;
-  overflow-x:hidden;
-  overflow-y:auto;
-  background:#050914;
-  color:#f7f7fb;
-  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+추가 기능:
+
+
+
+
+연속 기록 streak 표시
+
+
+작성 날짜 기반 미니 캘린더
+
+
+
+
+중요:
+현재 앱 안정성을 깨지 말 것.
+PC 기능 추가 금지.
+복잡한 애니메이션 금지.
+기존 render/init 구조 변경 금지.
+
+
+
+[1. 연속 기록 streak 기능]
+
+
+저장된 일기 entries의 createdAt 날짜를 기준으로
+연속 작성 일수를 계산해줘.
+
+
+기준:
+
+
+
+
+하루에 여러 개 작성해도 1일로 계산
+
+
+오늘 작성했으면 오늘부터 역순으로 연속 계산
+
+
+오늘 작성하지 않았지만 어제까지 연속 기록이 있으면 어제 기준으로 계산
+
+
+날짜 비교는 YYYY-MM-DD 기준으로 처리
+
+
+
+
+표시 예시:
+🔥 3일 연속 기록 중
+또는
+오늘부터 기록을 시작해볼까요?
+
+
+
+[2. streak UI 위치]
+
+
+상단 헤더 아래에 작은 감성 카드로 표시.
+
+
+예시 구조:
+
+
+
+  🔥
+  
+
+    3일 연속 기록 중
+    
+오늘도 마음을 남겼어요.
+
+  
+
+
+
+
+
+[3. 미니 캘린더 기능]
+
+
+월별 미니 캘린더를 추가해줘.
+
+
+기능:
+
+
+
+
+현재 월 표시
+
+
+이전 달 / 다음 달 이동 버튼
+
+
+작성한 날짜에 작은 dot 표시
+
+
+오늘 날짜 강조
+
+
+날짜 클릭 시 해당 날짜 일기 목록 표시 또는 타임라인에서 해당 날짜로 필터
+
+
+
+
+처음에는 복잡하게 하지 말고,
+안정성 우선으로 구현.
+
+
+
+[4. 캘린더 감정 색상]
+
+
+일기 감정 데이터가 있을 경우 날짜 dot 색상 변경.
+
+
+감정별:
+
+
+
+
+행복 😊 → #facc15
+
+
+평범 😐 → #9ca3af
+
+
+슬픔 😢 → #60a5fa
+
+
+화남 😡 → #f87171
+
+
+피곤 😴 → #a78bfa
+
+
+
+
+감정 데이터가 없으면 기본 dot 색상 사용:
+#c4b5fd
+
+
+
+[5. 캘린더 UI 위치]
+
+
+작성 카드 아래,
+타임라인 위에 배치.
+
+
+순서:
+
+
+
+
+헤더
+
+
+streak card
+
+
+작성 카드
+
+
+미니 캘린더
+
+
+타임라인
+
+
+
+
+
+[6. 캘린더 구조]
+
+
+필수 DOM:
+
+
+
+  
+
+    ‹
+    
+    ›
+  
+
+  
+
+
+  
+
+
+
+
+
+
+[7. 캘린더 렌더 함수]
+
+
+아래 함수 추가:
+
+
+renderStreak()
+renderCalendar()
+calculateStreak(entries)
+getEntriesByDate(dateString)
+
+
+renderApp 또는 init 흐름에서:
+
+
+
+
+renderStreak()
+
+
+renderCalendar()
+
+
+renderTimeline()
+
+
+
+
+순서로 호출.
+
+
+단:
+render 함수끼리 서로 재귀 호출 금지.
+
+
+
+[8. 저장 후 업데이트]
+
+
+일기 저장 성공 후:
+
+
+saveEntry()
+→ saveEntries()
+→ renderStreak()
+→ renderCalendar()
+→ renderTimeline()
+
+
+순서로 UI 갱신.
+
+
+initApp 재호출 금지.
+
+
+
+[9. 캘린더 날짜 클릭]
+
+
+날짜 클릭 시:
+해당 날짜의 일기만 timeline에 표시.
+
+
+그리고 상단에 필터 표시:
+
+
+“5월 22일 기록 보기”
+
+
+필터 해제 버튼 추가:
+“전체 보기”
+
+
+단순하고 안정적으로 구현.
+
+
+
+[10. CSS 주의]
+
+
+현재 앱이 안정화된 상태이므로
+위험한 CSS 사용 금지.
+
+
+금지:
+
+
+
+
+height: 100vh
+
+
+overflow: hidden
+
+
+position: fixed
+
+
+transform 대량 사용
+
+
+backdrop-filter 과다 사용
+
+
+
+
+캘린더는 일반 document flow 안에 배치.
+
+
+
+[11. 미니 캘린더 CSS]
+
+
+안전한 스타일만 적용:
+
+
+.calendar-card {
+background: rgba(255,255,255,0.055);
+border: 1px solid rgba(255,255,255,0.08);
+border-radius: 24px;
+padding: 16px;
+margin: 20px 0;
 }
 
-*{
-  box-sizing:border-box;
-  -webkit-tap-highlight-color:transparent;
+
+.calendar-grid {
+display: grid;
+grid-template-columns: repeat(7, 1fr);
+gap: 8px;
 }
 
-#app{
-  width:100%;
-  min-height:100dvh;
+
+.calendar-day {
+min-height: 38px;
+border-radius: 12px;
+display: grid;
+place-items: center;
+position: relative;
 }
 
-.mobile-app{
+
+.calendar-day.today {
+background: rgba(139,92,246,0.22);
+}
+
+
+.calendar-dot {
+width: 5px;
+height: 5px;
+border-radius: 999px;
+position: absolute;
+bottom: 5px;
+}
+
+
+
+[12. 최종 목표]
+
+
+모바일에서:
+
+
+
+
+연속 기록 일수 표시
+
+
+작성 날짜가 캘린더에 표시
+
+
+날짜 클릭 시 해당 날짜 기록 확인
+
+
+저장 후 streak/calendar/timeline 즉시 갱신
+
+
+현재 안정화된 앱 구조 유지
+
+
+
+
   width:100%;
   max-width:680px;
   margin:0 auto;
