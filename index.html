@@ -1,27 +1,848 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0">
 
-  <title>테스트</title>
+<meta charset="UTF-8" />
 
-  <style>
+<meta
+  name="viewport"
+  content="
+    width=device-width,
+    initial-scale=1,
+    viewport-fit=cover
+  "
+/>
 
-    body{
-      background:black;
-      color:white;
-      padding:40px;
-      font-size:24px;
-    }
+<title>하루 일기</title>
 
-  </style>
+<style>
+
+/* =========================
+   base
+========================= */
+
+html,
+body{
+  margin:0;
+  padding:0;
+  width:100%;
+  min-height:100dvh;
+  overflow-x:hidden;
+  overflow-y:auto;
+  background:#050914;
+  color:#f7f7fb;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+}
+
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:
+    transparent;
+}
+
+/* =========================
+   app
+========================= */
+
+#app{
+  width:100%;
+  min-height:100dvh;
+}
+
+.mobile-app{
+  width:100%;
+  max-width:680px;
+  margin:0 auto;
+  padding:
+    24px
+    16px
+    220px;
+}
+
+/* =========================
+   header
+========================= */
+
+.header{
+  margin-bottom:24px;
+}
+
+.header h1{
+  margin:0 0 8px;
+  font-size:32px;
+  line-height:1.15;
+}
+
+.header p{
+  margin:0;
+  color:#b8bfd4;
+  font-size:14px;
+}
+
+/* =========================
+   card
+========================= */
+
+.card{
+  background:
+    rgba(255,255,255,0.055);
+
+  border:
+    1px solid rgba(
+      255,255,255,0.08
+    );
+
+  border-radius:26px;
+
+  padding:18px;
+
+  margin-top:24px;
+  margin-bottom:24px;
+}
+
+/* =========================
+   input
+========================= */
+
+input,
+textarea{
+  width:100%;
+  box-sizing:border-box;
+  border:none;
+  outline:none;
+  color:#fff;
+  background:
+    rgba(255,255,255,0.05);
+  font:inherit;
+}
+
+.input{
+  height:48px;
+  border-radius:16px;
+  padding:0 14px;
+  margin-bottom:12px;
+}
+
+.textarea{
+  height:180px;
+  min-height:140px;
+  max-height:240px;
+  resize:none;
+  overflow-y:auto;
+  border-radius:18px;
+  padding:16px;
+  line-height:1.7;
+}
+
+/* =========================
+   button
+========================= */
+
+.save-btn{
+  width:100%;
+  height:54px;
+  border:none;
+  border-radius:18px;
+  margin-top:14px;
+  background:
+    linear-gradient(
+      135deg,
+      #8b5cf6,
+      #6366f1
+    );
+  color:white;
+  font-weight:700;
+  font-size:15px;
+}
+
+/* =========================
+   timeline
+========================= */
+
+.timeline{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  margin-top:24px;
+}
+
+.timeline:empty{
+  min-height:0;
+}
+
+/* =========================
+   entry
+========================= */
+
+.entry{
+  background:
+    rgba(255,255,255,0.055);
+
+  border:
+    1px solid rgba(
+      255,255,255,0.08
+    );
+
+  border-radius:22px;
+
+  padding:18px;
+}
+
+.entry-title{
+  font-size:18px;
+  font-weight:700;
+  margin-bottom:8px;
+}
+
+.entry-date{
+  color:#b8bfd4;
+  font-size:12px;
+  margin-bottom:12px;
+}
+
+.entry-content{
+  line-height:1.7;
+  color:#e5e7eb;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+
+.entry-summary{
+  margin-top:12px;
+  color:#c4b5fd;
+  font-size:13px;
+}
+
+.empty{
+  text-align:center;
+  color:#b8bfd4;
+  padding:26px 0;
+}
+
+/* =========================
+   debug toggle
+========================= */
+
+#debug-toggle{
+  position:fixed;
+  top:14px;
+  right:14px;
+  width:42px;
+  height:42px;
+  border:none;
+  border-radius:50%;
+  background:
+    rgba(0,0,0,.7);
+  color:#7CFF7C;
+  font-size:18px;
+  z-index:1000000;
+}
+
+/* =========================
+   debug console
+========================= */
+
+#debug-log{
+  position:fixed;
+  left:0;
+  bottom:0;
+  width:100%;
+  max-height:35vh;
+  overflow-y:auto;
+  background:
+    rgba(0,0,0,.88);
+  color:#7CFF7C;
+  font-size:12px;
+  line-height:1.5;
+  padding:
+    10px
+    10px
+    calc(
+      10px +
+      env(safe-area-inset-bottom)
+    );
+  z-index:999999;
+  font-family:monospace;
+}
+
+#debug-log.hidden{
+  display:none;
+}
+
+#debug-log p{
+  margin:4px 0;
+  word-break:break-word;
+}
+
+</style>
+
 </head>
 
 <body>
 
-  APP WORKING
+<div id="app"></div>
+
+<button id="debug-toggle">
+  🐞
+</button>
+
+<div id="debug-log"></div>
+
+<script>
+
+/* =========================
+   debug
+========================= */
+
+const DEBUG_MAX_LOGS = 100;
+
+let debugVisible = true;
+
+function debug(message){
+
+  console.log(message);
+
+  const log =
+    document.getElementById(
+      "debug-log"
+    );
+
+  if(!log){
+    return;
+  }
+
+  const time =
+    new Date()
+      .toLocaleTimeString(
+        "ko-KR"
+      );
+
+  const line =
+    document.createElement("p");
+
+  line.textContent =
+    "[" + time + "] " +
+    message;
+
+  log.appendChild(line);
+
+  while(
+    log.children.length >
+    DEBUG_MAX_LOGS
+  ){
+    log.removeChild(
+      log.firstChild
+    );
+  }
+
+  log.scrollTop =
+    log.scrollHeight;
+}
+
+/* =========================
+   global error
+========================= */
+
+window.addEventListener(
+  "error",
+  function(event){
+
+    debug(
+      "GLOBAL ERROR: " +
+      event.message
+    );
+  }
+);
+
+/* =========================
+   state
+========================= */
+
+const state = {
+  entries:[]
+};
+
+/* =========================
+   storage
+========================= */
+
+function loadEntries(){
+
+  debug(
+    "ENTER loadEntries"
+  );
+
+  try{
+
+    const raw =
+      localStorage.getItem(
+        "entries"
+      );
+
+    if(!raw){
+
+      debug(
+        "EMPTY STORAGE"
+      );
+
+      return [];
+    }
+
+    const parsed =
+      JSON.parse(raw);
+
+    if(
+      !Array.isArray(parsed)
+    ){
+      return [];
+    }
+
+    debug(
+      "LOAD SUCCESS"
+    );
+
+    return parsed;
+
+  }catch(error){
+
+    debug(
+      "LOAD ERROR: " +
+      error.message
+    );
+
+    return [];
+  }
+
+}
+
+function saveEntries(){
+
+  try{
+
+    localStorage.setItem(
+      "entries",
+      JSON.stringify(
+        state.entries
+      )
+    );
+
+    debug(
+      "SAVE SUCCESS"
+    );
+
+  }catch(error){
+
+    debug(
+      "SAVE ERROR: " +
+      error.message
+    );
+  }
+
+}
+
+/* =========================
+   emotion
+========================= */
+
+function analyzeEmotion(text){
+
+  const content =
+    text.toLowerCase();
+
+  if(
+    content.includes("행복") ||
+    content.includes("좋")
+  ){
+
+    return {
+      emoji:"😊",
+      label:"행복"
+    };
+  }
+
+  if(
+    content.includes("슬")
+  ){
+
+    return {
+      emoji:"😢",
+      label:"슬픔"
+    };
+  }
+
+  return {
+    emoji:"😐",
+    label:"평범"
+  };
+
+}
+
+function createSummary(emotion){
+
+  const summaries = {
+
+    행복:
+      "오늘은 따뜻한 하루였어요.",
+
+    슬픔:
+      "조금 지친 하루였네요.",
+
+    평범:
+      "소소한 하루였어요."
+  };
+
+  return summaries[
+    emotion.label
+  ] || summaries.평범;
+
+}
+
+/* =========================
+   utils
+========================= */
+
+function escapeHtml(text){
+
+  return text
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;");
+}
+
+/* =========================
+   layout
+========================= */
+
+function createLayout(){
+
+  return `
+
+    <div class="mobile-app">
+
+      <header class="header">
+
+        <h1>
+          하루 일기
+        </h1>
+
+        <p>
+          오늘 하루를 기록해보세요
+        </p>
+
+      </header>
+
+      <section class="card">
+
+        <input
+          id="titleInput"
+          class="input"
+          placeholder="제목"
+        />
+
+        <textarea
+          id="contentInput"
+          class="textarea"
+          placeholder="오늘 하루는 어땠나요?"
+        ></textarea>
+
+        <button
+          id="saveBtn"
+          class="save-btn"
+        >
+          작성 완료
+        </button>
+
+      </section>
+
+      <section
+        id="timeline"
+        class="timeline"
+      ></section>
+
+    </div>
+
+  `;
+
+}
+
+/* =========================
+   render
+========================= */
+
+function renderTimeline(){
+
+  const timeline =
+    document.getElementById(
+      "timeline"
+    );
+
+  if(!timeline){
+    return;
+  }
+
+  if(
+    state.entries.length === 0
+  ){
+
+    timeline.innerHTML = `
+
+      <div class="entry empty">
+        아직 작성된 일기가 없어요.
+      </div>
+
+    `;
+
+    return;
+  }
+
+  timeline.innerHTML =
+
+    state.entries
+      .slice()
+      .reverse()
+      .map(function(entry){
+
+        return `
+
+          <article class="entry">
+
+            <div class="entry-title">
+
+              ${entry.emotion.emoji}
+              ${escapeHtml(
+                entry.title
+              )}
+
+            </div>
+
+            <div class="entry-date">
+
+              ${entry.createdAt}
+
+            </div>
+
+            <div class="entry-content">
+
+              ${escapeHtml(
+                entry.content
+              )}
+
+            </div>
+
+            <div class="entry-summary">
+
+              ${entry.summary}
+
+            </div>
+
+          </article>
+
+        `;
+
+      })
+      .join("");
+
+}
+
+/* =========================
+   save
+========================= */
+
+function saveEntry(){
+
+  try{
+
+    const titleInput =
+      document.getElementById(
+        "titleInput"
+      );
+
+    const contentInput =
+      document.getElementById(
+        "contentInput"
+      );
+
+    if(
+      !titleInput ||
+      !contentInput
+    ){
+      return;
+    }
+
+    const title =
+      titleInput.value.trim();
+
+    const content =
+      contentInput.value.trim();
+
+    if(!content){
+      return;
+    }
+
+    const emotion =
+      analyzeEmotion(
+        content
+      );
+
+    const entry = {
+
+      id:Date.now(),
+
+      title:
+        title ||
+        "제목 없는 일기",
+
+      content,
+
+      createdAt:
+        new Date()
+          .toLocaleString(
+            "ko-KR"
+          ),
+
+      emotion,
+
+      summary:
+        createSummary(
+          emotion
+        )
+    };
+
+    state.entries.push(
+      entry
+    );
+
+    saveEntries();
+
+    renderTimeline();
+
+    titleInput.value = "";
+    contentInput.value = "";
+
+    debug(
+      "ENTRY SAVED"
+    );
+
+  }catch(error){
+
+    debug(
+      "SAVE ERROR: " +
+      error.message
+    );
+  }
+
+}
+
+/* =========================
+   events
+========================= */
+
+function attachEvents(){
+
+  const saveBtn =
+    document.getElementById(
+      "saveBtn"
+    );
+
+  if(saveBtn){
+
+    saveBtn.addEventListener(
+      "click",
+      saveEntry
+    );
+  }
+
+  const toggle =
+    document.getElementById(
+      "debug-toggle"
+    );
+
+  const log =
+    document.getElementById(
+      "debug-log"
+    );
+
+  if(
+    toggle &&
+    log
+  ){
+
+    toggle.addEventListener(
+      "click",
+      function(){
+
+        debugVisible =
+          !debugVisible;
+
+        log.classList.toggle(
+          "hidden",
+          !debugVisible
+        );
+
+      }
+    );
+  }
+
+}
+
+/* =========================
+   init
+========================= */
+
+function initApp(){
+
+  debug(
+    "INIT START"
+  );
+
+  const app =
+    document.getElementById(
+      "app"
+    );
+
+  app.innerHTML =
+    createLayout();
+
+  debug(
+    "LAYOUT INSERTED"
+  );
+
+  state.entries =
+    loadEntries();
+
+  renderTimeline();
+
+  attachEvents();
+
+  debug(
+    "INIT COMPLETE"
+  );
+
+}
+
+/* =========================
+   start
+========================= */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  function(){
+
+    debug(
+      "DOM LOADED"
+    );
+
+    initApp();
+
+  }
+);
+
+</script>
 
 </body>
 </html>
+
+
