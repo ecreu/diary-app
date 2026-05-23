@@ -140,20 +140,18 @@ html,body{
 
 .calendar-title{ font-size:15px; }
 
-.calendar-weekdays{
-  display:grid;
-  grid-template-columns:repeat(7,1fr);
-  gap:8px;
-  margin-bottom:8px;
-  color:#9ca3af;
-  font-size:11px;
-  text-align:center;
-}
-
+.calendar-weekdays,
 .calendar-grid{
   display:grid;
   grid-template-columns:repeat(7,1fr);
   gap:8px;
+}
+
+.calendar-weekdays{
+  margin-bottom:8px;
+  color:#9ca3af;
+  font-size:11px;
+  text-align:center;
 }
 
 .calendar-day{
@@ -170,6 +168,7 @@ html,body{
 
 .calendar-day.empty-day{
   background:transparent;
+  pointer-events:none;
 }
 
 .calendar-day.today{
@@ -293,20 +292,16 @@ html,body{
 </head>
 
 <body>
-
 <div id="app"></div>
-
-<button id="debug-toggle" type="button">🐞</button>
-<div id="debug-log"></div>
 
 <script>
 const DEBUG_MAX_LOGS = 80;
 
 const state = {
-  entries:[],
-  calendarYear:new Date().getFullYear(),
-  calendarMonth:new Date().getMonth(),
-  currentFilterDate:null
+  entries: [],
+  calendarYear: new Date().getFullYear(),
+  calendarMonth: new Date().getMonth(),
+  currentFilterDate: null
 };
 
 function debug(message){
@@ -317,7 +312,6 @@ function debug(message){
 
   const time = new Date().toLocaleTimeString("ko-KR");
   const line = document.createElement("p");
-
   line.textContent = "[" + time + "] " + message;
   log.appendChild(line);
 
@@ -338,12 +332,43 @@ window.addEventListener("unhandledrejection", function(event){
   debug("PROMISE ERROR: " + event.reason);
 });
 
+function createLayout(){
+  return `
+    <div class="mobile-app">
+      <header class="header">
+        <h1>하루 일기</h1>
+        <p>오늘 하루를 기록해보세요</p>
+      </header>
+
+      <section id="streakArea"></section>
+
+      <section class="card composer-card">
+        <textarea id="contentInput" class="diary-input" placeholder="오늘 하루는 어땠나요?"></textarea>
+        <button id="saveBtn" class="save-btn" type="button">기록하기</button>
+      </section>
+
+      <section class="calendar-card">
+        <div class="calendar-header">
+          <button class="calendar-prev" type="button">‹</button>
+          <strong class="calendar-title"></strong>
+          <button class="calendar-next" type="button">›</button>
+        </div>
+        <div class="calendar-weekdays"></div>
+        <div class="calendar-grid"></div>
+      </section>
+
+      <section id="filterArea"></section>
+      <section id="timeline" class="timeline"></section>
+
+      <button id="debug-toggle" type="button">🐞</button>
+      <div id="debug-log"></div>
+    </div>
+  `;
+}
+
 function toLocalDateKey(value){
   const date = value instanceof Date ? value : new Date(value);
-
-  if(isNaN(date.getTime())){
-    return "";
-  }
+  if(isNaN(date.getTime())) return "";
 
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2,"0");
@@ -353,33 +378,25 @@ function toLocalDateKey(value){
 }
 
 function makeDateKey(year, monthIndex, day){
-  const y = year;
-  const m = String(monthIndex + 1).padStart(2,"0");
-  const d = String(day).padStart(2,"0");
+  return year + "-" +
+    String(monthIndex + 1).padStart(2,"0") + "-" +
+    String(day).padStart(2,"0");
+}
 
-  return y + "-" + m + "-" + d;
+function escapeHtml(text){
+  return String(text || "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;");
 }
 
 function loadEntries(){
-  debug("ENTER loadEntries");
-
   try{
     const raw = localStorage.getItem("entries");
-
-    if(!raw){
-      debug("EMPTY STORAGE");
-      return [];
-    }
+    if(!raw) return [];
 
     const parsed = JSON.parse(raw);
-
-    if(!Array.isArray(parsed)){
-      debug("STORAGE INVALID");
-      return [];
-    }
-
-    debug("LOAD SUCCESS");
-    return parsed;
+    return Array.isArray(parsed) ? parsed : [];
   }catch(error){
     debug("LOAD ERROR: " + error.message);
     return [];
@@ -398,21 +415,10 @@ function saveEntries(){
 function analyzeEmotion(text){
   const content = text.toLowerCase();
 
-  if(content.includes("행복") || content.includes("좋")){
-    return { emoji:"😊", label:"행복" };
-  }
-
-  if(content.includes("슬")){
-    return { emoji:"😢", label:"슬픔" };
-  }
-
-  if(content.includes("화") || content.includes("짜증")){
-    return { emoji:"😡", label:"화남" };
-  }
-
-  if(content.includes("피곤") || content.includes("졸")){
-    return { emoji:"😴", label:"피곤" };
-  }
+  if(content.includes("행복") || content.includes("좋")) return { emoji:"😊", label:"행복" };
+  if(content.includes("슬")) return { emoji:"😢", label:"슬픔" };
+  if(content.includes("화") || content.includes("짜증")) return { emoji:"😡", label:"화남" };
+  if(content.includes("피곤") || content.includes("졸")) return { emoji:"😴", label:"피곤" };
 
   return { emoji:"😐", label:"평범" };
 }
@@ -429,68 +435,16 @@ function createSummary(emotion){
   return summaries[emotion.label] || summaries.평범;
 }
 
-function escapeHtml(text){
-  return String(text || "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;");
-}
-
-function formatDateKey(dateKey){
-  const parts = dateKey.split("-");
-  return Number(parts[1]) + "월 " + Number(parts[2]) + "일";
-}
-
-function createLayout(){
-  return `
-    <div class="mobile-app">
-      <header class="header">
-        <h1>하루 일기</h1>
-        <p>오늘 하루를 기록해보세요</p>
-      </header>
-
-      <section id="streakArea"></section>
-
-      <section class="card composer-card">
-        <textarea
-          id="contentInput"
-          class="diary-input"
-          placeholder="오늘 하루는 어땠나요?"
-        ></textarea>
-
-        <button id="saveBtn" class="save-btn" type="button">
-          기록하기
-        </button>
-      </section>
-
-      <section class="calendar-card">
-        <div class="calendar-header">
-          <button class="calendar-prev" type="button">‹</button>
-          <strong class="calendar-title"></strong>
-          <button class="calendar-next" type="button">›</button>
-        </div>
-
-        <div class="calendar-weekdays"></div>
-        <div class="calendar-grid"></div>
-      </section>
-
-      <section id="filterArea"></section>
-
-      <section id="timeline" class="timeline"></section>
-    </div>
-  `;
-}
-
 function getEntryDateKey(entry){
-  if(entry.createdAt){
-    return toLocalDateKey(entry.createdAt);
-  }
-
-  if(entry.dateKey){
-    return entry.dateKey;
-  }
-
+  if(entry.dateKey) return entry.dateKey;
+  if(entry.createdAt) return toLocalDateKey(entry.createdAt);
   return "";
+}
+
+function getEntriesByDate(dateKey){
+  return state.entries.filter(function(entry){
+    return getEntryDateKey(entry) === dateKey;
+  });
 }
 
 function calculateStreak(entries){
@@ -561,12 +515,6 @@ function renderStreak(){
   `;
 }
 
-function getEntriesByDate(dateKey){
-  return state.entries.filter(function(entry){
-    return getEntryDateKey(entry) === dateKey;
-  });
-}
-
 function getEmotionDotColor(emotion){
   const label = emotion && emotion.label;
 
@@ -618,22 +566,19 @@ function renderCalendar(){
     const selectedClass = dateKey === state.currentFilterDate ? " selected" : "";
 
     html += `
-      <button
-        type="button"
-        class="calendar-day${todayClass}${selectedClass}"
-        data-date="${dateKey}"
-      >
+      <button type="button" class="calendar-day${todayClass}${selectedClass}" data-date="${dateKey}">
         ${day}
-        ${
-          hasEntry
-            ? `<span class="calendar-dot" style="background:${dotColor}"></span>`
-            : ""
-        }
+        ${hasEntry ? `<span class="calendar-dot" style="background:${dotColor}"></span>` : ""}
       </button>
     `;
   }
 
   grid.innerHTML = html;
+}
+
+function formatDateKey(dateKey){
+  const parts = dateKey.split("-");
+  return Number(parts[1]) + "월 " + Number(parts[2]) + "일";
 }
 
 function renderFilter(){
@@ -655,14 +600,9 @@ function renderFilter(){
 
 function renderTimeline(dateKey){
   const timeline = document.querySelector(".timeline");
-
-  debug("timeline exists: " + !!timeline);
-
   if(!timeline) return;
 
-  const list = dateKey
-    ? getEntriesByDate(dateKey)
-    : state.entries;
+  const list = dateKey ? getEntriesByDate(dateKey) : state.entries;
 
   if(!list.length){
     timeline.innerHTML = `
@@ -684,18 +624,9 @@ function renderTimeline(dateKey){
       return `
         <article class="entry">
           <div class="entry-emotion">${emotion.emoji}</div>
-
-          <div class="entry-date">
-            ${escapeHtml(entry.createdAt || "")}
-          </div>
-
-          <div class="entry-content">
-            ${escapeHtml(entry.content || "")}
-          </div>
-
-          <div class="entry-summary">
-            ${escapeHtml(entry.summary || "")}
-          </div>
+          <div class="entry-date">${escapeHtml(entry.createdAt || "")}</div>
+          <div class="entry-content">${escapeHtml(entry.content || "")}</div>
+          <div class="entry-summary">${escapeHtml(entry.summary || "")}</div>
         </article>
       `;
     })
@@ -710,75 +641,66 @@ function renderApp(){
 }
 
 function saveEntry(){
-  try{
-    const contentInput = document.getElementById("contentInput");
+  const contentInput = document.getElementById("contentInput");
 
-    if(!contentInput){
-      debug("CONTENT INPUT MISSING");
-      return;
-    }
-
-    const content = contentInput.value.trim();
-
-    if(!content){
-      debug("EMPTY CONTENT");
-      return;
-    }
-
-    const emotion = analyzeEmotion(content);
-    const now = new Date();
-
-    const entry = {
-      id:Date.now(),
-      content:content,
-      createdAt:now.toISOString(),
-      emotion:emotion,
-      summary:createSummary(emotion)
-    };
-
-    state.entries.push(entry);
-    state.currentFilterDate = null;
-
-    saveEntries();
-
-    renderStreak();
-    renderCalendar();
-    renderFilter();
-    renderTimeline();
-
-    contentInput.value = "";
-
-    debug("ENTRY SAVED");
-  }catch(error){
-    debug("SAVE ERROR: " + error.message);
+  if(!contentInput){
+    debug("CONTENT INPUT MISSING");
+    return;
   }
+
+  const content = contentInput.value.trim();
+
+  if(!content){
+    debug("EMPTY CONTENT");
+    return;
+  }
+
+  const emotion = analyzeEmotion(content);
+  const now = new Date();
+
+  const entry = {
+    id: Date.now(),
+    content: content,
+    createdAt: now.toISOString(),
+    dateKey: toLocalDateKey(now),
+    emotion: emotion,
+    summary: createSummary(emotion)
+  };
+
+  state.entries.push(entry);
+  state.currentFilterDate = null;
+
+  saveEntries();
+  renderApp();
+
+  contentInput.value = "";
+  debug("ENTRY SAVED");
 }
 
 function attachDebugEvents(){
   const btn = document.getElementById("debug-toggle");
   const log = document.getElementById("debug-log");
 
-  if(!btn || !log) return;
+  if(!btn || !log){
+    console.warn("debug elements missing");
+    return;
+  }
 
   btn.onclick = function(){
     log.classList.toggle("open");
   };
 }
 
-function attachEvents(){
-  const saveBtn = document.querySelector(".save-btn");
+function attachCalendarEvents(){
+  const calendar = document.querySelector(".calendar-card");
+  if(!calendar) return;
 
-  debug("saveBtn exists: " + !!saveBtn);
+  calendar.onclick = function(event){
+    const prev = event.target.closest(".calendar-prev");
+    const next = event.target.closest(".calendar-next");
+    const day = event.target.closest(".calendar-day");
 
-  if(saveBtn){
-    saveBtn.onclick = saveEntry;
-  }
-
-  const prev = document.querySelector(".calendar-prev");
-  const next = document.querySelector(".calendar-next");
-
-  if(prev){
-    prev.onclick = function(){
+    if(prev){
       state.calendarMonth--;
 
       if(state.calendarMonth < 0){
@@ -787,11 +709,10 @@ function attachEvents(){
       }
 
       renderCalendar();
-    };
-  }
+      return;
+    }
 
-  if(next){
-    next.onclick = function(){
+    if(next){
       state.calendarMonth++;
 
       if(state.calendarMonth > 11){
@@ -800,20 +721,26 @@ function attachEvents(){
       }
 
       renderCalendar();
-    };
-  }
-
-  document.onclick = function(event){
-    const day = event.target.closest(".calendar-day");
+      return;
+    }
 
     if(day && day.dataset.date){
       state.currentFilterDate = day.dataset.date;
       renderCalendar();
       renderFilter();
       renderTimeline(state.currentFilterDate);
-      return;
     }
+  };
+}
 
+function attachEvents(){
+  const saveBtn = document.getElementById("saveBtn");
+
+  if(saveBtn){
+    saveBtn.onclick = saveEntry;
+  }
+
+  document.onclick = function(event){
     if(event.target.classList.contains("clear-filter-btn")){
       state.currentFilterDate = null;
       renderCalendar();
@@ -822,6 +749,7 @@ function attachEvents(){
     }
   };
 
+  attachCalendarEvents();
   attachDebugEvents();
 
   debug("attachEvents complete");
@@ -839,2134 +767,20 @@ function initApp(){
 
   app.innerHTML = createLayout();
 
-  debug("LAYOUT INSERTED");
-  debug("app children: " + app.children.length);
-  debug("timeline exists: " + !!document.querySelector(".timeline"));
-  debug("saveBtn exists: " + !!document.querySelector(".save-btn"));
-
   state.entries = loadEntries();
 
   renderApp();
   attachEvents();
 
-  debug("INIT COMPLETE");
-}
-
-document.addEventListener("DOMContentLoaded", function(){
-  debug("DOM LOADED");
-  initApp();
-});
-</script>
-
-</body>
-</html>  width:100%;
-  max-width:680px;
-  margin:0 auto;
-  padding:24px 16px 48px;
-}
-
-.header{
-  margin-bottom:24px;
-}
-
-.header h1{
-  margin:0 0 8px;
-  font-size:32px;
-  line-height:1.15;
-}
-
-.header p{
-  margin:0;
-  color:#b8bfd4;
-  font-size:14px;
-}
-
-.card{
-  background:rgba(255,255,255,0.055);
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:24px;
-  padding:18px;
-  margin-bottom:24px;
-}
-
-.diary-input{
-  width:100%;
-  height:180px;
-  min-height:140px;
-  max-height:240px;
-  resize:none;
-  overflow-y:auto;
-  border:none;
-  outline:none;
-  border-radius:18px;
-  padding:16px;
-  line-height:1.7;
-  color:#fff;
-  background:rgba(255,255,255,0.05);
-  font:inherit;
-}
-
-.save-btn{
-  width:100%;
-  height:54px;
-  border:none;
-  border-radius:18px;
-  margin-top:14px;
-  background:linear-gradient(135deg,#8b5cf6,#6366f1);
-  color:white;
-  font-weight:700;
-  font-size:15px;
-}
-
-.timeline{
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-  margin-top:24px;
-}
-
-.entry{
-  background:rgba(255,255,255,0.055);
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:22px;
-  padding:18px;
-}
-
-.entry-emotion{
-  font-size:26px;
-  margin-bottom:8px;
-}
-
-.entry-date{
-  color:#b8bfd4;
-  font-size:12px;
-  margin-bottom:12px;
-}
-
-.entry-content{
-  line-height:1.7;
-  color:#e5e7eb;
-  white-space:pre-wrap;
-  word-break:break-word;
-}
-
-.entry-summary{
-  margin-top:12px;
-  color:#c4b5fd;
-  font-size:13px;
-}
-
-.empty{
-  text-align:center;
-  color:#b8bfd4;
-  padding:26px 0;
-}
-
-#debug-toggle{
-  position:fixed;
-  right:16px;
-  bottom:16px;
-  width:44px;
-  height:44px;
-  border:none;
-  border-radius:50%;
-  background:rgba(0,0,0,.78);
-  color:#7CFF7C;
-  font-size:18px;
-  z-index:999999;
-}
-
-#debug-log{
-  position:fixed;
-  left:12px;
-  right:12px;
-  bottom:72px;
-  max-height:32vh;
-  overflow-y:auto;
-  background:rgba(0,0,0,0.82);
-  color:#7CFF7C;
-  font-size:11px;
-  line-height:1.4;
-  padding:10px;
-  border-radius:14px;
-  z-index:999998;
-  font-family:monospace;
-  display:none;
-}
-
-#debug-log.open{
-  display:block;
-}
-
-#debug-log p{
-  margin:4px 0;
-  word-break:break-word;
-}
-</style>
-</head>
-
-<body>
-
-<div id="app"></div>
-
-<button id="debug-toggle">🐞</button>
-<div id="debug-log"></div>
-
-<script>
-const DEBUG_MAX_LOGS = 80;
-let debugOpen = false;
-
-const state = {
-  entries:[]
-};
-
-function debug(message){
-  console.log(message);
-
-  const log = document.getElementById("debug-log");
-
-  if(!log){
-    return;
-  }
-
-  const time = new Date().toLocaleTimeString("ko-KR");
-  const line = document.createElement("p");
-
-  line.textContent = "[" + time + "] " + message;
-
-  log.appendChild(line);
-
-  while(log.children.length > DEBUG_MAX_LOGS){
-    log.removeChild(log.firstChild);
-  }
-
-  if(debugOpen){
-    log.scrollTop = log.scrollHeight;
-  }
-}
-
-window.addEventListener("error", function(event){
-  debug("GLOBAL ERROR: " + event.message);
-});
-
-window.addEventListener("unhandledrejection", function(event){
-  debug("PROMISE ERROR: " + event.reason);
-});
-
-function loadEntries(){
-  debug("ENTER loadEntries");
-
-  try{
-    const raw = localStorage.getItem("entries");
-
-    if(!raw){
-      debug("EMPTY STORAGE");
-      return [];
-    }
-
-    const parsed = JSON.parse(raw);
-
-    if(!Array.isArray(parsed)){
-      debug("STORAGE INVALID");
-      return [];
-    }
-
-    debug("LOAD SUCCESS");
-    return parsed;
-  }catch(error){
-    debug("LOAD ERROR: " + error.message);
-    return [];
-  }
-}
-
-function saveEntries(){
-  try{
-    localStorage.setItem(
-      "entries",
-      JSON.stringify(state.entries)
-    );
-
-    debug("SAVE SUCCESS");
-  }catch(error){
-    debug("SAVE ERROR: " + error.message);
-  }
-}
-
-function analyzeEmotion(text){
-  const content = text.toLowerCase();
-
-  if(content.includes("행복") || content.includes("좋")){
-    return {
-      emoji:"😊",
-      label:"행복"
-    };
-  }
-
-  if(content.includes("슬")){
-    return {
-      emoji:"😢",
-      label:"슬픔"
-    };
-  }
-
-  if(content.includes("화") || content.includes("짜증")){
-    return {
-      emoji:"😡",
-      label:"화남"
-    };
-  }
-
-  if(content.includes("피곤") || content.includes("졸")){
-    return {
-      emoji:"😴",
-      label:"피곤"
-    };
-  }
-
-  return {
-    emoji:"😐",
-    label:"평범"
-  };
-}
-
-function createSummary(emotion){
-  const summaries = {
-    행복:"오늘의 요약: 따뜻하게 지나간 하루였어요.",
-    슬픔:"오늘의 요약: 조금 지친 하루였어요.",
-    화남:"오늘의 요약: 감정 기복이 있었던 하루였어요.",
-    피곤:"오늘의 요약: 몸과 마음이 쉬고 싶었던 하루였어요.",
-    평범:"오늘의 요약: 차분하게 지나간 하루였어요."
-  };
-
-  return summaries[emotion.label] || summaries.평범;
-}
-
-function escapeHtml(text){
-  return String(text)
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;");
-}
-
-function createLayout(){
-  return `
-    <div class="mobile-app">
-      <header class="header">
-        <h1>하루 일기</h1>
-        <p>오늘 하루를 기록해보세요</p>
-      </header>
-
-      <section class="card composer-card">
-        <textarea
-          id="contentInput"
-          class="diary-input"
-          placeholder="오늘 하루는 어땠나요?"
-        ></textarea>
-
-        <button
-          id="saveBtn"
-          class="save-btn"
-        >
-          기록하기
-        </button>
-      </section>
-
-      <section
-        id="timeline"
-        class="timeline"
-      ></section>
-    </div>
-  `;
-}
-
-function renderTimeline(){
-  const timeline = document.querySelector(".timeline");
-
-  debug("timeline exists: " + !!timeline);
-
-  if(!timeline){
-    return;
-  }
-
-  if(state.entries.length === 0){
-    timeline.innerHTML = `
-      <div class="entry empty">
-        아직 작성된 일기가 없어요.
-      </div>
-    `;
-
-    return;
-  }
-
-  timeline.innerHTML = state.entries
-    .slice()
-    .reverse()
-    .map(function(entry){
-      const emotion = entry.emotion || {
-        emoji:"😐",
-        label:"평범"
-      };
-
-      return `
-        <article class="entry">
-          <div class="entry-emotion">
-            ${emotion.emoji}
-          </div>
-
-          <div class="entry-date">
-            ${escapeHtml(entry.createdAt || "")}
-          </div>
-
-          <div class="entry-content">
-            ${escapeHtml(entry.content || "")}
-          </div>
-
-          <div class="entry-summary">
-            ${escapeHtml(entry.summary || "")}
-          </div>
-        </article>
-      `;
-    })
-    .join("");
-}
-
-function saveEntry(){
-  try{
-    const contentInput = document.getElementById("contentInput");
-
-    if(!contentInput){
-      debug("CONTENT INPUT MISSING");
-      return;
-    }
-
-    const content = contentInput.value.trim();
-
-    if(!content){
-      debug("EMPTY CONTENT");
-      return;
-    }
-
-    const emotion = analyzeEmotion(content);
-
-    const entry = {
-      id:Date.now(),
-      content:content,
-      createdAt:new Date().toLocaleString("ko-KR"),
-      emotion:emotion,
-      summary:createSummary(emotion)
-    };
-
-    state.entries.push(entry);
-
-    saveEntries();
-    renderTimeline();
-
-    contentInput.value = "";
-
-    debug("ENTRY SAVED");
-  }catch(error){
-    debug("SAVE ERROR: " + error.message);
-  }
-}
-
-function attachEvents(){
-  const saveBtn = document.querySelector(".save-btn");
-
-  debug("saveBtn exists: " + !!saveBtn);
-
-  if(saveBtn){
-    saveBtn.addEventListener("click", saveEntry);
-  }
-
-  const toggle = document.getElementById("debug-toggle");
-  const log = document.getElementById("debug-log");
-
-  if(toggle && log){
-    toggle.addEventListener("click", function(){
-      debugOpen = !debugOpen;
-      log.classList.toggle("open", debugOpen);
-
-      if(debugOpen){
-        log.scrollTop = log.scrollHeight;
-      }
-    });
-  }
-
-  debug("attachEvents complete");
-}
-
-function initApp(){
-  debug("INIT START");
-
-  const app = document.getElementById("app");
-
-  if(!app){
-    debug("APP NOT FOUND");
-    return;
-  }
-
-  app.innerHTML = createLayout();
-
-  debug("LAYOUT INSERTED");
-  debug("app children: " + app.children.length);
-  debug("timeline exists: " + !!document.querySelector(".timeline"));
-  debug("saveBtn exists: " + !!document.querySelector(".save-btn"));
-
-  state.entries = loadEntries();
-
-  renderTimeline();
-  attachEvents();
+  debug("calendar exists: " + !!document.querySelector(".calendar-card"));
+  debug("calendar grid exists: " + !!document.querySelector(".calendar-grid"));
+  debug("debug toggle exists: " + !!document.getElementById("debug-toggle"));
+  debug("debug log exists: " + !!document.getElementById("debug-log"));
 
   debug("INIT COMPLETE");
 }
 
-document.addEventListener("DOMContentLoaded", function(){
-  debug("DOM LOADED");
-  initApp();
-});
+document.addEventListener("DOMContentLoaded", initApp);
 </script>
-
 </body>
 </html>
-.header{
-  margin-bottom:18px;
-}
-
-.header h1{
-  margin:0 0 8px;
-  font-size:32px;
-  line-height:1.15;
-}
-
-.header p{
-  margin:0;
-  color:#b8bfd4;
-  font-size:14px;
-}
-
-.card,
-.streak-card,
-.calendar-card{
-  background:rgba(255,255,255,0.055);
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:24px;
-}
-
-.streak-card{
-  display:flex;
-  gap:12px;
-  align-items:center;
-  padding:16px;
-  margin:18px 0 22px;
-}
-
-.streak-icon{
-  font-size:26px;
-}
-
-.streak-card strong{
-  display:block;
-  font-size:16px;
-  margin-bottom:4px;
-}
-
-.streak-card p{
-  margin:0;
-  color:#b8bfd4;
-  font-size:13px;
-}
-
-.card{
-  padding:18px;
-  margin-bottom:22px;
-}
-
-.diary-input{
-  width:100%;
-  height:180px;
-  min-height:140px;
-  max-height:240px;
-  resize:none;
-  overflow-y:auto;
-  border:none;
-  outline:none;
-  border-radius:18px;
-  padding:16px;
-  line-height:1.7;
-  color:#fff;
-  background:rgba(255,255,255,0.05);
-  font:inherit;
-}
-
-.save-btn{
-  width:100%;
-  height:54px;
-  border:none;
-  border-radius:18px;
-  margin-top:14px;
-  background:linear-gradient(135deg,#8b5cf6,#6366f1);
-  color:white;
-  font-weight:700;
-  font-size:15px;
-}
-
-.calendar-card{
-  padding:16px;
-  margin:20px 0 24px;
-}
-
-.calendar-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:14px;
-}
-
-.calendar-header button{
-  width:34px;
-  height:34px;
-  border:none;
-  border-radius:12px;
-  background:rgba(255,255,255,0.08);
-  color:white;
-  font-size:22px;
-}
-
-.calendar-title{
-  font-size:15px;
-}
-
-.calendar-weekdays{
-  display:grid;
-  grid-template-columns:repeat(7,1fr);
-  gap:8px;
-  margin-bottom:8px;
-  color:#9ca3af;
-  font-size:11px;
-  text-align:center;
-}
-
-.calendar-grid{
-  display:grid;
-  grid-template-columns:repeat(7,1fr);
-  gap:8px;
-}
-
-.calendar-day{
-  min-height:38px;
-  border:none;
-  border-radius:12px;
-  display:grid;
-  place-items:center;
-  position:relative;
-  color:#e5e7eb;
-  font-size:13px;
-  background:rgba(255,255,255,0.025);
-}
-
-.calendar-day.empty-day{
-  background:transparent;
-}
-
-.calendar-day.today{
-  background:rgba(139,92,246,0.22);
-}
-
-.calendar-day.selected{
-  outline:1px solid rgba(196,181,253,0.85);
-}
-
-.calendar-dot{
-  width:5px;
-  height:5px;
-  border-radius:999px;
-  position:absolute;
-  bottom:5px;
-  background:#c4b5fd;
-}
-
-.filter-bar{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-  margin:4px 0 14px;
-  color:#c4b5fd;
-  font-size:13px;
-}
-
-.clear-filter-btn{
-  border:none;
-  border-radius:999px;
-  padding:7px 10px;
-  background:rgba(255,255,255,0.08);
-  color:#fff;
-  font-size:12px;
-}
-
-.timeline{
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-  margin-top:24px;
-}
-
-.entry{
-  background:rgba(255,255,255,0.055);
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:22px;
-  padding:18px;
-}
-
-.entry-emotion{
-  font-size:26px;
-  margin-bottom:8px;
-}
-
-.entry-date{
-  color:#b8bfd4;
-  font-size:12px;
-  margin-bottom:12px;
-}
-
-.entry-content{
-  line-height:1.7;
-  color:#e5e7eb;
-  white-space:pre-wrap;
-  word-break:break-word;
-}
-
-.entry-summary{
-  margin-top:12px;
-  color:#c4b5fd;
-  font-size:13px;
-}
-
-.empty{
-  text-align:center;
-  color:#b8bfd4;
-  padding:26px 0;
-}
-
-#debug-toggle{
-  position:fixed;
-  right:16px;
-  bottom:16px;
-  width:44px;
-  height:44px;
-  border:none;
-  border-radius:50%;
-  background:rgba(0,0,0,.78);
-  color:#7CFF7C;
-  font-size:18px;
-  z-index:999999;
-}
-
-#debug-log{
-  position:fixed;
-  left:12px;
-  right:12px;
-  bottom:72px;
-  max-height:32vh;
-  overflow-y:auto;
-  background:rgba(0,0,0,0.82);
-  color:#7CFF7C;
-  font-size:11px;
-  line-height:1.4;
-  padding:10px;
-  border-radius:14px;
-  z-index:999998;
-  font-family:monospace;
-  display:none;
-}
-
-#debug-log.open{
-  display:block;
-}
-
-#debug-log p{
-  margin:4px 0;
-  word-break:break-word;
-}
-</style>
-</head>
-
-<body>
-
-<div id="app"></div>
-
-<button id="debug-toggle">🐞</button>
-<div id="debug-log"></div>
-
-<script>
-const DEBUG_MAX_LOGS = 80;
-let debugOpen = false;
-
-const state = {
-  entries:[],
-  calendarYear:new Date().getFullYear(),
-  calendarMonth:new Date().getMonth(),
-  selectedDate:null
-};
-
-function debug(message){
-  console.log(message);
-
-  const log = document.getElementById("debug-log");
-  if(!log) return;
-
-  const time = new Date().toLocaleTimeString("ko-KR");
-  const line = document.createElement("p");
-
-  line.textContent = "[" + time + "] " + message;
-  log.appendChild(line);
-
-  while(log.children.length > DEBUG_MAX_LOGS){
-    log.removeChild(log.firstChild);
-  }
-
-  if(debugOpen){
-    log.scrollTop = log.scrollHeight;
-  }
-}
-
-window.addEventListener("error", function(event){
-  debug("GLOBAL ERROR: " + event.message);
-});
-
-window.addEventListener("unhandledrejection", function(event){
-  debug("PROMISE ERROR: " + event.reason);
-});
-
-function toDateKey(date){
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2,"0");
-  const d = String(date.getDate()).padStart(2,"0");
-  return y + "-" + m + "-" + d;
-}
-
-function getEntryDateKey(entry){
-  if(entry.dateKey) return entry.dateKey;
-
-  const date = new Date(entry.createdAt);
-  if(!isNaN(date.getTime())){
-    return toDateKey(date);
-  }
-
-  return "";
-}
-
-function loadEntries(){
-  debug("ENTER loadEntries");
-
-  try{
-    const raw = localStorage.getItem("entries");
-
-    if(!raw){
-      debug("EMPTY STORAGE");
-      return [];
-    }
-
-    const parsed = JSON.parse(raw);
-
-    if(!Array.isArray(parsed)){
-      debug("STORAGE INVALID");
-      return [];
-    }
-
-    debug("LOAD SUCCESS");
-    return parsed;
-  }catch(error){
-    debug("LOAD ERROR: " + error.message);
-    return [];
-  }
-}
-
-function saveEntries(){
-  try{
-    localStorage.setItem("entries", JSON.stringify(state.entries));
-    debug("SAVE SUCCESS");
-  }catch(error){
-    debug("SAVE ERROR: " + error.message);
-  }
-}
-
-function analyzeEmotion(text){
-  const content = text.toLowerCase();
-
-  if(content.includes("행복") || content.includes("좋")){
-    return { emoji:"😊", label:"행복" };
-  }
-
-  if(content.includes("슬")){
-    return { emoji:"😢", label:"슬픔" };
-  }
-
-  if(content.includes("화") || content.includes("짜증")){
-    return { emoji:"😡", label:"화남" };
-  }
-
-  if(content.includes("피곤") || content.includes("졸")){
-    return { emoji:"😴", label:"피곤" };
-  }
-
-  return { emoji:"😐", label:"평범" };
-}
-
-function createSummary(emotion){
-  const summaries = {
-    행복:"오늘의 요약: 따뜻하게 지나간 하루였어요.",
-    슬픔:"오늘의 요약: 조금 지친 하루였어요.",
-    화남:"오늘의 요약: 감정 기복이 있었던 하루였어요.",
-    피곤:"오늘의 요약: 몸과 마음이 쉬고 싶었던 하루였어요.",
-    평범:"오늘의 요약: 차분하게 지나간 하루였어요."
-  };
-
-  return summaries[emotion.label] || summaries.평범;
-}
-
-function escapeHtml(text){
-  return String(text)
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;");
-}
-
-function formatDateKey(dateKey){
-  const parts = dateKey.split("-");
-  return Number(parts[1]) + "월 " + Number(parts[2]) + "일";
-}
-
-function createLayout(){
-  return `
-    <div class="mobile-app">
-      <header class="header">
-        <h1>하루 일기</h1>
-        <p>오늘 하루를 기록해보세요</p>
-      </header>
-
-      <section id="streakArea"></section>
-
-      <section class="card composer-card">
-        <textarea
-          id="contentInput"
-          class="diary-input"
-          placeholder="오늘 하루는 어땠나요?"
-        ></textarea>
-
-        <button id="saveBtn" class="save-btn">
-          기록하기
-        </button>
-      </section>
-
-      <section class="calendar-card">
-        <div class="calendar-header">
-          <button class="calendar-prev">‹</button>
-          <strong class="calendar-title"></strong>
-          <button class="calendar-next">›</button>
-        </div>
-
-        <div class="calendar-weekdays"></div>
-        <div class="calendar-grid"></div>
-      </section>
-
-      <section id="filterArea"></section>
-
-      <section id="timeline" class="timeline"></section>
-    </div>
-  `;
-}
-
-function calculateStreak(entries){
-  const dateSet = new Set();
-
-  entries.forEach(function(entry){
-    const key = getEntryDateKey(entry);
-    if(key) dateSet.add(key);
-  });
-
-  if(dateSet.size === 0) return 0;
-
-  const today = new Date();
-  const todayKey = toDateKey(today);
-
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
-  const yesterdayKey = toDateKey(yesterday);
-
-  let startDate = null;
-
-  if(dateSet.has(todayKey)){
-    startDate = today;
-  }else if(dateSet.has(yesterdayKey)){
-    startDate = yesterday;
-  }else{
-    return 0;
-  }
-
-  let streak = 0;
-  const cursor = new Date(startDate);
-
-  while(dateSet.has(toDateKey(cursor))){
-    streak++;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-
-  return streak;
-}
-
-function renderStreak(){
-  const area = document.getElementById("streakArea");
-  if(!area) return;
-
-  const streak = calculateStreak(state.entries);
-
-  if(streak <= 0){
-    area.innerHTML = `
-      <div class="streak-card">
-        <span class="streak-icon">🌱</span>
-        <div>
-          <strong>오늘부터 기록을 시작해볼까요?</strong>
-          <p>짧게라도 마음을 남겨보세요.</p>
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  area.innerHTML = `
-    <div class="streak-card">
-      <span class="streak-icon">🔥</span>
-      <div>
-        <strong>${streak}일 연속 기록 중</strong>
-        <p>오늘도 마음을 남겼어요.</p>
-      </div>
-    </div>
-  `;
-}
-
-function getEntriesByDate(dateString){
-  return state.entries.filter(function(entry){
-    return getEntryDateKey(entry) === dateString;
-  });
-}
-
-function getEmotionDotColor(emotion){
-  const label = emotion && emotion.label;
-
-  if(label === "행복") return "#facc15";
-  if(label === "평범") return "#9ca3af";
-  if(label === "슬픔") return "#60a5fa";
-  if(label === "화남") return "#f87171";
-  if(label === "피곤") return "#a78bfa";
-
-  return "#c4b5fd";
-}
-
-function renderCalendar(){
-  const title = document.querySelector(".calendar-title");
-  const weekdays = document.querySelector(".calendar-weekdays");
-  const grid = document.querySelector(".calendar-grid");
-
-  if(!title || !weekdays || !grid) return;
-
-  const year = state.calendarYear;
-  const month = state.calendarMonth;
-
-  title.textContent = year + "년 " + (month + 1) + "월";
-
-  weekdays.innerHTML = ["일","월","화","수","목","금","토"]
-    .map(function(day){
-      return `<div>${day}</div>`;
-    })
-    .join("");
-
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  const startWeekday = firstDay.getDay();
-  const daysInMonth = lastDay.getDate();
-
-  let html = "";
-
-  for(let i = 0; i < startWeekday; i++){
-    html += `<div class="calendar-day empty-day"></div>`;
-  }
-
-  for(let day = 1; day <= daysInMonth; day++){
-    const date = new Date(year, month, day);
-    const key = toDateKey(date);
-    const entries = getEntriesByDate(key);
-    const hasEntry = entries.length > 0;
-    const latestEntry = entries[entries.length - 1];
-    const dotColor = hasEntry ? getEmotionDotColor(latestEntry.emotion) : "";
-    const todayClass = key === toDateKey(new Date()) ? " today" : "";
-    const selectedClass = key === state.selectedDate ? " selected" : "";
-
-    html += `
-      <button
-        type="button"
-        class="calendar-day${todayClass}${selectedClass}"
-        data-date="${key}"
-      >
-        ${day}
-        ${
-          hasEntry
-            ? `<span class="calendar-dot" style="background:${dotColor}"></span>`
-            : ""
-        }
-      </button>
-    `;
-  }
-
-  grid.innerHTML = html;
-}
-
-function renderFilter(){
-  const area = document.getElementById("filterArea");
-  if(!area) return;
-
-  if(!state.selectedDate){
-    area.innerHTML = "";
-    return;
-  }
-
-  area.innerHTML = `
-    <div class="filter-bar">
-      <span>${formatDateKey(state.selectedDate)} 기록 보기</span>
-      <button type="button" class="clear-filter-btn">전체 보기</button>
-    </div>
-  `;
-}
-
-function renderTimeline(){
-  const timeline = document.querySelector(".timeline");
-
-  debug("timeline exists: " + !!timeline);
-
-  if(!timeline) return;
-
-  let entries = state.entries;
-
-  if(state.selectedDate){
-    entries = getEntriesByDate(state.selectedDate);
-  }
-
-  if(entries.length === 0){
-    timeline.innerHTML = `
-      <div class="entry empty">
-        ${state.selectedDate ? "이 날짜에는 기록이 없어요." : "아직 작성된 일기가 없어요."}
-      </div>
-    `;
-    return;
-  }
-
-  timeline.innerHTML = entries
-    .slice()
-    .reverse()
-    .map(function(entry){
-      const emotion = entry.emotion || { emoji:"😐", label:"평범" };
-
-      return `
-        <article class="entry">
-          <div class="entry-emotion">${emotion.emoji}</div>
-
-          <div class="entry-date">
-            ${escapeHtml(entry.createdAt || "")}
-          </div>
-
-          <div class="entry-content">
-            ${escapeHtml(entry.content || "")}
-          </div>
-
-          <div class="entry-summary">
-            ${escapeHtml(entry.summary || "")}
-          </div>
-        </article>
-      `;
-    })
-    .join("");
-}
-
-function renderApp(){
-  renderStreak();
-  renderCalendar();
-  renderFilter();
-  renderTimeline();
-}
-
-function saveEntry(){
-  try{
-    const contentInput = document.getElementById("contentInput");
-
-    if(!contentInput){
-      debug("CONTENT INPUT MISSING");
-      return;
-    }
-
-    const content = contentInput.value.trim();
-
-    if(!content){
-      debug("EMPTY CONTENT");
-      return;
-    }
-
-    const emotion = analyzeEmotion(content);
-    const now = new Date();
-
-    const entry = {
-      id:Date.now(),
-      content:content,
-      createdAt:now.toLocaleString("ko-KR"),
-      dateKey:toDateKey(now),
-      emotion:emotion,
-      summary:createSummary(emotion)
-    };
-
-    state.entries.push(entry);
-    state.selectedDate = null;
-
-    saveEntries();
-
-    renderStreak();
-    renderCalendar();
-    renderFilter();
-    renderTimeline();
-
-    contentInput.value = "";
-
-    debug("ENTRY SAVED");
-  }catch(error){
-    debug("SAVE ERROR: " + error.message);
-  }
-}
-
-function attachEvents(){
-  const saveBtn = document.querySelector(".save-btn");
-
-  debug("saveBtn exists: " + !!saveBtn);
-
-  if(saveBtn){
-    saveBtn.addEventListener("click", saveEntry);
-  }
-
-  const prev = document.querySelector(".calendar-prev");
-  const next = document.querySelector(".calendar-next");
-
-  if(prev){
-    prev.addEventListener("click", function(){
-      state.calendarMonth--;
-
-      if(state.calendarMonth < 0){
-        state.calendarMonth = 11;
-        state.calendarYear--;
-      }
-
-      renderCalendar();
-    });
-  }
-
-  if(next){
-    next.addEventListener("click", function(){
-      state.calendarMonth++;
-
-      if(state.calendarMonth > 11){
-        state.calendarMonth = 0;
-        state.calendarYear++;
-      }
-
-      renderCalendar();
-    });
-  }
-
-  document.addEventListener("click", function(event){
-    const day = event.target.closest(".calendar-day");
-
-    if(day && day.dataset.date){
-      state.selectedDate = day.dataset.date;
-      renderCalendar();
-      renderFilter();
-      renderTimeline();
-      return;
-    }
-
-    if(event.target.classList.contains("clear-filter-btn")){
-      state.selectedDate = null;
-      renderCalendar();
-      renderFilter();
-      renderTimeline();
-    }
-  });
-
-  const toggle = document.getElementById("debug-toggle");
-  const log = document.getElementById("debug-log");
-
-  if(toggle && log){
-    toggle.addEventListener("click", function(){
-      debugOpen = !debugOpen;
-      log.classList.toggle("open", debugOpen);
-
-      if(debugOpen){
-        log.scrollTop = log.scrollHeight;
-      }
-    });
-  }
-
-  debug("attachEvents complete");
-}
-
-function initApp(){
-  debug("INIT START");
-
-  const app = document.getElementById("app");
-
-  if(!app){
-    debug("APP NOT FOUND");
-    return;
-  }
-
-  app.innerHTML = createLayout();
-
-  debug("LAYOUT INSERTED");
-  debug("app children: " + app.children.length);
-  debug("timeline exists: " + !!document.querySelector(".timeline"));
-  debug("saveBtn exists: " + !!document.querySelector(".save-btn"));
-
-  state.entries = loadEntries();
-
-  renderApp();
-  attachEvents();
-
-  debug("INIT COMPLETE");
-}
-
-document.addEventListener("DOMContentLoaded", function(){
-  debug("DOM LOADED");
-  initApp();
-});
-</script>
-
-</body>
-</html>
-
-
-
-하루에 여러 개 작성해도 1일로 계산
-
-
-오늘 작성했으면 오늘부터 역순으로 연속 계산
-
-
-오늘 작성하지 않았지만 어제까지 연속 기록이 있으면 어제 기준으로 계산
-
-
-날짜 비교는 YYYY-MM-DD 기준으로 처리
-
-
-
-
-표시 예시:
-🔥 3일 연속 기록 중
-또는
-오늘부터 기록을 시작해볼까요?
-
-
-
-[2. streak UI 위치]
-
-
-상단 헤더 아래에 작은 감성 카드로 표시.
-
-
-예시 구조:
-
-
-
-  🔥
-  
-
-    3일 연속 기록 중
-    
-오늘도 마음을 남겼어요.
-
-  
-
-
-
-
-
-[3. 미니 캘린더 기능]
-
-
-월별 미니 캘린더를 추가해줘.
-
-
-기능:
-
-
-
-
-현재 월 표시
-
-
-이전 달 / 다음 달 이동 버튼
-
-
-작성한 날짜에 작은 dot 표시
-
-
-오늘 날짜 강조
-
-
-날짜 클릭 시 해당 날짜 일기 목록 표시 또는 타임라인에서 해당 날짜로 필터
-
-
-
-
-처음에는 복잡하게 하지 말고,
-안정성 우선으로 구현.
-
-
-
-[4. 캘린더 감정 색상]
-
-
-일기 감정 데이터가 있을 경우 날짜 dot 색상 변경.
-
-
-감정별:
-
-
-
-
-행복 😊 → #facc15
-
-
-평범 😐 → #9ca3af
-
-
-슬픔 😢 → #60a5fa
-
-
-화남 😡 → #f87171
-
-
-피곤 😴 → #a78bfa
-
-
-
-
-감정 데이터가 없으면 기본 dot 색상 사용:
-#c4b5fd
-
-
-
-[5. 캘린더 UI 위치]
-
-
-작성 카드 아래,
-타임라인 위에 배치.
-
-
-순서:
-
-
-
-
-헤더
-
-
-streak card
-
-
-작성 카드
-
-
-미니 캘린더
-
-
-타임라인
-
-
-
-
-
-[6. 캘린더 구조]
-
-
-필수 DOM:
-
-
-
-  
-
-    ‹
-    
-    ›
-  
-
-  
-
-
-  
-
-
-
-
-
-
-[7. 캘린더 렌더 함수]
-
-
-아래 함수 추가:
-
-
-renderStreak()
-renderCalendar()
-calculateStreak(entries)
-getEntriesByDate(dateString)
-
-
-renderApp 또는 init 흐름에서:
-
-
-
-
-renderStreak()
-
-
-renderCalendar()
-
-
-renderTimeline()
-
-
-
-
-순서로 호출.
-
-
-단:
-render 함수끼리 서로 재귀 호출 금지.
-
-
-
-[8. 저장 후 업데이트]
-
-
-일기 저장 성공 후:
-
-
-saveEntry()
-→ saveEntries()
-→ renderStreak()
-→ renderCalendar()
-→ renderTimeline()
-
-
-순서로 UI 갱신.
-
-
-initApp 재호출 금지.
-
-
-
-[9. 캘린더 날짜 클릭]
-
-
-날짜 클릭 시:
-해당 날짜의 일기만 timeline에 표시.
-
-
-그리고 상단에 필터 표시:
-
-
-“5월 22일 기록 보기”
-
-
-필터 해제 버튼 추가:
-“전체 보기”
-
-
-단순하고 안정적으로 구현.
-
-
-
-[10. CSS 주의]
-
-
-현재 앱이 안정화된 상태이므로
-위험한 CSS 사용 금지.
-
-
-금지:
-
-
-
-
-height: 100vh
-
-
-overflow: hidden
-
-
-position: fixed
-
-
-transform 대량 사용
-
-
-backdrop-filter 과다 사용
-
-
-
-
-캘린더는 일반 document flow 안에 배치.
-
-
-
-[11. 미니 캘린더 CSS]
-
-
-안전한 스타일만 적용:
-
-
-.calendar-card {
-background: rgba(255,255,255,0.055);
-border: 1px solid rgba(255,255,255,0.08);
-border-radius: 24px;
-padding: 16px;
-margin: 20px 0;
-}
-
-
-.calendar-grid {
-display: grid;
-grid-template-columns: repeat(7, 1fr);
-gap: 8px;
-}
-
-
-.calendar-day {
-min-height: 38px;
-border-radius: 12px;
-display: grid;
-place-items: center;
-position: relative;
-}
-
-
-.calendar-day.today {
-background: rgba(139,92,246,0.22);
-}
-
-
-.calendar-dot {
-width: 5px;
-height: 5px;
-border-radius: 999px;
-position: absolute;
-bottom: 5px;
-}
-
-
-
-[12. 최종 목표]
-
-
-모바일에서:
-
-
-
-
-연속 기록 일수 표시
-
-
-작성 날짜가 캘린더에 표시
-
-
-날짜 클릭 시 해당 날짜 기록 확인
-
-
-저장 후 streak/calendar/timeline 즉시 갱신
-
-
-현재 안정화된 앱 구조 유지
-
-
-
-
-  width:100%;
-  max-width:680px;
-  margin:0 auto;
-  padding:24px 16px 48px;
-}
-
-.header{
-  margin-bottom:24px;
-}
-
-.header h1{
-  margin:0 0 8px;
-  font-size:32px;
-  line-height:1.15;
-}
-
-.header p{
-  margin:0;
-  color:#b8bfd4;
-  font-size:14px;
-}
-
-.card{
-  background:rgba(255,255,255,0.055);
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:26px;
-  padding:18px;
-  margin-top:24px;
-  margin-bottom:24px;
-}
-
-.diary-input{
-  width:100%;
-  height:180px;
-  min-height:140px;
-  max-height:240px;
-  resize:none;
-  overflow-y:auto;
-  border:none;
-  outline:none;
-  border-radius:18px;
-  padding:16px;
-  line-height:1.7;
-  color:#fff;
-  background:rgba(255,255,255,0.05);
-  font:inherit;
-}
-
-.save-btn{
-  width:100%;
-  height:54px;
-  border:none;
-  border-radius:18px;
-  margin-top:14px;
-  background:linear-gradient(135deg,#8b5cf6,#6366f1);
-  color:white;
-  font-weight:700;
-  font-size:15px;
-}
-
-.timeline{
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-  margin-top:24px;
-}
-
-.entry{
-  background:rgba(255,255,255,0.055);
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:22px;
-  padding:18px;
-}
-
-.entry-emotion{
-  font-size:26px;
-  margin-bottom:8px;
-}
-
-.entry-date{
-  color:#b8bfd4;
-  font-size:12px;
-  margin-bottom:12px;
-}
-
-.entry-content{
-  line-height:1.7;
-  color:#e5e7eb;
-  white-space:pre-wrap;
-  word-break:break-word;
-}
-
-.entry-summary{
-  margin-top:12px;
-  color:#c4b5fd;
-  font-size:13px;
-}
-
-.empty{
-  text-align:center;
-  color:#b8bfd4;
-  padding:26px 0;
-}
-
-#debug-toggle{
-  position:fixed;
-  right:16px;
-  bottom:16px;
-  width:44px;
-  height:44px;
-  border:none;
-  border-radius:50%;
-  background:rgba(0,0,0,.78);
-  color:#7CFF7C;
-  font-size:18px;
-  z-index:999999;
-}
-
-#debug-log{
-  position:fixed;
-  left:12px;
-  right:12px;
-  bottom:72px;
-  max-height:32vh;
-  overflow-y:auto;
-  background:rgba(0,0,0,0.82);
-  color:#7CFF7C;
-  font-size:11px;
-  line-height:1.4;
-  padding:10px;
-  border-radius:14px;
-  z-index:999998;
-  font-family:monospace;
-  display:none;
-}
-
-#debug-log.open{
-  display:block;
-}
-
-#debug-log p{
-  margin:4px 0;
-  word-break:break-word;
-}
-</style>
-</head>
-
-<body>
-
-<div id="app"></div>
-
-<button id="debug-toggle">🐞</button>
-<div id="debug-log"></div>
-
-<script>
-const DEBUG_MAX_LOGS = 80;
-let debugOpen = false;
-
-function debug(message){
-  console.log(message);
-
-  const log = document.getElementById("debug-log");
-
-  if(!log){
-    return;
-  }
-
-  const time = new Date().toLocaleTimeString("ko-KR");
-  const line = document.createElement("p");
-
-  line.textContent = "[" + time + "] " + message;
-
-  log.appendChild(line);
-
-  while(log.children.length > DEBUG_MAX_LOGS){
-    log.removeChild(log.firstChild);
-  }
-
-  if(debugOpen){
-    log.scrollTop = log.scrollHeight;
-  }
-}
-
-window.addEventListener("error", function(event){
-  debug("GLOBAL ERROR: " + event.message);
-});
-
-window.addEventListener("unhandledrejection", function(event){
-  debug("PROMISE ERROR: " + event.reason);
-});
-
-const state = {
-  entries:[]
-};
-
-function loadEntries(){
-  debug("ENTER loadEntries");
-
-  try{
-    const raw = localStorage.getItem("entries");
-
-    if(!raw){
-      debug("EMPTY STORAGE");
-      return [];
-    }
-
-    const parsed = JSON.parse(raw);
-
-    if(!Array.isArray(parsed)){
-      debug("STORAGE INVALID");
-      return [];
-    }
-
-    debug("LOAD SUCCESS");
-
-    return parsed;
-  }catch(error){
-    debug("LOAD ERROR: " + error.message);
-    return [];
-  }
-}
-
-function saveEntries(){
-  try{
-    localStorage.setItem(
-      "entries",
-      JSON.stringify(state.entries)
-    );
-
-    debug("SAVE SUCCESS");
-  }catch(error){
-    debug("SAVE ERROR: " + error.message);
-  }
-}
-
-function analyzeEmotion(text){
-  const content = text.toLowerCase();
-
-  if(content.includes("행복") || content.includes("좋")){
-    return {
-      emoji:"😊",
-      label:"행복"
-    };
-  }
-
-  if(content.includes("슬")){
-    return {
-      emoji:"😢",
-      label:"슬픔"
-    };
-  }
-
-  if(content.includes("화") || content.includes("짜증")){
-    return {
-      emoji:"😡",
-      label:"화남"
-    };
-  }
-
-  if(content.includes("피곤") || content.includes("졸")){
-    return {
-      emoji:"😴",
-      label:"피곤"
-    };
-  }
-
-  return {
-    emoji:"😐",
-    label:"평범"
-  };
-}
-
-function createSummary(emotion){
-  const summaries = {
-    행복:"오늘의 요약: 따뜻하게 지나간 하루였어요.",
-    슬픔:"오늘의 요약: 조금 지친 하루였어요.",
-    화남:"오늘의 요약: 감정 기복이 있었던 하루였어요.",
-    피곤:"오늘의 요약: 몸과 마음이 쉬고 싶었던 하루였어요.",
-    평범:"오늘의 요약: 차분하게 지나간 하루였어요."
-  };
-
-  return summaries[emotion.label] || summaries.평범;
-}
-
-function escapeHtml(text){
-  return String(text)
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;");
-}
-
-function createLayout(){
-  return `
-    <div class="mobile-app">
-      <header class="header">
-        <h1>하루 일기</h1>
-        <p>오늘 하루를 기록해보세요</p>
-      </header>
-
-      <section class="card composer-card">
-        <textarea
-          id="contentInput"
-          class="diary-input"
-          placeholder="오늘 하루는 어땠나요?"
-        ></textarea>
-
-        <button
-          id="saveBtn"
-          class="save-btn"
-        >
-          기록하기
-        </button>
-      </section>
-
-      <section
-        id="timeline"
-        class="timeline"
-      ></section>
-    </div>
-  `;
-}
-
-function renderTimeline(){
-  const timeline = document.querySelector(".timeline");
-
-  debug("timeline exists: " + !!timeline);
-
-  if(!timeline){
-    return;
-  }
-
-  if(state.entries.length === 0){
-    timeline.innerHTML = `
-      <div class="entry empty">
-        아직 작성된 일기가 없어요.
-      </div>
-    `;
-
-    return;
-  }
-
-  timeline.innerHTML = state.entries
-    .slice()
-    .reverse()
-    .map(function(entry){
-      const emotion = entry.emotion || {
-        emoji:"😐",
-        label:"평범"
-      };
-
-      return `
-        <article class="entry">
-          <div class="entry-emotion">
-            ${emotion.emoji}
-          </div>
-
-          <div class="entry-date">
-            ${escapeHtml(entry.createdAt || "")}
-          </div>
-
-          <div class="entry-content">
-            ${escapeHtml(entry.content || "")}
-          </div>
-
-          <div class="entry-summary">
-            ${escapeHtml(entry.summary || "")}
-          </div>
-        </article>
-      `;
-    })
-    .join("");
-}
-
-function saveEntry(){
-  try{
-    const contentInput = document.getElementById("contentInput");
-
-    if(!contentInput){
-      debug("CONTENT INPUT MISSING");
-      return;
-    }
-
-    const content = contentInput.value.trim();
-
-    if(!content){
-      debug("EMPTY CONTENT");
-      return;
-    }
-
-    const emotion = analyzeEmotion(content);
-
-    const entry = {
-      id:Date.now(),
-      content:content,
-      createdAt:new Date().toLocaleString("ko-KR"),
-      emotion:emotion,
-      summary:createSummary(emotion)
-    };
-
-    state.entries.push(entry);
-
-    saveEntries();
-
-    renderTimeline();
-
-    contentInput.value = "";
-
-    debug("ENTRY SAVED");
-  }catch(error){
-    debug("SAVE ERROR: " + error.message);
-  }
-}
-
-function attachEvents(){
-  const saveBtn = document.querySelector(".save-btn");
-
-  debug("saveBtn exists: " + !!saveBtn);
-
-  if(saveBtn){
-    saveBtn.addEventListener("click", saveEntry);
-  }
-
-  const toggle = document.getElementById("debug-toggle");
-  const log = document.getElementById("debug-log");
-
-  if(toggle && log){
-    toggle.addEventListener("click", function(){
-      debugOpen = !debugOpen;
-      log.classList.toggle("open", debugOpen);
-
-      if(debugOpen){
-        log.scrollTop = log.scrollHeight;
-      }
-    });
-  }
-
-  debug("attachEvents complete");
-}
-
-function initApp(){
-  debug("INIT START");
-
-  const app = document.getElementById("app");
-
-  if(!app){
-    debug("APP NOT FOUND");
-    return;
-  }
-
-  app.innerHTML = createLayout();
-
-  debug("LAYOUT INSERTED");
-  debug("app children: " + app.children.length);
-  debug("timeline exists: " + !!document.querySelector(".timeline"));
-  debug("saveBtn exists: " + !!document.querySelector(".save-btn"));
-
-  state.entries = loadEntries();
-
-  renderTimeline();
-
-  attachEvents();
-
-  debug("INIT COMPLETE");
-}
-
-document.addEventListener("DOMContentLoaded", function(){
-  debug("DOM LOADED");
-  initApp();
-});
-</script>
-
-</body>
-</html>
-
-
