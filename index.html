@@ -37,7 +37,7 @@ body{
   width:100%;
   max-width:680px;
   margin:0 auto;
-  padding:24px 16px 220px;
+  padding:24px 16px 48px;
 }
 
 .header{
@@ -65,33 +65,21 @@ body{
   margin-bottom:24px;
 }
 
-input,
-textarea{
+.diary-input{
   width:100%;
-  box-sizing:border-box;
-  border:none;
-  outline:none;
-  color:#fff;
-  background:rgba(255,255,255,0.05);
-  font:inherit;
-}
-
-.input{
-  height:48px;
-  border-radius:16px;
-  padding:0 14px;
-  margin-bottom:12px;
-}
-
-.textarea{
   height:180px;
   min-height:140px;
   max-height:240px;
   resize:none;
   overflow-y:auto;
+  border:none;
+  outline:none;
   border-radius:18px;
   padding:16px;
   line-height:1.7;
+  color:#fff;
+  background:rgba(255,255,255,0.05);
+  font:inherit;
 }
 
 .save-btn{
@@ -120,9 +108,8 @@ textarea{
   padding:18px;
 }
 
-.entry-title{
-  font-size:18px;
-  font-weight:700;
+.entry-emotion{
+  font-size:26px;
   margin-bottom:8px;
 }
 
@@ -153,36 +140,38 @@ textarea{
 
 #debug-toggle{
   position:fixed;
-  top:14px;
-  right:14px;
-  width:42px;
-  height:42px;
+  right:16px;
+  bottom:16px;
+  width:44px;
+  height:44px;
   border:none;
   border-radius:50%;
-  background:rgba(0,0,0,.7);
+  background:rgba(0,0,0,.78);
   color:#7CFF7C;
   font-size:18px;
-  z-index:1000000;
+  z-index:999999;
 }
 
 #debug-log{
   position:fixed;
-  left:0;
-  bottom:0;
-  width:100%;
-  max-height:35vh;
+  left:12px;
+  right:12px;
+  bottom:72px;
+  max-height:32vh;
   overflow-y:auto;
-  background:rgba(0,0,0,.88);
+  background:rgba(0,0,0,0.82);
   color:#7CFF7C;
-  font-size:12px;
-  line-height:1.5;
-  padding:10px 10px calc(10px + env(safe-area-inset-bottom));
-  z-index:999999;
+  font-size:11px;
+  line-height:1.4;
+  padding:10px;
+  border-radius:14px;
+  z-index:999998;
   font-family:monospace;
+  display:none;
 }
 
-#debug-log.hidden{
-  display:none;
+#debug-log.open{
+  display:block;
 }
 
 #debug-log p{
@@ -197,12 +186,11 @@ textarea{
 <div id="app"></div>
 
 <button id="debug-toggle">🐞</button>
-
 <div id="debug-log"></div>
 
 <script>
-const DEBUG_MAX_LOGS = 100;
-let debugVisible = true;
+const DEBUG_MAX_LOGS = 80;
+let debugOpen = false;
 
 function debug(message){
   console.log(message);
@@ -224,7 +212,9 @@ function debug(message){
     log.removeChild(log.firstChild);
   }
 
-  log.scrollTop = log.scrollHeight;
+  if(debugOpen){
+    log.scrollTop = log.scrollHeight;
+  }
 }
 
 window.addEventListener("error", function(event){
@@ -318,11 +308,11 @@ function analyzeEmotion(text){
 
 function createSummary(emotion){
   const summaries = {
-    행복:"오늘은 따뜻한 하루였어요.",
-    슬픔:"조금 지친 하루였네요.",
-    화남:"감정 기복이 있었던 하루예요.",
-    피곤:"많이 피곤했던 하루였어요.",
-    평범:"소소한 하루였어요."
+    행복:"오늘의 요약: 따뜻하게 지나간 하루였어요.",
+    슬픔:"오늘의 요약: 조금 지친 하루였어요.",
+    화남:"오늘의 요약: 감정 기복이 있었던 하루였어요.",
+    피곤:"오늘의 요약: 몸과 마음이 쉬고 싶었던 하루였어요.",
+    평범:"오늘의 요약: 차분하게 지나간 하루였어요."
   };
 
   return summaries[emotion.label] || summaries.평범;
@@ -343,16 +333,10 @@ function createLayout(){
         <p>오늘 하루를 기록해보세요</p>
       </header>
 
-      <section class="card">
-        <input
-          id="titleInput"
-          class="input"
-          placeholder="제목"
-        />
-
+      <section class="card composer-card">
         <textarea
           id="contentInput"
-          class="textarea"
+          class="diary-input"
           placeholder="오늘 하루는 어땠나요?"
         ></textarea>
 
@@ -360,7 +344,7 @@ function createLayout(){
           id="saveBtn"
           class="save-btn"
         >
-          작성 완료
+          기록하기
         </button>
       </section>
 
@@ -402,9 +386,8 @@ function renderTimeline(){
 
       return `
         <article class="entry">
-          <div class="entry-title">
+          <div class="entry-emotion">
             ${emotion.emoji}
-            ${escapeHtml(entry.title || "제목 없는 일기")}
           </div>
 
           <div class="entry-date">
@@ -426,15 +409,13 @@ function renderTimeline(){
 
 function saveEntry(){
   try{
-    const titleInput = document.getElementById("titleInput");
     const contentInput = document.getElementById("contentInput");
 
-    if(!titleInput || !contentInput){
-      debug("SAVE INPUT MISSING");
+    if(!contentInput){
+      debug("CONTENT INPUT MISSING");
       return;
     }
 
-    const title = titleInput.value.trim();
     const content = contentInput.value.trim();
 
     if(!content){
@@ -446,7 +427,6 @@ function saveEntry(){
 
     const entry = {
       id:Date.now(),
-      title:title || "제목 없는 일기",
       content:content,
       createdAt:new Date().toLocaleString("ko-KR"),
       emotion:emotion,
@@ -459,7 +439,6 @@ function saveEntry(){
 
     renderTimeline();
 
-    titleInput.value = "";
     contentInput.value = "";
 
     debug("ENTRY SAVED");
@@ -482,8 +461,12 @@ function attachEvents(){
 
   if(toggle && log){
     toggle.addEventListener("click", function(){
-      debugVisible = !debugVisible;
-      log.classList.toggle("hidden", !debugVisible);
+      debugOpen = !debugOpen;
+      log.classList.toggle("open", debugOpen);
+
+      if(debugOpen){
+        log.scrollTop = log.scrollHeight;
+      }
     });
   }
 
@@ -504,14 +487,8 @@ function initApp(){
 
   debug("LAYOUT INSERTED");
   debug("app children: " + app.children.length);
-  debug(
-    "timeline exists: " +
-    !!document.querySelector(".timeline")
-  );
-  debug(
-    "saveBtn exists: " +
-    !!document.querySelector(".save-btn")
-  );
+  debug("timeline exists: " + !!document.querySelector(".timeline"));
+  debug("saveBtn exists: " + !!document.querySelector(".save-btn"));
 
   state.entries = loadEntries();
 
@@ -530,3 +507,5 @@ document.addEventListener("DOMContentLoaded", function(){
 
 </body>
 </html>
+
+
