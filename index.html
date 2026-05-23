@@ -140,6 +140,821 @@ html,body{
 
 .calendar-title{ font-size:15px; }
 
+.calendar-weekdays{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:8px;
+  margin-bottom:8px;
+  color:#9ca3af;
+  font-size:11px;
+  text-align:center;
+}
+
+.calendar-grid{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:8px;
+}
+
+.calendar-day{
+  min-height:38px;
+  border:none;
+  border-radius:12px;
+  display:grid;
+  place-items:center;
+  position:relative;
+  color:#e5e7eb;
+  font-size:13px;
+  background:rgba(255,255,255,0.025);
+}
+
+.calendar-day.empty-day{
+  background:transparent;
+  pointer-events:none;
+}
+
+.calendar-day.today{
+  background:rgba(139,92,246,0.22);
+}
+
+.calendar-day.selected{
+  outline:1px solid rgba(196,181,253,0.85);
+}
+
+.calendar-dot{
+  width:5px;
+  height:5px;
+  border-radius:999px;
+  position:absolute;
+  bottom:5px;
+  background:#c4b5fd;
+}
+
+.filter-bar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin:4px 0 14px;
+  color:#c4b5fd;
+  font-size:13px;
+}
+
+.clear-filter-btn{
+  border:none;
+  border-radius:999px;
+  padding:7px 10px;
+  background:rgba(255,255,255,0.08);
+  color:#fff;
+  font-size:12px;
+}
+
+.timeline{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  margin-top:24px;
+}
+
+.entry{
+  border-radius:22px;
+  padding:18px;
+}
+
+.entry-emotion{
+  font-size:26px;
+  margin-bottom:8px;
+}
+
+.entry-date{
+  color:#b8bfd4;
+  font-size:12px;
+  margin-bottom:12px;
+}
+
+.entry-content{
+  line-height:1.7;
+  color:#e5e7eb;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+
+.entry-summary{
+  margin-top:12px;
+  color:#c4b5fd;
+  font-size:13px;
+}
+
+.empty{
+  text-align:center;
+  color:#b8bfd4;
+  padding:26px 0;
+}
+
+#debug-toggle{
+  position:fixed;
+  right:16px;
+  bottom:16px;
+  width:44px;
+  height:44px;
+  border:none;
+  border-radius:50%;
+  background:rgba(0,0,0,.78);
+  color:#7CFF7C;
+  font-size:18px;
+  z-index:999999;
+  pointer-events:auto;
+}
+
+#debug-log{
+  position:fixed;
+  left:12px;
+  right:12px;
+  bottom:72px;
+  max-height:32vh;
+  overflow-y:auto;
+  background:rgba(0,0,0,0.82);
+  color:#7CFF7C;
+  font-size:11px;
+  line-height:1.4;
+  padding:10px;
+  border-radius:14px;
+  z-index:999998;
+  font-family:monospace;
+  display:none;
+}
+
+#debug-log.open{ display:block; }
+
+#debug-log p{
+  margin:4px 0;
+  word-break:break-word;
+}
+</style>
+</head>
+
+<body>
+<div id="app"></div>
+
+<script>
+const DEBUG_MAX_LOGS = 80;
+
+const state = {
+  entries: [],
+  calendarYear: new Date().getFullYear(),
+  calendarMonth: new Date().getMonth(),
+  currentFilterDate: null
+};
+
+function debug(message){
+  console.log(message);
+
+  const log = document.getElementById("debug-log");
+  if(!log) return;
+
+  const time = new Date().toLocaleTimeString("ko-KR");
+  const line = document.createElement("p");
+
+  line.textContent = "[" + time + "] " + message;
+  log.appendChild(line);
+
+  while(log.children.length > DEBUG_MAX_LOGS){
+    log.removeChild(log.firstChild);
+  }
+
+  if(log.classList.contains("open")){
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
+window.addEventListener("error", function(event){
+  debug("GLOBAL ERROR: " + event.message);
+});
+
+window.addEventListener("unhandledrejection", function(event){
+  debug("PROMISE ERROR: " + event.reason);
+});
+
+function createLayout(){
+  return `
+    <div class="mobile-app">
+      <header class="header">
+        <h1>하루 일기</h1>
+        <p>오늘 하루를 기록해보세요</p>
+      </header>
+
+      <section id="streakArea"></section>
+
+      <section class="card composer-card">
+        <textarea
+          id="contentInput"
+          class="diary-input"
+          placeholder="오늘 하루는 어땠나요?"
+        ></textarea>
+
+        <button id="saveBtn" class="save-btn" type="button">
+          기록하기
+        </button>
+      </section>
+
+      <section class="calendar-card">
+        <div class="calendar-header">
+          <button class="calendar-prev" type="button">‹</button>
+          <strong class="calendar-title"></strong>
+          <button class="calendar-next" type="button">›</button>
+        </div>
+
+        <div class="calendar-weekdays"></div>
+        <div class="calendar-grid"></div>
+      </section>
+
+      <section id="filterArea"></section>
+      <section id="timeline" class="timeline"></section>
+
+      <button id="debug-toggle" type="button">🐞</button>
+      <div id="debug-log"></div>
+    </div>
+  `;
+}
+
+function toLocalDateKey(value){
+  const date = value instanceof Date ? value : new Date(value);
+
+  if(Number.isNaN(date.getTime())){
+    return "";
+  }
+
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+
+  return y + "-" + m + "-" + d;
+}
+
+function makeDateKey(year, monthIndex, day){
+  const y = String(year);
+  const m = String(monthIndex + 1).padStart(2, "0");
+  const d = String(day).padStart(2, "0");
+
+  return y + "-" + m + "-" + d;
+}
+
+function loadEntries(){
+  try{
+    const raw = localStorage.getItem("entries");
+
+    if(!raw){
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+
+    if(!Array.isArray(parsed)){
+      return [];
+    }
+
+    return parsed;
+  }catch(error){
+    debug("LOAD ERROR: " + error.message);
+    return [];
+  }
+}
+
+function saveEntries(){
+  try{
+    localStorage.setItem("entries", JSON.stringify(state.entries));
+    debug("SAVE SUCCESS");
+  }catch(error){
+    debug("SAVE ERROR: " + error.message);
+  }
+}
+
+function analyzeEmotion(text){
+  const content = text.toLowerCase();
+
+  if(content.includes("행복") || content.includes("좋")){
+    return { emoji:"😊", label:"행복" };
+  }
+
+  if(content.includes("슬")){
+    return { emoji:"😢", label:"슬픔" };
+  }
+
+  if(content.includes("화") || content.includes("짜증")){
+    return { emoji:"😡", label:"화남" };
+  }
+
+  if(content.includes("피곤") || content.includes("졸")){
+    return { emoji:"😴", label:"피곤" };
+  }
+
+  return { emoji:"😐", label:"평범" };
+}
+
+function createSummary(emotion){
+  const summaries = {
+    행복:"오늘의 요약: 따뜻하게 지나간 하루였어요.",
+    슬픔:"오늘의 요약: 조금 지친 하루였어요.",
+    화남:"오늘의 요약: 감정 기복이 있었던 하루였어요.",
+    피곤:"오늘의 요약: 몸과 마음이 쉬고 싶었던 하루였어요.",
+    평범:"오늘의 요약: 차분하게 지나간 하루였어요."
+  };
+
+  return summaries[emotion.label] || summaries.평범;
+}
+
+function escapeHtml(text){
+  return String(text || "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;");
+}
+
+function formatDateKey(dateKey){
+  const parts = dateKey.split("-");
+  return Number(parts[1]) + "월 " + Number(parts[2]) + "일";
+}
+
+function getEntryDateKey(entry){
+  if(!entry) return "";
+
+  if(entry.createdAt){
+    return toLocalDateKey(entry.createdAt);
+  }
+
+  if(entry.dateKey){
+    return entry.dateKey;
+  }
+
+  return "";
+}
+
+function getEntriesByDate(dateKey){
+  return state.entries.filter(function(entry){
+    if(!entry || !entry.createdAt) return false;
+    return toLocalDateKey(entry.createdAt) === dateKey;
+  });
+}
+
+function calculateStreak(entries){
+  const dateSet = new Set();
+
+  entries.forEach(function(entry){
+    const key = getEntryDateKey(entry);
+    if(key) dateSet.add(key);
+  });
+
+  if(dateSet.size === 0) return 0;
+
+  const today = new Date();
+  const todayKey = toLocalDateKey(today);
+
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  const yesterdayKey = toLocalDateKey(yesterday);
+
+  let startDate = null;
+
+  if(dateSet.has(todayKey)){
+    startDate = today;
+  }else if(dateSet.has(yesterdayKey)){
+    startDate = yesterday;
+  }else{
+    return 0;
+  }
+
+  let streak = 0;
+  const cursor = new Date(startDate);
+
+  while(dateSet.has(toLocalDateKey(cursor))){
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return streak;
+}
+
+function renderStreak(){
+  const area = document.getElementById("streakArea");
+  if(!area) return;
+
+  const streak = calculateStreak(state.entries);
+
+  if(streak <= 0){
+    area.innerHTML = `
+      <div class="streak-card">
+        <span class="streak-icon">🌱</span>
+        <div>
+          <strong>오늘부터 기록을 시작해볼까요?</strong>
+          <p>짧게라도 마음을 남겨보세요.</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  area.innerHTML = `
+    <div class="streak-card">
+      <span class="streak-icon">🔥</span>
+      <div>
+        <strong>${streak}일 연속 기록 중</strong>
+        <p>오늘도 마음을 남겼어요.</p>
+      </div>
+    </div>
+  `;
+}
+
+function getEmotionDotColor(emotion){
+  const label = emotion && emotion.label;
+
+  if(label === "행복") return "#facc15";
+  if(label === "평범") return "#9ca3af";
+  if(label === "슬픔") return "#60a5fa";
+  if(label === "화남") return "#f87171";
+  if(label === "피곤") return "#a78bfa";
+
+  return "#c4b5fd";
+}
+
+function renderCalendar(){
+  const title = document.querySelector(".calendar-title");
+  const weekdays = document.querySelector(".calendar-weekdays");
+  const grid = document.querySelector(".calendar-grid");
+
+  if(!title || !weekdays || !grid) return;
+
+  const year = state.calendarYear;
+  const month = state.calendarMonth;
+
+  title.textContent = year + "년 " + (month + 1) + "월";
+
+  weekdays.innerHTML = ["일","월","화","수","목","금","토"]
+    .map(function(day){
+      return "<div>" + day + "</div>";
+    })
+    .join("");
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startWeekday = firstDay.getDay();
+  const daysInMonth = lastDay.getDate();
+
+  let html = "";
+
+  for(let i = 0; i < startWeekday; i++){
+    html += `<div class="calendar-day empty-day"></div>`;
+  }
+
+  for(let day = 1; day <= daysInMonth; day++){
+    const dateKey = makeDateKey(year, month, day);
+    const entries = getEntriesByDate(dateKey);
+    const hasEntry = entries.length > 0;
+    const latestEntry = entries[entries.length - 1];
+    const dotColor = hasEntry ? getEmotionDotColor(latestEntry.emotion) : "#c4b5fd";
+    const todayClass = dateKey === toLocalDateKey(new Date()) ? " today" : "";
+    const selectedClass = dateKey === state.currentFilterDate ? " selected" : "";
+
+    html += `
+      <button
+        type="button"
+        class="calendar-day${todayClass}${selectedClass}"
+        data-date="${dateKey}"
+      >
+        ${day}
+        ${hasEntry ? `<span class="calendar-dot" style="background:${dotColor}"></span>` : ""}
+      </button>
+    `;
+  }
+
+  grid.innerHTML = html;
+}
+
+function renderFilter(){
+  const area = document.getElementById("filterArea");
+  if(!area) return;
+
+  if(!state.currentFilterDate){
+    area.innerHTML = "";
+    return;
+  }
+
+  area.innerHTML = `
+    <div class="filter-bar">
+      <span>${formatDateKey(state.currentFilterDate)} 기록 보기</span>
+      <button type="button" class="clear-filter-btn">전체 보기</button>
+    </div>
+  `;
+}
+
+function renderTimeline(dateKey){
+  const timeline = document.querySelector(".timeline");
+  if(!timeline) return;
+
+  const list = dateKey
+    ? getEntriesByDate(dateKey)
+    : state.entries;
+
+  if(!list.length){
+    timeline.innerHTML = `
+      <div class="entry empty">
+        ${dateKey ? "이 날짜에는 기록이 없어요." : "아직 작성된 일기가 없어요."}
+      </div>
+    `;
+    return;
+  }
+
+  timeline.innerHTML = list
+    .slice()
+    .sort(function(a,b){
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    })
+    .map(function(entry){
+      const emotion = entry.emotion || { emoji:"😐", label:"평범" };
+
+      return `
+        <article class="entry">
+          <div class="entry-emotion">${emotion.emoji}</div>
+          <div class="entry-date">${escapeHtml(entry.createdAt || "")}</div>
+          <div class="entry-content">${escapeHtml(entry.content || "")}</div>
+          <div class="entry-summary">${escapeHtml(entry.summary || "")}</div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function renderApp(){
+  renderStreak();
+  renderCalendar();
+  renderFilter();
+  renderTimeline(state.currentFilterDate);
+}
+
+function saveEntry(){
+  try{
+    const contentInput = document.getElementById("contentInput");
+
+    if(!contentInput){
+      debug("CONTENT INPUT MISSING");
+      return;
+    }
+
+    const content = contentInput.value.trim();
+
+    if(!content){
+      debug("EMPTY CONTENT");
+      return;
+    }
+
+    const emotion = analyzeEmotion(content);
+    const now = new Date();
+
+    const entry = {
+      id: Date.now(),
+      content: content,
+      createdAt: now.toISOString(),
+      emotion: emotion,
+      summary: createSummary(emotion)
+    };
+
+    state.entries.push(entry);
+    state.currentFilterDate = null;
+
+    saveEntries();
+    renderApp();
+
+    contentInput.value = "";
+
+    debug("ENTRY SAVED");
+  }catch(error){
+    debug("SAVE ERROR: " + error.message);
+  }
+}
+
+function attachDebugEvents(){
+  const btn = document.getElementById("debug-toggle");
+  const log = document.getElementById("debug-log");
+
+  if(!btn || !log){
+    console.warn("debug elements missing");
+    return;
+  }
+
+  btn.onclick = function(){
+    log.classList.toggle("open");
+  };
+}
+
+function attachCalendarEvents(){
+  const calendar = document.querySelector(".calendar-card");
+  if(!calendar) return;
+
+  calendar.onclick = function(event){
+    const prev = event.target.closest(".calendar-prev");
+    const next = event.target.closest(".calendar-next");
+    const day = event.target.closest(".calendar-day[data-date]");
+
+    if(prev){
+      state.calendarMonth--;
+
+      if(state.calendarMonth < 0){
+        state.calendarMonth = 11;
+        state.calendarYear--;
+      }
+
+      renderCalendar();
+      return;
+    }
+
+    if(next){
+      state.calendarMonth++;
+
+      if(state.calendarMonth > 11){
+        state.calendarMonth = 0;
+        state.calendarYear++;
+      }
+
+      renderCalendar();
+      return;
+    }
+
+    if(day){
+      const selectedDate = day.dataset.date;
+      const matched = getEntriesByDate(selectedDate).length;
+
+      state.currentFilterDate = selectedDate;
+
+      debug("[calendar] clicked=" + selectedDate);
+      debug("[calendar] matched=" + matched);
+
+      renderCalendar();
+      renderFilter();
+      renderTimeline(selectedDate);
+    }
+  };
+}
+
+function attachEvents(){
+  const saveBtn = document.getElementById("saveBtn");
+
+  if(saveBtn){
+    saveBtn.onclick = saveEntry;
+  }
+
+  document.onclick = function(event){
+    if(event.target.classList.contains("clear-filter-btn")){
+      state.currentFilterDate = null;
+      renderCalendar();
+      renderFilter();
+      renderTimeline();
+    }
+  };
+
+  attachCalendarEvents();
+  attachDebugEvents();
+
+  debug("attachEvents complete");
+}
+
+function initApp(){
+  debug("INIT START");
+
+  const app = document.getElementById("app");
+
+  if(!app){
+    debug("APP NOT FOUND");
+    return;
+  }
+
+  app.innerHTML = createLayout();
+
+  state.entries = loadEntries();
+
+  renderApp();
+  attachEvents();
+
+  if(state.entries[0]){
+    debug("[entry] createdAt=" + state.entries[0].createdAt);
+    debug("[entry] localKey=" + toLocalDateKey(state.entries[0].createdAt));
+  }
+
+  debug("calendar exists: " + !!document.querySelector(".calendar-card"));
+  debug("calendar grid exists: " + !!document.querySelector(".calendar-grid"));
+  debug("debug toggle exists: " + !!document.getElementById("debug-toggle"));
+  debug("debug log exists: " + !!document.getElementById("debug-log"));
+
+  debug("INIT COMPLETE");
+}
+
+document.addEventListener("DOMContentLoaded", initApp);
+</script>
+</body>
+</html>
+.header{ margin-bottom:18px; }
+
+.header h1{
+  margin:0 0 8px;
+  font-size:32px;
+  line-height:1.15;
+}
+
+.header p{
+  margin:0;
+  color:#b8bfd4;
+  font-size:14px;
+}
+
+.card,
+.streak-card,
+.calendar-card,
+.entry{
+  background:rgba(255,255,255,0.055);
+  border:1px solid rgba(255,255,255,0.08);
+}
+
+.streak-card{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  border-radius:24px;
+  padding:16px;
+  margin:18px 0 22px;
+}
+
+.streak-icon{ font-size:26px; }
+
+.streak-card strong{
+  display:block;
+  font-size:16px;
+  margin-bottom:4px;
+}
+
+.streak-card p{
+  margin:0;
+  color:#b8bfd4;
+  font-size:13px;
+}
+
+.card{
+  border-radius:24px;
+  padding:18px;
+  margin-bottom:22px;
+}
+
+.diary-input{
+  width:100%;
+  height:180px;
+  min-height:140px;
+  max-height:240px;
+  resize:none;
+  overflow-y:auto;
+  border:none;
+  outline:none;
+  border-radius:18px;
+  padding:16px;
+  line-height:1.7;
+  color:#fff;
+  background:rgba(255,255,255,0.05);
+  font:inherit;
+}
+
+.save-btn{
+  width:100%;
+  height:54px;
+  border:none;
+  border-radius:18px;
+  margin-top:14px;
+  background:linear-gradient(135deg,#8b5cf6,#6366f1);
+  color:white;
+  font-weight:700;
+  font-size:15px;
+}
+
+.calendar-card{
+  border-radius:24px;
+  padding:16px;
+  margin:20px 0 24px;
+}
+
+.calendar-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:14px;
+}
+
+.calendar-header button{
+  width:34px;
+  height:34px;
+  border:none;
+  border-radius:12px;
+  background:rgba(255,255,255,0.08);
+  color:white;
+  font-size:22px;
+}
+
+.calendar-title{ font-size:15px; }
+
 .calendar-weekdays,
 .calendar-grid{
   display:grid;
