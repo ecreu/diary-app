@@ -1,26 +1,15 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-
 <meta charset="UTF-8" />
-
 <meta
   name="viewport"
-  content="
-    width=device-width,
-    initial-scale=1,
-    viewport-fit=cover
-  "
+  content="width=device-width, initial-scale=1, viewport-fit=cover"
 />
 
 <title>하루 일기</title>
 
 <style>
-
-/* =========================
-   base
-========================= */
-
 html,
 body{
   margin:0;
@@ -31,21 +20,13 @@ body{
   overflow-y:auto;
   background:#050914;
   color:#f7f7fb;
-  font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
 }
 
 *{
   box-sizing:border-box;
-  -webkit-tap-highlight-color:
-    transparent;
+  -webkit-tap-highlight-color:transparent;
 }
-
-/* =========================
-   app
-========================= */
 
 #app{
   width:100%;
@@ -56,15 +37,8 @@ body{
   width:100%;
   max-width:680px;
   margin:0 auto;
-  padding:
-    24px
-    16px
-    220px;
+  padding:24px 16px 220px;
 }
-
-/* =========================
-   header
-========================= */
 
 .header{
   margin-bottom:24px;
@@ -82,30 +56,14 @@ body{
   font-size:14px;
 }
 
-/* =========================
-   card
-========================= */
-
 .card{
-  background:
-    rgba(255,255,255,0.055);
-
-  border:
-    1px solid rgba(
-      255,255,255,0.08
-    );
-
+  background:rgba(255,255,255,0.055);
+  border:1px solid rgba(255,255,255,0.08);
   border-radius:26px;
-
   padding:18px;
-
   margin-top:24px;
   margin-bottom:24px;
 }
-
-/* =========================
-   input
-========================= */
 
 input,
 textarea{
@@ -114,8 +72,7 @@ textarea{
   border:none;
   outline:none;
   color:#fff;
-  background:
-    rgba(255,255,255,0.05);
+  background:rgba(255,255,255,0.05);
   font:inherit;
 }
 
@@ -137,30 +94,17 @@ textarea{
   line-height:1.7;
 }
 
-/* =========================
-   button
-========================= */
-
 .save-btn{
   width:100%;
   height:54px;
   border:none;
   border-radius:18px;
   margin-top:14px;
-  background:
-    linear-gradient(
-      135deg,
-      #8b5cf6,
-      #6366f1
-    );
+  background:linear-gradient(135deg,#8b5cf6,#6366f1);
   color:white;
   font-weight:700;
   font-size:15px;
 }
-
-/* =========================
-   timeline
-========================= */
 
 .timeline{
   display:flex;
@@ -169,25 +113,10 @@ textarea{
   margin-top:24px;
 }
 
-.timeline:empty{
-  min-height:0;
-}
-
-/* =========================
-   entry
-========================= */
-
 .entry{
-  background:
-    rgba(255,255,255,0.055);
-
-  border:
-    1px solid rgba(
-      255,255,255,0.08
-    );
-
+  background:rgba(255,255,255,0.055);
+  border:1px solid rgba(255,255,255,0.08);
   border-radius:22px;
-
   padding:18px;
 }
 
@@ -222,10 +151,6 @@ textarea{
   padding:26px 0;
 }
 
-/* =========================
-   debug toggle
-========================= */
-
 #debug-toggle{
   position:fixed;
   top:14px;
@@ -234,16 +159,11 @@ textarea{
   height:42px;
   border:none;
   border-radius:50%;
-  background:
-    rgba(0,0,0,.7);
+  background:rgba(0,0,0,.7);
   color:#7CFF7C;
   font-size:18px;
   z-index:1000000;
 }
-
-/* =========================
-   debug console
-========================= */
 
 #debug-log{
   position:fixed;
@@ -252,18 +172,11 @@ textarea{
   width:100%;
   max-height:35vh;
   overflow-y:auto;
-  background:
-    rgba(0,0,0,.88);
+  background:rgba(0,0,0,.88);
   color:#7CFF7C;
   font-size:12px;
   line-height:1.5;
-  padding:
-    10px
-    10px
-    calc(
-      10px +
-      env(safe-area-inset-bottom)
-    );
+  padding:10px 10px calc(10px + env(safe-area-inset-bottom));
   z-index:999999;
   font-family:monospace;
 }
@@ -276,200 +189,124 @@ textarea{
   margin:4px 0;
   word-break:break-word;
 }
-
 </style>
-
 </head>
 
 <body>
 
 <div id="app"></div>
 
-<button id="debug-toggle">
-  🐞
-</button>
+<button id="debug-toggle">🐞</button>
 
 <div id="debug-log"></div>
 
 <script>
-
-/* =========================
-   debug
-========================= */
-
 const DEBUG_MAX_LOGS = 100;
-
 let debugVisible = true;
 
 function debug(message){
-
   console.log(message);
 
-  const log =
-    document.getElementById(
-      "debug-log"
-    );
+  const log = document.getElementById("debug-log");
 
   if(!log){
     return;
   }
 
-  const time =
-    new Date()
-      .toLocaleTimeString(
-        "ko-KR"
-      );
+  const time = new Date().toLocaleTimeString("ko-KR");
+  const line = document.createElement("p");
 
-  const line =
-    document.createElement("p");
-
-  line.textContent =
-    "[" + time + "] " +
-    message;
+  line.textContent = "[" + time + "] " + message;
 
   log.appendChild(line);
 
-  while(
-    log.children.length >
-    DEBUG_MAX_LOGS
-  ){
-    log.removeChild(
-      log.firstChild
-    );
+  while(log.children.length > DEBUG_MAX_LOGS){
+    log.removeChild(log.firstChild);
   }
 
-  log.scrollTop =
-    log.scrollHeight;
+  log.scrollTop = log.scrollHeight;
 }
 
-/* =========================
-   global error
-========================= */
+window.addEventListener("error", function(event){
+  debug("GLOBAL ERROR: " + event.message);
+});
 
-window.addEventListener(
-  "error",
-  function(event){
-
-    debug(
-      "GLOBAL ERROR: " +
-      event.message
-    );
-  }
-);
-
-/* =========================
-   state
-========================= */
+window.addEventListener("unhandledrejection", function(event){
+  debug("PROMISE ERROR: " + event.reason);
+});
 
 const state = {
   entries:[]
 };
 
-/* =========================
-   storage
-========================= */
-
 function loadEntries(){
-
-  debug(
-    "ENTER loadEntries"
-  );
+  debug("ENTER loadEntries");
 
   try{
-
-    const raw =
-      localStorage.getItem(
-        "entries"
-      );
+    const raw = localStorage.getItem("entries");
 
     if(!raw){
-
-      debug(
-        "EMPTY STORAGE"
-      );
-
+      debug("EMPTY STORAGE");
       return [];
     }
 
-    const parsed =
-      JSON.parse(raw);
+    const parsed = JSON.parse(raw);
 
-    if(
-      !Array.isArray(parsed)
-    ){
+    if(!Array.isArray(parsed)){
+      debug("STORAGE INVALID");
       return [];
     }
 
-    debug(
-      "LOAD SUCCESS"
-    );
+    debug("LOAD SUCCESS");
 
     return parsed;
-
   }catch(error){
-
-    debug(
-      "LOAD ERROR: " +
-      error.message
-    );
-
+    debug("LOAD ERROR: " + error.message);
     return [];
   }
-
 }
 
 function saveEntries(){
-
   try{
-
     localStorage.setItem(
       "entries",
-      JSON.stringify(
-        state.entries
-      )
+      JSON.stringify(state.entries)
     );
 
-    debug(
-      "SAVE SUCCESS"
-    );
-
+    debug("SAVE SUCCESS");
   }catch(error){
-
-    debug(
-      "SAVE ERROR: " +
-      error.message
-    );
+    debug("SAVE ERROR: " + error.message);
   }
-
 }
 
-/* =========================
-   emotion
-========================= */
-
 function analyzeEmotion(text){
+  const content = text.toLowerCase();
 
-  const content =
-    text.toLowerCase();
-
-  if(
-    content.includes("행복") ||
-    content.includes("좋")
-  ){
-
+  if(content.includes("행복") || content.includes("좋")){
     return {
       emoji:"😊",
       label:"행복"
     };
   }
 
-  if(
-    content.includes("슬")
-  ){
-
+  if(content.includes("슬")){
     return {
       emoji:"😢",
       label:"슬픔"
+    };
+  }
+
+  if(content.includes("화") || content.includes("짜증")){
+    return {
+      emoji:"😡",
+      label:"화남"
+    };
+  }
+
+  if(content.includes("피곤") || content.includes("졸")){
+    return {
+      emoji:"😴",
+      label:"피곤"
     };
   }
 
@@ -477,65 +314,36 @@ function analyzeEmotion(text){
     emoji:"😐",
     label:"평범"
   };
-
 }
 
 function createSummary(emotion){
-
   const summaries = {
-
-    행복:
-      "오늘은 따뜻한 하루였어요.",
-
-    슬픔:
-      "조금 지친 하루였네요.",
-
-    평범:
-      "소소한 하루였어요."
+    행복:"오늘은 따뜻한 하루였어요.",
+    슬픔:"조금 지친 하루였네요.",
+    화남:"감정 기복이 있었던 하루예요.",
+    피곤:"많이 피곤했던 하루였어요.",
+    평범:"소소한 하루였어요."
   };
 
-  return summaries[
-    emotion.label
-  ] || summaries.평범;
-
+  return summaries[emotion.label] || summaries.평범;
 }
 
-/* =========================
-   utils
-========================= */
-
 function escapeHtml(text){
-
-  return text
+  return String(text)
     .replace(/&/g,"&amp;")
     .replace(/</g,"&lt;")
     .replace(/>/g,"&gt;");
 }
 
-/* =========================
-   layout
-========================= */
-
 function createLayout(){
-
   return `
-
     <div class="mobile-app">
-
       <header class="header">
-
-        <h1>
-          하루 일기
-        </h1>
-
-        <p>
-          오늘 하루를 기록해보세요
-        </p>
-
+        <h1>하루 일기</h1>
+        <p>오늘 하루를 기록해보세요</p>
       </header>
 
       <section class="card">
-
         <input
           id="titleInput"
           class="input"
@@ -554,166 +362,98 @@ function createLayout(){
         >
           작성 완료
         </button>
-
       </section>
 
       <section
         id="timeline"
         class="timeline"
       ></section>
-
     </div>
-
   `;
-
 }
 
-/* =========================
-   render
-========================= */
-
 function renderTimeline(){
+  const timeline = document.querySelector(".timeline");
 
-  const timeline =
-    document.getElementById(
-      "timeline"
-    );
+  debug("timeline exists: " + !!timeline);
 
   if(!timeline){
     return;
   }
 
-  if(
-    state.entries.length === 0
-  ){
-
+  if(state.entries.length === 0){
     timeline.innerHTML = `
-
       <div class="entry empty">
         아직 작성된 일기가 없어요.
       </div>
-
     `;
 
     return;
   }
 
-  timeline.innerHTML =
+  timeline.innerHTML = state.entries
+    .slice()
+    .reverse()
+    .map(function(entry){
+      const emotion = entry.emotion || {
+        emoji:"😐",
+        label:"평범"
+      };
 
-    state.entries
-      .slice()
-      .reverse()
-      .map(function(entry){
+      return `
+        <article class="entry">
+          <div class="entry-title">
+            ${emotion.emoji}
+            ${escapeHtml(entry.title || "제목 없는 일기")}
+          </div>
 
-        return `
+          <div class="entry-date">
+            ${escapeHtml(entry.createdAt || "")}
+          </div>
 
-          <article class="entry">
+          <div class="entry-content">
+            ${escapeHtml(entry.content || "")}
+          </div>
 
-            <div class="entry-title">
-
-              ${entry.emotion.emoji}
-              ${escapeHtml(
-                entry.title
-              )}
-
-            </div>
-
-            <div class="entry-date">
-
-              ${entry.createdAt}
-
-            </div>
-
-            <div class="entry-content">
-
-              ${escapeHtml(
-                entry.content
-              )}
-
-            </div>
-
-            <div class="entry-summary">
-
-              ${entry.summary}
-
-            </div>
-
-          </article>
-
-        `;
-
-      })
-      .join("");
-
+          <div class="entry-summary">
+            ${escapeHtml(entry.summary || "")}
+          </div>
+        </article>
+      `;
+    })
+    .join("");
 }
 
-/* =========================
-   save
-========================= */
-
 function saveEntry(){
-
   try{
+    const titleInput = document.getElementById("titleInput");
+    const contentInput = document.getElementById("contentInput");
 
-    const titleInput =
-      document.getElementById(
-        "titleInput"
-      );
-
-    const contentInput =
-      document.getElementById(
-        "contentInput"
-      );
-
-    if(
-      !titleInput ||
-      !contentInput
-    ){
+    if(!titleInput || !contentInput){
+      debug("SAVE INPUT MISSING");
       return;
     }
 
-    const title =
-      titleInput.value.trim();
-
-    const content =
-      contentInput.value.trim();
+    const title = titleInput.value.trim();
+    const content = contentInput.value.trim();
 
     if(!content){
+      debug("EMPTY CONTENT");
       return;
     }
 
-    const emotion =
-      analyzeEmotion(
-        content
-      );
+    const emotion = analyzeEmotion(content);
 
     const entry = {
-
       id:Date.now(),
-
-      title:
-        title ||
-        "제목 없는 일기",
-
-      content,
-
-      createdAt:
-        new Date()
-          .toLocaleString(
-            "ko-KR"
-          ),
-
-      emotion,
-
-      summary:
-        createSummary(
-          emotion
-        )
+      title:title || "제목 없는 일기",
+      content:content,
+      createdAt:new Date().toLocaleString("ko-KR"),
+      emotion:emotion,
+      summary:createSummary(emotion)
     };
 
-    state.entries.push(
-      entry
-    );
+    state.entries.push(entry);
 
     saveEntries();
 
@@ -722,127 +462,71 @@ function saveEntry(){
     titleInput.value = "";
     contentInput.value = "";
 
-    debug(
-      "ENTRY SAVED"
-    );
-
+    debug("ENTRY SAVED");
   }catch(error){
-
-    debug(
-      "SAVE ERROR: " +
-      error.message
-    );
+    debug("SAVE ERROR: " + error.message);
   }
-
 }
-
-/* =========================
-   events
-========================= */
 
 function attachEvents(){
+  const saveBtn = document.querySelector(".save-btn");
 
-  const saveBtn =
-    document.getElementById(
-      "saveBtn"
-    );
+  debug("saveBtn exists: " + !!saveBtn);
 
   if(saveBtn){
-
-    saveBtn.addEventListener(
-      "click",
-      saveEntry
-    );
+    saveBtn.addEventListener("click", saveEntry);
   }
 
-  const toggle =
-    document.getElementById(
-      "debug-toggle"
-    );
+  const toggle = document.getElementById("debug-toggle");
+  const log = document.getElementById("debug-log");
 
-  const log =
-    document.getElementById(
-      "debug-log"
-    );
-
-  if(
-    toggle &&
-    log
-  ){
-
-    toggle.addEventListener(
-      "click",
-      function(){
-
-        debugVisible =
-          !debugVisible;
-
-        log.classList.toggle(
-          "hidden",
-          !debugVisible
-        );
-
-      }
-    );
+  if(toggle && log){
+    toggle.addEventListener("click", function(){
+      debugVisible = !debugVisible;
+      log.classList.toggle("hidden", !debugVisible);
+    });
   }
 
+  debug("attachEvents complete");
 }
 
-/* =========================
-   init
-========================= */
-
 function initApp(){
+  debug("INIT START");
 
+  const app = document.getElementById("app");
+
+  if(!app){
+    debug("APP NOT FOUND");
+    return;
+  }
+
+  app.innerHTML = createLayout();
+
+  debug("LAYOUT INSERTED");
+  debug("app children: " + app.children.length);
   debug(
-    "INIT START"
+    "timeline exists: " +
+    !!document.querySelector(".timeline")
+  );
+  debug(
+    "saveBtn exists: " +
+    !!document.querySelector(".save-btn")
   );
 
-  const app =
-    document.getElementById(
-      "app"
-    );
-
-  app.innerHTML =
-    createLayout();
-
-  debug(
-    "LAYOUT INSERTED"
-  );
-
-  state.entries =
-    loadEntries();
+  state.entries = loadEntries();
 
   renderTimeline();
 
   attachEvents();
 
-  debug(
-    "INIT COMPLETE"
-  );
-
+  debug("INIT COMPLETE");
 }
 
-/* =========================
-   start
-========================= */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  function(){
-
-    debug(
-      "DOM LOADED"
-    );
-
-    initApp();
-
-  }
-);
-
+document.addEventListener("DOMContentLoaded", function(){
+  debug("DOM LOADED");
+  initApp();
+});
 </script>
 
 </body>
 </html>
-
-
