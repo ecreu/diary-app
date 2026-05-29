@@ -221,10 +221,37 @@ html,body{
   padding:18px;
 }
 
+.entry-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:12px;
+}
+
 .entry-date{
   color:#b8bfd4;
   font-size:12px;
-  margin-bottom:12px;
+}
+
+.entry-delete-btn{
+  width:34px;
+  height:34px;
+  flex:0 0 auto;
+  border:none;
+  border-radius:999px;
+  display:grid;
+  place-items:center;
+  background:rgba(248,113,113,0.14);
+  color:#fecaca;
+  cursor:pointer;
+  font-size:18px;
+  line-height:1;
+}
+
+.entry-delete-btn:focus-visible{
+  outline:1px solid #fecaca;
+  outline-offset:2px;
 }
 
 .entry-content{
@@ -425,9 +452,25 @@ function escapeHtml(text){
     .replace(/>/g,"&gt;");
 }
 
+function escapeAttribute(text){
+  return escapeHtml(text)
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#39;");
+}
+
 function formatDateKey(dateKey){
   const parts = dateKey.split("-");
   return Number(parts[1]) + "월 " + Number(parts[2]) + "일";
+}
+
+function getEntryKey(entry){
+  if(!entry) return "";
+
+  if(entry.id !== undefined && entry.id !== null){
+    return String(entry.id);
+  }
+
+  return String(entry.createdAt || "");
 }
 
 function getEntryDateKey(entry){
@@ -608,9 +651,22 @@ function renderTimeline(dateKey){
 
   timeline.innerHTML = list
     .map(function(entry){
+      const entryKey = getEntryKey(entry);
+
       return `
-        <article class="entry">
-          <div class="entry-date">${escapeHtml(entry.createdAt || "")}</div>
+        <article class="entry" data-entry-id="${escapeAttribute(entryKey)}">
+          <div class="entry-header">
+            <div class="entry-date">${escapeHtml(entry.createdAt || "")}</div>
+            <button
+              class="entry-delete-btn"
+              type="button"
+              data-entry-id="${escapeAttribute(entryKey)}"
+              aria-label="기록 삭제"
+              title="기록 삭제"
+            >
+              ×
+            </button>
+          </div>
           <div class="entry-content">${escapeHtml(entry.content || "")}</div>
         </article>
       `;
@@ -661,6 +717,29 @@ function saveEntry(){
   }catch(error){
     debug("SAVE ERROR: " + error.message);
   }
+}
+
+function deleteEntry(entryId){
+  if(!entryId) return;
+
+  const confirmed = window.confirm("이 기록을 삭제할까요?");
+  if(!confirmed) return;
+
+  const beforeCount = state.entries.length;
+
+  state.entries = state.entries.filter(function(entry){
+    return getEntryKey(entry) !== entryId;
+  });
+
+  if(state.entries.length === beforeCount){
+    debug("DELETE TARGET NOT FOUND");
+    return;
+  }
+
+  saveEntries();
+  renderApp();
+
+  debug("ENTRY DELETED");
 }
 
 function attachDebugEvents(){
@@ -734,6 +813,13 @@ function attachEvents(){
   }
 
   document.onclick = function(event){
+    const deleteBtn = event.target.closest(".entry-delete-btn");
+
+    if(deleteBtn){
+      deleteEntry(deleteBtn.dataset.entryId);
+      return;
+    }
+
     if(event.target.classList.contains("clear-filter-btn")){
       state.currentFilterDate = null;
       renderCalendar();
