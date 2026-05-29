@@ -866,5 +866,238 @@ function initApp(){
 
 document.addEventListener("DOMContentLoaded", initApp);
 </script>
+<!-- 반드시 </body> 바로 위에 추가 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+/* =========================
+   SUPABASE
+========================= */
+
+const SUPABASE_URL = "여기에_SUPABASE_URL";
+const SUPABASE_ANON_KEY = "여기에_SUPABASE_ANON_KEY";
+
+const supabaseClient = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
+/* =========================
+   LOAD ENTRIES
+========================= */
+
+async function loadEntries(){
+
+  try{
+
+    const { data, error } = await supabaseClient
+      .from("diary_entries")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if(error){
+
+      debug("SUPABASE LOAD ERROR: " + error.message);
+
+      const local = localStorage.getItem("entries");
+
+      if(!local) return [];
+
+      return JSON.parse(local);
+    }
+
+    const entries = (data || []).map(function(item){
+
+      return {
+        id: item.id,
+        content: item.content,
+        createdAt: item.created_at
+      };
+
+    });
+
+    localStorage.setItem(
+      "entries",
+      JSON.stringify(entries)
+    );
+
+    debug("SUPABASE LOAD SUCCESS");
+
+    return entries;
+
+  }catch(error){
+
+    debug("LOAD ERROR: " + error.message);
+
+    const local = localStorage.getItem("entries");
+
+    if(!local) return [];
+
+    return JSON.parse(local);
+  }
+}
+
+/* =========================
+   SAVE LOCAL BACKUP
+========================= */
+
+async function saveEntries(){
+
+  try{
+
+    localStorage.setItem(
+      "entries",
+      JSON.stringify(state.entries)
+    );
+
+    debug("LOCAL SAVE SUCCESS");
+
+  }catch(error){
+
+    debug("LOCAL SAVE ERROR: " + error.message);
+  }
+}
+
+/* =========================
+   SAVE ENTRY
+========================= */
+
+async function saveEntry(){
+
+  try{
+
+    const contentInput =
+      document.getElementById("contentInput");
+
+    if(!contentInput){
+      debug("CONTENT INPUT MISSING");
+      return;
+    }
+
+    const content =
+      contentInput.value.trim();
+
+    if(!content){
+      debug("EMPTY CONTENT");
+      return;
+    }
+
+    const now = new Date();
+
+    const newEntry = {
+      content: content,
+      created_at: now.toISOString()
+    };
+
+    const { data, error } =
+      await supabaseClient
+        .from("diary_entries")
+        .insert([newEntry])
+        .select()
+        .single();
+
+    if(error){
+      debug("SUPABASE SAVE ERROR: " + error.message);
+      return;
+    }
+
+    const entry = {
+      id: data.id,
+      content: data.content,
+      createdAt: data.created_at
+    };
+
+    state.entries.unshift(entry);
+
+    state.currentFilterDate = null;
+
+    await saveEntries();
+
+    renderApp();
+
+    contentInput.value = "";
+
+    debug("ENTRY SAVED");
+
+  }catch(error){
+
+    debug("SAVE ERROR: " + error.message);
+  }
+}
+
+/* =========================
+   DELETE ENTRY
+========================= */
+
+async function deleteEntry(entryId){
+
+  if(!entryId) return;
+
+  const confirmed =
+    window.confirm("이 기록을 삭제할까요?");
+
+  if(!confirmed) return;
+
+  try{
+
+    const { error } =
+      await supabaseClient
+        .from("diary_entries")
+        .delete()
+        .eq("id", entryId);
+
+    if(error){
+      debug("DELETE ERROR: " + error.message);
+      return;
+    }
+
+    state.entries =
+      state.entries.filter(function(entry){
+        return getEntryKey(entry) !== entryId;
+      });
+
+    await saveEntries();
+
+    renderApp();
+
+    debug("ENTRY DELETED");
+
+  }catch(error){
+
+    debug("DELETE ERROR: " + error.message);
+  }
+}
+
+/* =========================
+   INIT APP
+========================= */
+
+async function initApp(){
+
+  debug("INIT START");
+
+  const app = document.getElementById("app");
+
+  if(!app){
+    debug("APP NOT FOUND");
+    return;
+  }
+
+  app.innerHTML = createLayout();
+
+  state.entries = await loadEntries();
+
+  renderApp();
+
+  attachEvents();
+
+  debug("INIT COMPLETE");
+}
+
+document.addEventListener(
+  "DOMContentLoaded",
+  initApp
+);
+</script>
 </body>
 </html>
