@@ -473,6 +473,29 @@ function getEntryKey(entry){
   return String(entry.createdAt || "");
 }
 
+function normalizeEntries(entries){
+  if(Array.isArray(entries)){
+    return entries;
+  }
+
+  return [];
+}
+
+function loadLocalEntriesBackup(){
+  try{
+    const local = localStorage.getItem("entries");
+
+    if(!local) return [];
+
+    const parsed = JSON.parse(local);
+
+    return normalizeEntries(parsed);
+  }catch(error){
+    debug("LOCAL LOAD ERROR: " + error.message);
+    return [];
+  }
+}
+
 function getEntryDateKey(entry){
   if(!entry) return "";
 
@@ -488,13 +511,18 @@ function getEntryDateKey(entry){
 }
 
 function getEntriesByDate(dateKey){
-  return state.entries.filter(function(entry){
+  return normalizeEntries(state.entries).filter(function(entry){
     if(!entry || !entry.createdAt) return false;
     return toLocalDateKey(entry.createdAt) === dateKey;
   });
 }
 
-function calculateStreak(entries){
+function calculateStreak(entries = []){
+  if(!Array.isArray(entries)){
+    console.error("entries is not array", entries);
+    return 0;
+  }
+
   const dateSet = new Set();
 
   entries.forEach(function(entry){
@@ -634,7 +662,7 @@ function renderTimeline(dateKey){
   const timeline = document.querySelector(".timeline");
   if(!timeline) return;
 
-  const list = (dateKey ? getEntriesByDate(dateKey) : state.entries)
+  const list = (dateKey ? getEntriesByDate(dateKey) : normalizeEntries(state.entries))
     .slice()
     .sort(function(a, b){
       return new Date(b.createdAt) - new Date(a.createdAt);
@@ -705,6 +733,7 @@ function saveEntry(){
       createdAt: now.toISOString()
     };
 
+    state.entries = normalizeEntries(state.entries);
     state.entries.push(entry);
     state.currentFilterDate = null;
 
@@ -725,6 +754,7 @@ function deleteEntry(entryId){
   const confirmed = window.confirm("이 기록을 삭제할까요?");
   if(!confirmed) return;
 
+  state.entries = normalizeEntries(state.entries);
   const beforeCount = state.entries.length;
 
   state.entries = state.entries.filter(function(entry){
@@ -899,14 +929,10 @@ async function loadEntries(){
 
       debug("SUPABASE LOAD ERROR: " + error.message);
 
-      const local = localStorage.getItem("entries");
-
-      if(!local) return [];
-
-      return JSON.parse(local);
+      return loadLocalEntriesBackup();
     }
 
-    const entries = (data || []).map(function(item){
+    const entries = normalizeEntries(data).map(function(item){
 
       return {
         id: item.id,
@@ -929,11 +955,7 @@ async function loadEntries(){
 
     debug("LOAD ERROR: " + error.message);
 
-    const local = localStorage.getItem("entries");
-
-    if(!local) return [];
-
-    return JSON.parse(local);
+    return loadLocalEntriesBackup();
   }
 }
 
@@ -1007,6 +1029,7 @@ async function saveEntry(){
       createdAt: data.created_at
     };
 
+    state.entries = normalizeEntries(state.entries);
     state.entries.unshift(entry);
 
     state.currentFilterDate = null;
@@ -1050,6 +1073,9 @@ async function deleteEntry(entryId){
       debug("DELETE ERROR: " + error.message);
       return;
     }
+
+    state.entries =
+      normalizeEntries(state.entries);
 
     state.entries =
       state.entries.filter(function(entry){
