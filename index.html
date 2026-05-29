@@ -221,11 +221,6 @@ html,body{
   padding:18px;
 }
 
-.entry-emotion{
-  font-size:26px;
-  margin-bottom:8px;
-}
-
 .entry-date{
   color:#b8bfd4;
   font-size:12px;
@@ -237,12 +232,6 @@ html,body{
   color:#e5e7eb;
   white-space:pre-wrap;
   word-break:break-word;
-}
-
-.entry-summary{
-  margin-top:12px;
-  color:#c4b5fd;
-  font-size:13px;
 }
 
 .empty{
@@ -429,40 +418,6 @@ function saveEntries(){
   }
 }
 
-function analyzeEmotion(text){
-  const content = text.toLowerCase();
-
-  if(content.includes("행복") || content.includes("좋")){
-    return { emoji:"😊", label:"행복" };
-  }
-
-  if(content.includes("슬")){
-    return { emoji:"😢", label:"슬픔" };
-  }
-
-  if(content.includes("화") || content.includes("짜증")){
-    return { emoji:"😡", label:"화남" };
-  }
-
-  if(content.includes("피곤") || content.includes("졸")){
-    return { emoji:"😴", label:"피곤" };
-  }
-
-  return { emoji:"😐", label:"평범" };
-}
-
-function createSummary(emotion){
-  const summaries = {
-    행복:"오늘의 요약: 따뜻하게 지나간 하루였어요.",
-    슬픔:"오늘의 요약: 조금 지친 하루였어요.",
-    화남:"오늘의 요약: 감정 기복이 있었던 하루였어요.",
-    피곤:"오늘의 요약: 몸과 마음이 쉬고 싶었던 하루였어요.",
-    평범:"오늘의 요약: 차분하게 지나간 하루였어요."
-  };
-
-  return summaries[emotion.label] || summaries.평범;
-}
-
 function escapeHtml(text){
   return String(text || "")
     .replace(/&/g,"&amp;")
@@ -564,18 +519,6 @@ function renderStreak(){
   `;
 }
 
-function getEmotionDotColor(emotion){
-  const label = emotion && emotion.label;
-
-  if(label === "행복") return "#facc15";
-  if(label === "평범") return "#9ca3af";
-  if(label === "슬픔") return "#60a5fa";
-  if(label === "화남") return "#f87171";
-  if(label === "피곤") return "#a78bfa";
-
-  return "#c4b5fd";
-}
-
 function renderCalendar(){
   const title = document.querySelector(".calendar-title");
   const weekdays = document.querySelector(".calendar-weekdays");
@@ -609,8 +552,6 @@ function renderCalendar(){
     const dateKey = makeDateKey(year, month, day);
     const entries = getEntriesByDate(dateKey);
     const hasEntry = entries.length > 0;
-    const latestEntry = entries[entries.length - 1];
-    const dotColor = hasEntry ? getEmotionDotColor(latestEntry.emotion) : "#c4b5fd";
     const todayClass = dateKey === toLocalDateKey(new Date()) ? " today" : "";
     const selectedClass = dateKey === state.currentFilterDate ? " selected" : "";
 
@@ -621,7 +562,7 @@ function renderCalendar(){
         data-date="${dateKey}"
       >
         ${day}
-        ${hasEntry ? `<span class="calendar-dot" style="background:${dotColor}"></span>` : ""}
+        ${hasEntry ? `<span class="calendar-dot"></span>` : ""}
       </button>
     `;
   }
@@ -667,14 +608,10 @@ function renderTimeline(dateKey){
 
   timeline.innerHTML = list
     .map(function(entry){
-      const emotion = entry.emotion || { emoji:"😐", label:"평범" };
-
       return `
         <article class="entry">
-          <div class="entry-emotion">${emotion.emoji}</div>
           <div class="entry-date">${escapeHtml(entry.createdAt || "")}</div>
           <div class="entry-content">${escapeHtml(entry.content || "")}</div>
-          <div class="entry-summary">${escapeHtml(entry.summary || "")}</div>
         </article>
       `;
     })
@@ -704,15 +641,12 @@ function saveEntry(){
       return;
     }
 
-    const emotion = analyzeEmotion(content);
     const now = new Date();
 
     const entry = {
       id: Date.now(),
       content: content,
-      createdAt: now.toISOString(),
-      emotion: emotion,
-      summary: createSummary(emotion)
+      createdAt: now.toISOString()
     };
 
     state.entries.push(entry);
