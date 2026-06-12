@@ -1085,6 +1085,30 @@ async function loadEntries(){
 }
 
 /* =========================
+   RLS / UPDATE PERMISSION TEST
+   실행: loadEntries 완료 후 1회 호출
+========================= */
+async function testUpdatePermission(){
+  try{
+    const first = state.entries && state.entries[0];
+    if(!first) return;
+
+    const { error } = await supabaseClient
+      .from('diary_entries')
+      .update({ content: first.content })
+      .eq('id', first.id);
+
+    if(error){
+      debug('UPDATE POLICY ERROR: ' + error.message);
+    }else{
+      debug('UPDATE POLICY OK');
+    }
+  }catch(err){
+    debug('UPDATE POLICY ERROR: ' + err.message);
+  }
+}
+
+/* =========================
    SAVE LOCAL BACKUP
 ========================= */
 
@@ -1238,48 +1262,56 @@ async function saveEdit(entryKey, newContent){
 
     const prev = entry.content || "";
 
-    // if entry has numeric id, attempt server update
+    // if entry has id, attempt server update
     if(entry.id !== undefined && entry.id !== null){
-      const numericId = Number(entry.id);
       const { data, error } = await supabaseClient
         .from('diary_entries')
         .update({ content: newContent })
-        .eq('id', numericId)
+        .eq('id', entry.id)
         .select()
         .single();
 
-      debug('SAVE EDIT RESPONSE: ' + JSON.stringify({ data: data || null, error: error || null }));
-
       if(error){
-        debug('SAVE EDIT ERROR (server): ' + error.message);
-        // 서버 업데이트 실패 시 로컬에 우선 반영하도록 폴백
-        entry.content = newContent;
-      }else if(data){
-        entry.content = data.content;
-        entry.createdAt = data.created_at || entry.createdAt;
-      }else{
-        debug('SAVE EDIT WARNING: no data returned from server update');
-        entry.content = newContent;
+        debug('EDIT ERROR: ' + error.message);
+        return; // do not modify local state on server failure
       }
+
+      if(!data){
+        debug('EDIT ERROR: no data returned from server');
+        return;
+      }
+
+      // on success, apply and persist
+      entry.content = data.content;
+      entry.createdAt = data.created_at || entry.createdAt;
+
+      state.editBackups = state.editBackups || {};
+      state.editBackups[entryKey] = prev;
+
+      state.editingId = null;
+      state.editingContent = null;
+
+      await saveEntries();
+      renderApp();
+
+      debug('EDIT SUCCESS: ' + JSON.stringify(data));
     }else{
-      // local-only entry
+      // local-only entry: update locally and persist
       entry.content = newContent;
+
+      state.editBackups = state.editBackups || {};
+      state.editBackups[entryKey] = prev;
+
+      state.editingId = null;
+      state.editingContent = null;
+
+      await saveEntries();
+      renderApp();
+
+      debug('EDIT SUCCESS: (local) ' + JSON.stringify(entry));
     }
-
-    // store backup for possible restore
-    state.editBackups = state.editBackups || {};
-    state.editBackups[entryKey] = prev;
-
-    // clear editing state
-    state.editingId = null;
-    state.editingContent = null;
-
-    await saveEntries();
-    renderApp();
-
-    debug('EDIT SAVED: ' + entryKey);
   }catch(error){
-    debug('SAVE EDIT ERROR: ' + error.message);
+    debug('EDIT ERROR: ' + error.message);
   }
 }
 
@@ -1297,42 +1329,44 @@ async function restoreEdit(entryKey){
       debug('RESTORE: entry not found ' + entryKey);
       return;
     }
-
     if(entry.id !== undefined && entry.id !== null){
-      const numericId = Number(entry.id);
       const { data, error } = await supabaseClient
         .from('diary_entries')
         .update({ content: prev })
-        .eq('id', numericId)
+        .eq('id', entry.id)
         .select()
         .single();
 
-      debug('RESTORE RESPONSE: ' + JSON.stringify({ data: data || null, error: error || null }));
-
       if(error){
-        debug('RESTORE ERROR (server): ' + error.message);
-        // 서버 복원 실패 시 로컬에서 복원 내용으로 적용
-        entry.content = prev;
-      }else if(data){
-        entry.content = data.content;
-        entry.createdAt = data.created_at || entry.createdAt;
-      }else{
-        debug('RESTORE WARNING: no data returned from server update');
-        entry.content = prev;
+        debug('EDIT ERROR: ' + error.message);
+        return; // do not modify local state on server failure
       }
+
+      if(!data){
+        debug('EDIT ERROR: no data returned from server');
+        return;
+      }
+
+      entry.content = data.content;
+      entry.createdAt = data.created_at || entry.createdAt;
+
+      // remove backup after restore
+      delete state.editBackups[entryKey];
+
+      await saveEntries();
+      renderApp();
+
+      debug('EDIT SUCCESS: ' + JSON.stringify(data));
     }else{
+      // local-only entry
       entry.content = prev;
+      delete state.editBackups[entryKey];
+      await saveEntries();
+      renderApp();
+      debug('EDIT SUCCESS: (local) ' + JSON.stringify(entry));
     }
-
-    // remove backup after restore
-    delete state.editBackups[entryKey];
-
-    await saveEntries();
-    renderApp();
-
-    debug('RESTORED: ' + entryKey);
   }catch(error){
-    debug('RESTORE ERROR: ' + error.message);
+    debug('EDIT ERROR: ' + error.message);
   }
 }
 
@@ -1354,6 +1388,9 @@ async function initApp(){
   app.innerHTML = createLayout();
 
   state.entries = await loadEntries();
+
+  // RLS / update permission test
+  try{ await testUpdatePermission(); }catch(e){ debug('testUpdatePermission error: ' + e.message); }
 
   renderApp();
 
