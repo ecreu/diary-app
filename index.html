@@ -319,7 +319,7 @@ const state = {
   entries: [],
   calendarYear: new Date().getFullYear(),
   calendarMonth: new Date().getMonth(),
-  selectedDateFilter: null
+  currentFilterDate: null
 };
 
 function debug(message){
@@ -624,7 +624,7 @@ function renderCalendar(){
     const entries = getEntriesByDate(dateKey);
     const hasEntry = entries.length > 0;
     const todayClass = dateKey === toLocalDateKey(new Date()) ? " today" : "";
-    const selectedClass = dateKey === state.selectedDateFilter ? " selected" : "";
+    const selectedClass = dateKey === state.currentFilterDate ? " selected" : "";
 
     html += `
       <button
@@ -645,19 +645,16 @@ function renderFilter(){
   const area = document.getElementById("filterArea");
   if(!area) return;
 
-  // 항상 날짜 검색 UI를 표시
+  if(!state.currentFilterDate){
+    area.innerHTML = "";
+    return;
+  }
+
   area.innerHTML = `
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-      <input id="date-input" type="date" value="${state.selectedDateFilter || ""}" />
-      <button id="date-search-btn" class="search-btn" type="button">검색</button>
-      <button id="date-show-all-btn" class="clear-filter-btn" type="button">전체 보기</button>
+    <div class="filter-bar">
+      <span>${formatDateKey(state.currentFilterDate)} 기록 보기</span>
+      <button type="button" class="clear-filter-btn">전체 보기</button>
     </div>
-    ${state.selectedDateFilter ? `
-      <div class="filter-bar">
-        <span>${formatDateKey(state.selectedDateFilter)} 기록 보기</span>
-        <button type="button" class="clear-filter-btn">전체 보기</button>
-      </div>
-    ` : ""}
   `;
 }
 
@@ -709,7 +706,7 @@ function renderApp(){
   renderStreak();
   renderCalendar();
   renderFilter();
-  renderTimeline(state.selectedDateFilter);
+  renderTimeline(state.currentFilterDate);
 }
 
 function saveEntry(){
@@ -738,7 +735,7 @@ function saveEntry(){
 
     state.entries = normalizeEntries(state.entries);
     state.entries.push(entry);
-    state.selectedDateFilter = null;
+    state.currentFilterDate = null;
 
     saveEntries();
     renderApp();
@@ -826,7 +823,7 @@ function attachCalendarEvents(){
       const selectedDate = day.dataset.date;
       const matched = getEntriesByDate(selectedDate).length;
 
-      state.selectedDateFilter = selectedDate;
+      state.currentFilterDate = selectedDate;
 
       debug("[calendar] clicked=" + selectedDate);
       debug("[calendar] matched=" + matched);
@@ -853,45 +850,11 @@ function attachEvents(){
       return;
     }
 
-    if(event.target.id === 'date-search-btn'){
-      const input = document.getElementById('date-input');
-      const v = input ? input.value : '';
-      if(!v){
-        window.alert('날짜를 선택하세요.');
-        return;
-      }
-
-      (async function(){
-        state.selectedDateFilter = v;
-        // fetch filtered entries from Supabase (or fallback)
-        try{
-          const entries = await loadEntries({ dateFilter: v });
-          state.entries = normalizeEntries(entries);
-        }catch(e){
-          debug('FILTER LOAD ERROR: ' + e.message);
-        }
-
-        renderCalendar();
-        renderFilter();
-        renderTimeline(v);
-      })();
-
-      return;
-    }
-
     if(event.target.classList.contains("clear-filter-btn")){
-      (async function(){
-        state.selectedDateFilter = null;
-        try{
-          const entries = await loadEntries();
-          state.entries = normalizeEntries(entries);
-        }catch(e){
-          debug('LOAD ALL ERROR: ' + e.message);
-        }
-        renderCalendar();
-        renderFilter();
-        renderTimeline();
-      })();
+      state.currentFilterDate = null;
+      renderCalendar();
+      renderFilter();
+      renderTimeline();
     }
   };
 
@@ -953,39 +916,30 @@ const supabaseClient = supabase.createClient(
    LOAD ENTRIES
 ========================= */
 
-async function loadEntries({ dateFilter } = {}){
+async function loadEntries(){
 
   try{
 
-    // 기본 쿼리
-    let query = supabaseClient
+    const { data, error } = await supabaseClient
       .from("diary_entries")
-      .select("*");
-
-    // 날짜 필터가 있으면 KST 기준으로 시작/종료를 UTC ISO 문자열로 변환하여 범위 조회
-    if(dateFilter){
-      // dateFilter은 YYYY-MM-DD 형식
-      const start = new Date(dateFilter + 'T00:00:00+09:00').toISOString();
-      const endDate = new Date(dateFilter + 'T00:00:00+09:00');
-      endDate.setDate(endDate.getDate() + 1);
-      const end = endDate.toISOString();
-
-      query = query.gte('created_at', start).lt('created_at', end);
-    }
-
-    const { data, error } = await query.order("created_at", { ascending: false });
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if(error){
+
       debug("SUPABASE LOAD ERROR: " + error.message);
+
       return loadLocalEntriesBackup();
     }
 
     const entries = normalizeEntries(data).map(function(item){
+
       return {
         id: item.id,
         content: item.content,
         createdAt: item.created_at
       };
+
     });
 
     localStorage.setItem(
@@ -998,7 +952,9 @@ async function loadEntries({ dateFilter } = {}){
     return entries;
 
   }catch(error){
+
     debug("LOAD ERROR: " + error.message);
+
     return loadLocalEntriesBackup();
   }
 }
@@ -1076,7 +1032,7 @@ async function saveEntry(){
     state.entries = normalizeEntries(state.entries);
     state.entries.unshift(entry);
 
-    state.selectedDateFilter = null;
+    state.currentFilterDate = null;
 
     await saveEntries();
 
