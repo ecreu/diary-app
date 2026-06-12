@@ -775,6 +775,9 @@ function renderTimeline(dateKey){
               >
                 ✎
               </button>
+              ${state.editBackups && state.editBackups[entryKey] ? `
+                <button class="restore-edit-btn" data-entry-id="${escapeAttribute(entryKey)}" title="이전 버전으로 복원">복원</button>
+              ` : ""}
             </div>
           </div>
           <div class="entry-content">${escapeHtml(entry.content || "")}</div>
@@ -966,6 +969,8 @@ function attachEvents(){
     const restoreBtn = event.target.closest('.restore-edit-btn');
     if(restoreBtn){
       const id = restoreBtn.dataset.entryId;
+      const confirmRestore = window.confirm('이 기록을 이전 버전으로 복원하시겠습니까?');
+      if(!confirmRestore) return;
       restoreEdit(id);
       return;
     }
