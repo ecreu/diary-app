@@ -1243,13 +1243,14 @@ async function saveEdit(entryKey, newContent){
         .single();
 
       if(error){
-        debug('SAVE EDIT ERROR: ' + error.message);
-        window.alert('저장에 실패했습니다. 네트워크를 확인하세요.');
-        return;
+        debug('SAVE EDIT ERROR (server): ' + error.message);
+        // 서버 업데이트 실패 시 로컬에 우선 반영하도록 폴백
+        entry.content = newContent;
+        // continue — still store backup below
+      }else{
+        entry.content = data.content;
+        entry.createdAt = data.created_at || entry.createdAt;
       }
-
-      entry.content = data.content;
-      entry.createdAt = data.created_at || entry.createdAt;
     }else{
       // local-only entry
       entry.content = newContent;
@@ -1296,13 +1297,13 @@ async function restoreEdit(entryKey){
         .single();
 
       if(error){
-        debug('RESTORE ERROR: ' + error.message);
-        window.alert('복원에 실패했습니다. 네트워크를 확인하세요.');
-        return;
+        debug('RESTORE ERROR (server): ' + error.message);
+        // 서버 복원 실패 시 로컬에서 복원 내용으로 적용
+        entry.content = prev;
+      }else{
+        entry.content = data.content;
+        entry.createdAt = data.created_at || entry.createdAt;
       }
-
-      entry.content = data.content;
-      entry.createdAt = data.created_at || entry.createdAt;
     }else{
       entry.content = prev;
     }
