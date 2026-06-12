@@ -743,9 +743,9 @@ function renderTimeline(dateKey){
             <div>
               <textarea data-edit-entry-id="${escapeAttribute(entryKey)}" class="diary-input" style="height:120px">${escapeHtml(editContent)}</textarea>
               <div style="margin-top:8px;display:flex;gap:8px">
-                <button class="save-edit-btn" data-entry-id="${escapeAttribute(entryKey)}">저장</button>
-                <button class="cancel-edit-btn" data-entry-id="${escapeAttribute(entryKey)}">취소</button>
-                ${state.editBackups && state.editBackups[entryKey] ? `<button class="restore-edit-btn" data-entry-id="${escapeAttribute(entryKey)}">복원</button>` : ""}
+                <button type="button" class="save-edit-btn" data-entry-id="${escapeAttribute(entryKey)}">저장</button>
+                  <button type="button" class="cancel-edit-btn" data-entry-id="${escapeAttribute(entryKey)}">취소</button>
+                  ${state.editBackups && state.editBackups[entryKey] ? `<button type="button" class="restore-edit-btn" data-entry-id="${escapeAttribute(entryKey)}">복원</button>` : ""}
               </div>
             </div>
           </article>
@@ -954,6 +954,8 @@ function attachEvents(){
       const id = saveEditBtn.dataset.entryId;
       const ta = document.querySelector(`textarea[data-edit-entry-id="${id}"]`);
       const newContent = ta ? ta.value : "";
+      debug('save-edit clicked: ' + id);
+      debug('save-edit content length: ' + (newContent ? newContent.length : 0));
       saveEdit(id, newContent);
       return;
     }
@@ -1250,6 +1252,7 @@ async function deleteEntry(entryId){
 ========================= */
 
 async function saveEdit(entryKey, newContent){
+  debug('saveEdit start: ' + entryKey);
   try{
     state.editingId = entryKey; // keep editing until saved
 
