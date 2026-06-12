@@ -1240,21 +1240,26 @@ async function saveEdit(entryKey, newContent){
 
     // if entry has numeric id, attempt server update
     if(entry.id !== undefined && entry.id !== null){
+      const numericId = Number(entry.id);
       const { data, error } = await supabaseClient
         .from('diary_entries')
         .update({ content: newContent })
-        .eq('id', entry.id)
+        .eq('id', numericId)
         .select()
         .single();
+
+      debug('SAVE EDIT RESPONSE: ' + JSON.stringify({ data: data || null, error: error || null }));
 
       if(error){
         debug('SAVE EDIT ERROR (server): ' + error.message);
         // 서버 업데이트 실패 시 로컬에 우선 반영하도록 폴백
         entry.content = newContent;
-        // continue — still store backup below
-      }else{
+      }else if(data){
         entry.content = data.content;
         entry.createdAt = data.created_at || entry.createdAt;
+      }else{
+        debug('SAVE EDIT WARNING: no data returned from server update');
+        entry.content = newContent;
       }
     }else{
       // local-only entry
@@ -1294,20 +1299,26 @@ async function restoreEdit(entryKey){
     }
 
     if(entry.id !== undefined && entry.id !== null){
+      const numericId = Number(entry.id);
       const { data, error } = await supabaseClient
         .from('diary_entries')
         .update({ content: prev })
-        .eq('id', entry.id)
+        .eq('id', numericId)
         .select()
         .single();
+
+      debug('RESTORE RESPONSE: ' + JSON.stringify({ data: data || null, error: error || null }));
 
       if(error){
         debug('RESTORE ERROR (server): ' + error.message);
         // 서버 복원 실패 시 로컬에서 복원 내용으로 적용
         entry.content = prev;
-      }else{
+      }else if(data){
         entry.content = data.content;
         entry.createdAt = data.created_at || entry.createdAt;
+      }else{
+        debug('RESTORE WARNING: no data returned from server update');
+        entry.content = prev;
       }
     }else{
       entry.content = prev;
