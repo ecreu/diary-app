@@ -306,6 +306,44 @@ html,body{
   margin:4px 0;
   word-break:break-word;
 }
+/* UI 부드럽게 보이도록 약간의 트랜지션과 호버 스타일 추가 */
+.diary-input, textarea{
+  transition: background-color .12s ease, box-shadow .12s ease, transform .08s ease;
+  border-radius:14px;
+}
+.diary-input:focus, textarea:focus{
+  box-shadow: 0 6px 18px rgba(2,6,23,0.6), 0 0 0 4px rgba(99,102,241,0.08);
+  outline: none;
+  background: rgba(255,255,255,0.06);
+  transform: translateY(-1px);
+}
+.save-btn, .clear-filter-btn, .entry-edit-btn, .save-edit-btn, .cancel-edit-btn, .restore-edit-btn{
+  transition: transform .08s ease, background-color .12s ease, box-shadow .12s ease;
+  cursor:pointer;
+}
+.save-btn:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(99,102,241,0.12);
+}
+.clear-filter-btn:hover, .entry-edit-btn:hover, .save-edit-btn:hover, .cancel-edit-btn:hover, .restore-edit-btn:hover{
+  background: rgba(255,255,255,0.12);
+  transform: translateY(-2px);
+}
+.entry{
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+}
+.entry:hover{
+  transform: translateY(-6px);
+  box-shadow: 0 12px 30px rgba(2,6,23,0.6);
+}
+.calendar-day{
+  transition: background-color .12s ease, transform .08s ease, box-shadow .12s ease;
+}
+.calendar-day:hover{
+  transform: translateY(-4px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.45);
+}
+.entry-header button{ padding:6px; border-radius:8px; }
 </style>
 </head>
 
