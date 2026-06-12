@@ -320,6 +320,9 @@ const state = {
   calendarYear: new Date().getFullYear(),
   calendarMonth: new Date().getMonth(),
   currentFilterDate: null
+  , editBackups: {}
+  , editingId: null
+  , editingContent: null
 };
 
 function debug(message){
@@ -680,20 +683,61 @@ function renderTimeline(dateKey){
   timeline.innerHTML = list
     .map(function(entry){
       const entryKey = getEntryKey(entry);
+      const isEditing = state.editingId === entryKey;
+
+      if(isEditing){
+        const editContent = state.editingContent != null ? state.editingContent : (entry.content || "");
+
+        return `
+          <article class="entry" data-entry-id="${escapeAttribute(entryKey)}">
+            <div class="entry-header">
+              <div class="entry-date">${escapeHtml(entry.createdAt || "")}</div>
+              <button
+                class="entry-delete-btn"
+                type="button"
+                data-entry-id="${escapeAttribute(entryKey)}"
+                aria-label="기록 삭제"
+                title="기록 삭제"
+              >
+                ×
+              </button>
+            </div>
+            <div>
+              <textarea data-edit-entry-id="${escapeAttribute(entryKey)}" class="diary-input" style="height:120px">${escapeHtml(editContent)}</textarea>
+              <div style="margin-top:8px;display:flex;gap:8px">
+                <button class="save-edit-btn" data-entry-id="${escapeAttribute(entryKey)}">저장</button>
+                <button class="cancel-edit-btn" data-entry-id="${escapeAttribute(entryKey)}">취소</button>
+                ${state.editBackups && state.editBackups[entryKey] ? `<button class="restore-edit-btn" data-entry-id="${escapeAttribute(entryKey)}">복원</button>` : ""}
+              </div>
+            </div>
+          </article>
+        `;
+      }
 
       return `
         <article class="entry" data-entry-id="${escapeAttribute(entryKey)}">
           <div class="entry-header">
             <div class="entry-date">${escapeHtml(entry.createdAt || "")}</div>
-            <button
-              class="entry-delete-btn"
-              type="button"
-              data-entry-id="${escapeAttribute(entryKey)}"
-              aria-label="기록 삭제"
-              title="기록 삭제"
-            >
-              ×
-            </button>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button
+                class="entry-delete-btn"
+                type="button"
+                data-entry-id="${escapeAttribute(entryKey)}"
+                aria-label="기록 삭제"
+                title="기록 삭제"
+              >
+                ×
+              </button>
+              <button
+                class="entry-edit-btn"
+                type="button"
+                data-entry-id="${escapeAttribute(entryKey)}"
+                aria-label="기록 수정"
+                title="기록 수정"
+              >
+                ✎
+              </button>
+            </div>
           </div>
           <div class="entry-content">${escapeHtml(entry.content || "")}</div>
         </article>
@@ -847,6 +891,44 @@ function attachEvents(){
 
     if(deleteBtn){
       deleteEntry(deleteBtn.dataset.entryId);
+      return;
+    }
+
+    const editBtn = event.target.closest(".entry-edit-btn");
+    if(editBtn){
+      const id = editBtn.dataset.entryId;
+      const entry = normalizeEntries(state.entries).find(function(e){ return getEntryKey(e) === id; });
+      state.editingId = id;
+      state.editingContent = entry ? entry.content : "";
+      renderTimeline(state.currentFilterDate);
+      setTimeout(function(){
+        const ta = document.querySelector(`textarea[data-edit-entry-id="${id}"]`);
+        if(ta) ta.focus();
+      }, 50);
+      return;
+    }
+
+    const saveEditBtn = event.target.closest('.save-edit-btn');
+    if(saveEditBtn){
+      const id = saveEditBtn.dataset.entryId;
+      const ta = document.querySelector(`textarea[data-edit-entry-id="${id}"]`);
+      const newContent = ta ? ta.value : "";
+      saveEdit(id, newContent);
+      return;
+    }
+
+    const cancelEditBtn = event.target.closest('.cancel-edit-btn');
+    if(cancelEditBtn){
+      state.editingId = null;
+      state.editingContent = null;
+      renderTimeline(state.currentFilterDate);
+      return;
+    }
+
+    const restoreBtn = event.target.closest('.restore-edit-btn');
+    if(restoreBtn){
+      const id = restoreBtn.dataset.entryId;
+      restoreEdit(id);
       return;
     }
 
@@ -1091,6 +1173,111 @@ async function deleteEntry(entryId){
   }catch(error){
 
     debug("DELETE ERROR: " + error.message);
+  }
+}
+
+/* =========================
+   EDIT / RESTORE ENTRY
+   - saveEdit(id, newContent): 서버(또는 로컬)에 내용 업데이트, 이전 내용은 editBackups에 보관
+   - restoreEdit(id): editBackups에 보관된 이전 내용으로 되돌림
+========================= */
+
+async function saveEdit(entryKey, newContent){
+  try{
+    state.editingId = entryKey; // keep editing until saved
+
+    // find entry
+    const entry = normalizeEntries(state.entries).find(function(e){ return getEntryKey(e) === entryKey; });
+    if(!entry){
+      debug('SAVE EDIT: entry not found ' + entryKey);
+      return;
+    }
+
+    const prev = entry.content || "";
+
+    // if entry has numeric id, attempt server update
+    if(entry.id !== undefined && entry.id !== null){
+      const { data, error } = await supabaseClient
+        .from('diary_entries')
+        .update({ content: newContent })
+        .eq('id', entry.id)
+        .select()
+        .single();
+
+      if(error){
+        debug('SAVE EDIT ERROR: ' + error.message);
+        window.alert('저장에 실패했습니다. 네트워크를 확인하세요.');
+        return;
+      }
+
+      entry.content = data.content;
+      entry.createdAt = data.created_at || entry.createdAt;
+    }else{
+      // local-only entry
+      entry.content = newContent;
+    }
+
+    // store backup for possible restore
+    state.editBackups = state.editBackups || {};
+    state.editBackups[entryKey] = prev;
+
+    // clear editing state
+    state.editingId = null;
+    state.editingContent = null;
+
+    await saveEntries();
+    renderApp();
+
+    debug('EDIT SAVED: ' + entryKey);
+  }catch(error){
+    debug('SAVE EDIT ERROR: ' + error.message);
+  }
+}
+
+async function restoreEdit(entryKey){
+  try{
+    state.editBackups = state.editBackups || {};
+    const prev = state.editBackups[entryKey];
+    if(prev === undefined){
+      debug('RESTORE: no backup for ' + entryKey);
+      return;
+    }
+
+    const entry = normalizeEntries(state.entries).find(function(e){ return getEntryKey(e) === entryKey; });
+    if(!entry){
+      debug('RESTORE: entry not found ' + entryKey);
+      return;
+    }
+
+    if(entry.id !== undefined && entry.id !== null){
+      const { data, error } = await supabaseClient
+        .from('diary_entries')
+        .update({ content: prev })
+        .eq('id', entry.id)
+        .select()
+        .single();
+
+      if(error){
+        debug('RESTORE ERROR: ' + error.message);
+        window.alert('복원에 실패했습니다. 네트워크를 확인하세요.');
+        return;
+      }
+
+      entry.content = data.content;
+      entry.createdAt = data.created_at || entry.createdAt;
+    }else{
+      entry.content = prev;
+    }
+
+    // remove backup after restore
+    delete state.editBackups[entryKey];
+
+    await saveEntries();
+    renderApp();
+
+    debug('RESTORED: ' + entryKey);
+  }catch(error){
+    debug('RESTORE ERROR: ' + error.message);
   }
 }
 
